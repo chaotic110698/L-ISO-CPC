@@ -1,0 +1,80 @@
+/*
+ * Variables de conception : couleurs (thèmes clair et sombre), typographie, dimensions.
+ * Toute couleur de l'interface et de l'éditeur doit venir d'ici.
+ * Les couleurs des catégories de codes ISO (coloration syntaxique) seront ajoutées à l'étape 2.
+ */
+
+:root {
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+  --editor-font-size: 15px;
+
+  --radius: 8px;
+  --radius-lg: 12px;
+  --topbar-height: 52px;
+  --tap: 40px;
+  --gutter: 16px;
+}
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --surface-3: #e3e6eb;
+  --border: #d7dbe1;
+  --border-strong: #b9bfc8;
+  --text: #1c2128;
+  --text-muted: #5c6572;
+  --accent: #2563eb;
+  --accent-hover: #1d4fd0;
+  --accent-contrast: #ffffff;
+  --accent-soft: #e2eafd;
+  --danger: #c0352b;
+  --danger-soft: #fbe7e5;
+  --warning: #a35f00;
+  --warning-soft: #fdf1dc;
+  --success: #2c7a3f;
+  --shadow: 0 8px 28px rgb(15 23 42 / 0.16);
+  --backdrop: rgb(15 23 42 / 0.38);
+
+  --editor-bg: #ffffff;
+  --editor-text: #1c2128;
+  --editor-gutter-bg: #f7f8fa;
+  --editor-gutter-text: #8b94a1;
+  --editor-active-line: #f0f4fa;
+  --editor-selection: #cddfff;
+  --editor-cursor: #1c2128;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #121418;
+  --surface: #1b1e23;
+  --surface-2: #23272e;
+  --surface-3: #2d323a;
+  --border: #323843;
+  --border-strong: #48505d;
+  --text: #e4e7ec;
+  --text-muted: #9ba4b1;
+  --accent: #5b9cff;
+  --accent-hover: #7cb0ff;
+  --accent-contrast: #0b1424;
+  --accent-soft: #1f2f4b;
+  --danger: #f07167;
+  --danger-soft: #3a2224;
+  --warning: #e5a442;
+  --warning-soft: #3a2f1c;
+  --success: #62c47a;
+  --shadow: 0 10px 32px rgb(0 0 0 / 0.5);
+  --backdrop: rgb(0 0 0 / 0.55);
+
+  --editor-bg: #171a1f;
+  --editor-text: #dfe3e9;
+  --editor-gutter-bg: #15171b;
+  --editor-gutter-text: #69717e;
+  --editor-active-line: #1f232a;
+  --editor-selection: #2c4a78;
+  --editor-cursor: #e4e7ec;
+}

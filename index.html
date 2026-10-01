@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>L-ISO-CPC · Éditeur ISO / G-code</title>
+    <meta name="description" content="Éditeur et documentation de programmation ISO / G-code (tournage Fanuc), hors ligne, dans le navigateur." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <script>
+      // Thème appliqué avant l'affichage (évite un flash clair en mode sombre).
+      // Doit rester cohérent avec src/settings/schema.js (clé « theme ») et src/storage/kv.js (préfixe).
+      (function () {
+        var theme = null;
+        try {
+          var saved = JSON.parse(localStorage.getItem('isocpc:settings') || '{}');
+          if (saved.theme === 'light' || saved.theme === 'dark') theme = saved.theme;
+        } catch (e) {}
+        if (!theme) theme = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div class="boot">Chargement…</div>
+      <noscript><div class="boot boot-error">Cette application nécessite JavaScript.</div></noscript>
+    </div>
+    <!-- Script classique (et non module ES) : fonctionne aussi en ouvrant ce fichier par double-clic. -->
+    <script
+      src="dist/app.js"
+      onerror="document.getElementById('app').innerHTML='<div class=&quot;boot boot-error&quot;><h1>Fichier dist/app.js introuvable</h1><p>Lancez « npm run build » puis rechargez la page.</p></div>'"
+    ></script>
+  </body>
+</html>

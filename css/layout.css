@@ -1,0 +1,242 @@
+/* Mise en page générale : barre du haut, pages, éditeur. Mobile d'abord, puis grands écrans. */
+
+.app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ---- Barre du haut ---- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: calc(var(--topbar-height) + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) max(6px, env(safe-area-inset-right)) 0 max(6px, env(safe-area-inset-left));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: none;
+  padding: 2px 7px;
+  margin: 0 6px 0 2px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font: 700 12px/1.4 var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.program-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: var(--tap);
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font-weight: 600;
+}
+
+.program-title:hover {
+  background: var(--surface-2);
+}
+
+.program-title-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dirty-dot {
+  color: var(--warning);
+}
+
+.dirty-dot .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.topbar-spacer {
+  flex: 1;
+}
+
+.topnav {
+  display: flex;
+  gap: 2px;
+}
+
+.topnav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--tap);
+  padding: 0 10px;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.topnav-link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.topnav-link[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.topnav-label {
+  display: none;
+}
+
+/* ---- Pages ---- */
+
+.pages {
+  position: relative;
+  min-height: 0;
+}
+
+.page {
+  height: 100%;
+}
+
+/* ---- Page Éditeur ---- */
+
+.editor-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px max(6px, env(safe-area-inset-right)) 4px max(6px, env(safe-area-inset-left));
+  overflow-x: auto;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+.toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.editor-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.editor-host {
+  min-width: 0;
+  min-height: 0;
+  padding-left: env(safe-area-inset-left);
+  background: var(--editor-bg);
+}
+
+.editor-host .cm-editor {
+  height: 100%;
+}
+
+.side-panel {
+  min-height: 0;
+  overflow: auto;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+}
+
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 26px;
+  padding: 3px max(10px, env(safe-area-inset-right)) max(3px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.status-side {
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.status-item[data-tone='warning'] {
+  color: var(--warning);
+}
+
+.status-item[data-tone='error'] {
+  color: var(--danger);
+}
+
+/* ---- Page Paramètres ---- */
+
+.settings-page {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.settings-inner {
+  display: grid;
+  gap: 16px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 20px max(var(--gutter), env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+}
+
+.page-title {
+  font-size: 1.4rem;
+}
+
+/* ---- Grands écrans ---- */
+
+@media (min-width: 720px) {
+  .brand {
+    display: inline-block;
+  }
+
+  .topnav-label {
+    display: inline;
+  }
+
+  .topbar {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+
+  .toolbar {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .editor-area:has(> .side-panel:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr) clamp(260px, 28vw, 380px);
+  }
+
+  .settings-inner {
+    padding-top: 28px;
+  }
+}
+
+/* iOS zoome sur les champs dont le texte fait moins de 16 px : on l'évite dans l'éditeur. */
+@supports (-webkit-touch-callout: none) {
+  .editor-host .cm-editor {
+    font-size: max(16px, var(--editor-font-size));
+  }
+}
