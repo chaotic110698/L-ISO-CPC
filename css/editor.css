@@ -180,3 +180,45 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* ---- Macros : avertissement (non bloquant) ---- */
+
+.cm-macro-warning {
+  text-decoration: underline wavy var(--warning);
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+}
+
+.def-warnings {
+  display: grid;
+  gap: 6px;
+}
+
+/* ---- Liste de suggestions (autocomplétion) ---- */
+
+.cm-tooltip.cm-tooltip-autocomplete > ul {
+  font-family: var(--font-mono);
+  max-height: 14em;
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul > li {
+  padding: 4px 10px;
+}
+
+.cm-tooltip-autocomplete ul li[aria-selected] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.cm-completionDetail {
+  margin-left: 10px;
+  font-family: var(--font-ui);
+  font-style: normal;
+  opacity: 0.75;
+}
+
+.cm-tooltip.cm-completionInfo {
+  max-width: min(320px, 70vw);
+  padding: 8px 10px;
+  font-size: 13px;
+}

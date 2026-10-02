@@ -24,9 +24,13 @@ const MIGRATIONS = [
   (db) => {
     db.createObjectStore('profiles', { keyPath: 'id' });
   },
+  // v3 : noms et descriptions personnels des variables de macro.
+  (db) => {
+    db.createObjectStore('macros', { keyPath: 'id' });
+  },
 ];
 
-export const STORES = ['programs', 'meta', 'profiles'];
+export const STORES = ['programs', 'meta', 'profiles', 'macros'];
 
 const clone = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)));
 

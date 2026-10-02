@@ -93,6 +93,11 @@
   background: var(--surface-2);
 }
 
+.tool-btn[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .tool-btn:disabled {
   opacity: 0.4;
 }
@@ -1076,4 +1081,138 @@ dialog::backdrop {
   display: flex;
   flex: none;
   gap: 2px;
+}
+
+/* ---- Panneau des variables ---- */
+
+.side-panel-content {
+  display: grid;
+  gap: 10px;
+  padding: 10px 14px 18px;
+}
+
+.var-summary {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 13px;
+}
+
+.var-summary .btn {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.var-heading {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.var-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.var-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.var-row:first-child {
+  border-top: 0;
+}
+
+.var-key {
+  flex: none;
+  min-width: 5.5ch;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.var-key.tok-address {
+  background: var(--surface-2);
+}
+
+.var-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.var-text small {
+  overflow-wrap: anywhere;
+}
+
+.var-name {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+}
+
+.var-name .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+}
+
+.var-name.is-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.var-warning {
+  display: flex;
+  gap: 6px;
+  color: var(--warning);
+}
+
+.var-warning .icon {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+}
+
+.var-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.var-warnings {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--warning);
+  font-size: 13px;
+}
+
+.var-warnings:empty {
+  display: none;
 }

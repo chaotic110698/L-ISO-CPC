@@ -1,6 +1,7 @@
 import { EditorView, showTooltip, keymap } from '@codemirror/view';
 import { StateField, StateEffect } from '@codemirror/state';
 import { parseLine, tokenAt, explainToken } from '../../engine/index.js';
+import { analyzeMacros, variableWarnings } from '../../engine/macros.js';
 import { renderExplanation } from '../../ui/editor/definition-view.js';
 
 const setDefinition = StateEffect.define();
@@ -18,16 +19,31 @@ function assignmentsIn(doc) {
   };
 }
 
+/** Nom personnel, description et avertissements d'une variable (service des macros). */
+function variableInfoIn(doc, macros) {
+  return (index) => {
+    if (!macros) return {};
+    const named = macros.name(index);
+    let warnings = [];
+    if (macros.warningsEnabled) {
+      const variable = analyzeMacros(doc.iterLines()).variables.find((v) => v.index === index);
+      const { profile, ranges } = macros.ranges();
+      if (variable) warnings = variableWarnings(variable, { ranges, rangesLabel: profile?.name, elsewhere: macros.assignedElsewhere() }).map((w) => w.message);
+    }
+    return { name: named?.name, description: named?.description, warnings };
+  };
+}
+
 /** Explication du jeton situé à la position `pos`, ou null. */
-function explainAt(state, pos, dictionary) {
+function explainAt(state, pos, dictionary, macros) {
   const line = state.doc.lineAt(pos);
   const { tokens, block } = parseLine(line.text);
   const token = tokenAt(tokens, pos - line.from);
-  const explanation = explainToken(token, { block, dictionary, findAssignments: assignmentsIn(state.doc) });
+  const explanation = explainToken(token, { block, dictionary, findAssignments: assignmentsIn(state.doc), variableInfo: variableInfoIn(state.doc, macros) });
   return explanation && { pos: line.from + token.from, end: line.from + token.to, explanation };
 }
 
-function definitionsExtension(dictionary, editCode) {
+function definitionsExtension(dictionary, editCode, macros) {
   const field = StateField.define({
     create: () => null,
     update(value, tr) {
@@ -69,7 +85,7 @@ function definitionsExtension(dictionary, editCode) {
 
   let pressed = null;
   const open = (view, pos) => {
-    const found = pos == null ? null : explainAt(view.state, pos, dictionary);
+    const found = pos == null ? null : explainAt(view.state, pos, dictionary, macros);
     view.dispatch({ effects: setDefinition.of(found) });
     return Boolean(found);
   };
@@ -119,7 +135,7 @@ export default {
     'Un clic (ou un tap) sur un code, une adresse ou une macro affiche sa définition, selon le profil machine actif : paramètres du bloc, codes redéfinis, exemples. Au clavier : F1 ou Ctrl+I sur l’élément sous le curseur.',
   group: 'editeur',
   activate(ctx) {
-    ctx.editor.addExtension(definitionsExtension(ctx.codes, ctx.ui.editCode));
+    ctx.editor.addExtension(definitionsExtension(ctx.codes, ctx.ui.editCode, ctx.macros));
     // Dictionnaire modifié (changement de profil) : on referme une éventuelle infobulle périmée.
     ctx.onDispose(ctx.codes.onChange(() => ctx.editor.view.dispatch({ effects: setDefinition.of(null) })));
   },

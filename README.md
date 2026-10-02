@@ -23,7 +23,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | 2 | Moteur d'analyse (tokenizer, parseur) et coloration syntaxique par catégorie | ✅ |
 | 3 | Infobulles de définition au clic / tap | ✅ |
 | 4 | Profils machines (ISO générique, Fanuc tournage, profils personnels) | ✅ |
-| 5 | Macros : plages libres, tableau des variables, avertissements | à venir |
+| 5 | Macros : plages libres, tableau des variables, avertissements | ✅ |
 | 6 | Autocomplétion, vérificateur, état modal, renumérotation, recherche / décalage, repliage, comparaison, snippets / cycles, bibliothèque | à venir |
 | 7 | Calculateurs (Vc ↔ tr/min, avance, rectification en mm/min et mm/s, conversions, rugosité, rayon de bec) | ✅ (réalisée avant les étapes 4 à 6) |
 | 8 | Page Paramètres complète | à venir |
@@ -49,7 +49,11 @@ page **Profils machines** : profils intégrés (ISO générique, FANUC tournage)
 activables et ordonnables, codes propriétaires ou redéfinis, codes retirés, plages de macros
 libres (une ou plusieurs portions), export / import d'un profil, onglet « Codes actifs »
 (documentation effective) ; depuis une infobulle, « Personnaliser pour ma machine » ou
-« Ajouter ce code à un profil ».
+« Ajouter ce code à un profil » ; **macros** : panneau « Variables » (macros du programme avec
+nom et description personnels, utilisations, affectations ; valeurs X/Z/F… répétées,
+transformables en macro en un clic), prochaine macro libre proposée en tapant « # » ou via
+« Nouvelle variable », avertissements non bloquants (affectation hors des plages libres du
+profil, double utilisation entre programmes).
 
 ## Structure du projet
 
@@ -133,8 +137,10 @@ lancer `npm run build`** : un test vérifie que `dist/` est à jour.
 2. L'ajouter à la liste de `src/modules/index.js`, puis `npm run build`.
 
 Le contexte `ctx` fournit : `editor` (extensions, mises à jour, commandes), `workspace`
-(programme courant), `settings`, `bus`, `backup` (section de sauvegarde JSON), `ui` (barre
-d'outils, barre d'état, dialogues, notifications), `listen()` (écouteur DOM), `signal`.
+(programme courant), `codes` (dictionnaire), `profiles`, `macros`, `settings`, `bus`, `backup`
+(section de sauvegarde JSON), `ui` (barre d'outils, barre d'état, panneaux latéraux
+`ui.panels.add`, pages `ui.addPage`, dialogues, notifications), `kv`, `listen()` (écouteur
+DOM), `signal`.
 
 ### Ajouter une page et son entrée de menu
 
@@ -205,7 +211,8 @@ en vigueur sont celles du profil activé le plus spécifique qui en déclare.
 `src/engine/` ne dépend ni du DOM ni de CodeMirror (réutilisable par la future simulation) :
 `tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
 variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
-`cutting` (formules de coupe et conversions d'unités), `tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
+`cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
+(variables, valeurs répétées, avertissements), plages de macros (`parseRanges`, `nextFreeVariable`…), `tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
 `occurrenceKey` (identité d'une macro, d'un code ou
 d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).
 
@@ -217,7 +224,7 @@ d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut v
   "formatVersion": 1,
   "appVersion": "0.1.0",
   "exportedAt": "2026-10-01T12:00:00.000Z",
-  "sections": { "programmes": [ … ], "profils": [ … ], "parametres": { … } }
+  "sections": { "programmes": [ … ], "profils": [ … ], "macros": [ … ], "parametres": { … } }
 }
 ```
 

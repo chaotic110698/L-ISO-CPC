@@ -4,9 +4,12 @@ import lineNumbers from './line-numbers/index.js';
 import highlighting from './highlighting/index.js';
 import occurrences from './occurrences/index.js';
 import definitions from './definitions/index.js';
+import macroSuggest from './macro-suggest/index.js';
+import variables from './variables/index.js';
+import macroWarnings from './macro-warnings/index.js';
 import history from './history/index.js';
 import autosave from './autosave/index.js';
 import exportFile from './export-file/index.js';
 import calculators from './calculators/index.js';
 
-export const MODULES = [lineNumbers, highlighting, occurrences, definitions, history, autosave, exportFile, calculators];
+export const MODULES = [lineNumbers, highlighting, occurrences, definitions, macroSuggest, variables, macroWarnings, history, autosave, exportFile, calculators];

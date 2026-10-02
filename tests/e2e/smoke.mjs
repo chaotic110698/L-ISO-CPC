@@ -405,6 +405,78 @@ const desktop = await open(DESKTOP);
     await gotoEditor(page);
   });
 
+  await step('macros : tableau des variables, nom personnel, plage du profil', async () => {
+    await gotoEditor(page);
+    await page.locator('[data-tool="panel-variables"]').click();
+    const panel = page.locator('.side-panel');
+    await panel.locator('.var-row').first().waitFor();
+    assert.match(await panel.locator('.var-summary').textContent(), /#900–#949, #960–#999 \(Tour Okuma\)/);
+    assert.match(await panel.locator('.var-summary').textContent(), /Prochaine libre : #900/);
+
+    await panel.locator('.var-row[data-variable="901"] .var-name').click();
+    await page.locator('.dialog').getByLabel('Nom', { exact: true }).fill('Diamètre épaulement');
+    await page.locator('.dialog button', { hasText: 'Enregistrer' }).click();
+    await page.waitForFunction(() => document.querySelector('.var-row[data-variable="901"] .var-name').textContent.includes('Diamètre épaulement'));
+    await page.locator('.cm-content .tok-macro').first().click();
+    await page.locator('.def-tip').waitFor();
+    assert.equal(await page.locator('.def-tip .def-name').textContent(), 'Diamètre épaulement');
+    await page.keyboard.press('Escape');
+    await shot(page, 'pc-sombre-variables');
+  });
+
+  await step('macros : valeur répétée transformée en macro (annulable en une fois)', async () => {
+    const panel = page.locator('.side-panel');
+    const before = await editorText(page);
+    await panel.locator('.var-row[data-repeated="X52."] button', { hasText: 'macro' }).click();
+    const dialog = page.locator('.dialog');
+    assert.equal(await dialog.getByLabel('Variable n°').inputValue(), '900');
+    await dialog.getByLabel('Nom', { exact: true }).fill('Diamètre approche');
+    await dialog.locator('button', { hasText: 'Créer' }).click();
+    await page.waitForFunction(() => window.isoApp.editor.getText().includes('#900 = 52.'));
+    const after = await editorText(page);
+    assert.match(after, /^O1000 \(EXEMPLE TOURNAGE FANUC\)\n#900 = 52\. \(DIAMETRE APPROCHE\)$/m);
+    assert.equal((after.match(/X#900/g) ?? []).length, 2);
+    assert.equal((after.match(/X52\./g) ?? []).length, 0);
+    await page.locator('[data-tool="undo"]').click();
+    assert.equal(await editorText(page), before);
+  });
+
+  await step('macros : avertissement hors plage (non bloquant) et désactivable', async () => {
+    await typeAtEnd(page, '\n#120 = 1');
+    await page.waitForSelector('.cm-macro-warning');
+    assert.match(await page.locator('[data-status="macro-warnings"]').textContent(), /1 avertissement de macros/);
+    await page.waitForFunction(() => document.querySelector('.var-row[data-variable="120"] .var-warning')?.textContent.includes('hors des plages libres du profil « Tour Okuma »'));
+    await page.locator('.cm-macro-warning').click();
+    await page.locator('.def-tip').waitFor();
+    assert.match(await page.locator('.def-tip').textContent(), /hors des plages libres/);
+    await page.keyboard.press('Escape');
+
+    await gotoSettings(page);
+    await toggle(page, 'modules.macroWarnings');
+    await gotoEditor(page);
+    assert.equal(await page.locator('.cm-macro-warning').count(), 0);
+    assert.equal(await page.locator('[data-status="macro-warnings"]').count(), 0);
+    await gotoSettings(page);
+    await toggle(page, 'modules.macroWarnings');
+    await gotoEditor(page);
+    await page.waitForSelector('.cm-macro-warning');
+    await page.locator('[data-tool="undo"]').click();
+    await page.waitForFunction(() => !document.querySelector('.cm-macro-warning'));
+  });
+
+  await step('macros : « # » propose la prochaine macro libre', async () => {
+    await typeAtEnd(page, '\n#');
+    const first = page.locator('.cm-tooltip-autocomplete li').first();
+    await first.waitFor();
+    assert.match(await first.textContent(), /^#902prochaine macro libre/, '#900 et #901 sont nommées : réservées');
+    await page.keyboard.press('Enter');
+    assert.match(await editorText(page), /\n#902$/);
+    await page.locator('[data-tool="undo"]').click();
+    await page.locator('[data-tool="undo"]').click();
+    await page.locator('[data-tool="panel-variables"]').click();
+    assert.equal(await page.locator('.side-panel').isVisible(), false);
+  });
+
   await step('sauvegarde automatique coupée : « Non enregistré » puis Ctrl+S', async () => {
     await gotoSettings(page);
     await toggle(page, 'modules.autosave');
@@ -545,6 +617,17 @@ const mobile = await open(MOBILE);
     assert.equal(await noHorizontalScroll(), true);
     await shot(page, 'mobile-clair-profil-fanuc');
     await gotoEditor(page);
+  });
+
+  await step('tableau des variables en volet bas sur smartphone', async () => {
+    await page.locator('[data-tool="panel-variables"]').tap();
+    await page.locator('.side-panel .var-row').first().waitFor();
+    assert.equal(await noHorizontalScroll(), true);
+    const box = await page.locator('.side-panel').boundingBox();
+    assert.ok(box.width <= 375 && box.y > 200, 'volet en bas de l’écran');
+    await shot(page, 'mobile-clair-variables');
+    await page.locator('.side-panel button[aria-label="Fermer le panneau"]').tap();
+    assert.equal(await page.locator('.side-panel').isVisible(), false);
   });
 
   await step('tiroir des programmes et menu d’actions', async () => {

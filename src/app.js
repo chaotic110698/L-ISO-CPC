@@ -20,6 +20,7 @@ import { toast } from './ui/toast.js';
 import { MODULES } from './modules/index.js';
 import { createCodeDictionary } from './engine/index.js';
 import { createProfileService } from './core/profiles.js';
+import { createMacroService } from './core/macros.js';
 import { createProfilesPage } from './ui/pages/profiles-page.js';
 import { openCodeEditor } from './ui/code-editor.js';
 import { APP_VERSION } from './version.js';
@@ -47,6 +48,8 @@ export async function startApp(root) {
   const codes = createCodeDictionary();
   const profiles = createProfileService({ db, dictionary: codes, bus });
   await profiles.init();
+  const macros = createMacroService({ db, profiles, workspace, bus });
+  await macros.init();
 
   const backup = createBackupService({ appVersion: APP_VERSION });
   backup.register('programmes', {
@@ -60,6 +63,12 @@ export async function startApp(root) {
     exportData: async () => profiles.exportAll(),
     importData: (data, options) => profiles.importAll(data, options),
     describe: (data) => `${Array.isArray(data) ? data.filter((p) => !p.builtin).length : 0} profil(s) personnel(s)`,
+  });
+  backup.register('macros', {
+    label: 'Noms des variables de macro',
+    exportData: async () => macros.exportAll(),
+    importData: (data, options) => macros.importAll(data, options),
+    describe: (data) => `${Array.isArray(data) ? data.length : 0} variable(s) nommée(s)`,
   });
   backup.register('parametres', {
     label: 'Paramètres',
@@ -78,7 +87,7 @@ export async function startApp(root) {
   });
   shell.setTheme(settings.get('theme'));
 
-  const editorPage = createEditorPage({ settings });
+  const editorPage = createEditorPage({ settings, kv });
   const { editor } = editorPage;
 
   settings.subscribe('theme', (theme) => {
@@ -153,12 +162,14 @@ export async function startApp(root) {
       editor: editor.scoped(scope),
       codes,
       profiles,
+      macros,
       workspace,
       backup: { register: (id, section) => scope.add(backup.register(id, section)) },
       ui: {
         ...ui,
         toolbar: editorPage.toolbar.scoped(scope),
         statusbar: editorPage.statusbar.scoped(scope),
+        panels: editorPage.panels.scoped(scope),
         /** Ajoute une page et son entrée de menu (retirées à la désactivation du module). */
         addPage({ id, path, label, icon, order, mount, onShow }) {
           const removeRoute = router.register(path, { title: label, mount, onShow });
@@ -235,7 +246,7 @@ export async function startApp(root) {
   if (!kv.available) toast('Stockage du navigateur indisponible : rien ne sera conservé après fermeture.', { type: 'error', timeout: 10000 });
 
   // Point d'accès pour le débogage et les tests de bout en bout.
-  return { settings, bus, workspace, editor, registry, router, backup, db, codes, profiles };
+  return { settings, bus, workspace, editor, registry, router, backup, db, codes, profiles, macros };
 }
 
 /** Fonctions du socle toujours présentes : enregistrement manuel, position du curseur, état. */

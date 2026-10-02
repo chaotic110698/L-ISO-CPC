@@ -226,10 +226,46 @@
 }
 
 .side-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
-  overflow: auto;
   background: var(--surface);
-  border-left: 1px solid var(--border);
+}
+
+.side-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 4px 4px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.side-title {
+  font-size: 15px;
+}
+
+.side-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Smartphone et tablette étroite : volet en bas, au-dessus de l'éditeur. */
+@media (max-width: 899px) {
+  .editor-area {
+    position: relative;
+  }
+
+  .side-panel {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 30;
+    height: min(62%, 520px);
+    border-top: 1px solid var(--border-strong);
+    border-radius: 14px 14px 0 0;
+    box-shadow: var(--shadow);
+  }
 }
 
 .statusbar {
@@ -283,6 +319,16 @@
 
 /* ---- Grands écrans ---- */
 
+@media (min-width: 900px) {
+  .editor-area:has(> .side-panel:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 30vw, 420px);
+  }
+
+  .side-panel {
+    border-left: 1px solid var(--border);
+  }
+}
+
 @media (min-width: 1024px) {
   .app-body {
     grid-template-columns: 256px minmax(0, 1fr);
@@ -321,9 +367,6 @@
     padding-right: 10px;
   }
 
-  .editor-area:has(> .side-panel:not([hidden])) {
-    grid-template-columns: minmax(0, 1fr) clamp(260px, 28vw, 380px);
-  }
 
   .settings-inner {
     padding-top: 28px;

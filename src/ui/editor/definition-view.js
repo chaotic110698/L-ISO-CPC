@@ -30,6 +30,9 @@ export function renderExplanation(explanation, { onClose, onEditCode } = {}) {
             h('span', null, 'Code redéfini par ce profil. ', e.redefined.map((r) => `En ${r.sourceLabel} : « ${r.name} ».`).join(' ')),
           )
         : null,
+      e.warnings?.length
+        ? h('div', { class: 'def-warnings' }, e.warnings.map((w) => h('p', { class: 'def-redefined' }, icon('warning'), h('span', null, w))))
+        : null,
       e.description ? h('p', { class: 'def-description' }, e.description) : null,
       e.details?.length ? h('ul', { class: 'def-details' }, e.details.map((d) => h('li', null, d))) : null,
       e.syntax ? h('pre', { class: 'def-syntax' }, e.syntax) : null,

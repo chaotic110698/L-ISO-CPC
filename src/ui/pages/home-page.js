@@ -20,6 +20,12 @@ const FEATURES = [
     path: '/editeur',
   },
   {
+    icon: 'variable',
+    title: 'Macros et variables',
+    text: 'Tableau des variables nommées, valeurs répétées transformées en macro, prochaine macro libre de la plage machine, avertissements non bloquants.',
+    path: '/editeur',
+  },
+  {
     icon: 'machine',
     title: 'Profils machines',
     text: 'ISO générique, FANUC tournage, et vos propres profils : codes propriétaires, codes détournés, plages de macros.',

@@ -7,3 +7,4 @@ export { occurrenceKey, describeOccurrence, tokenAt } from './occurrences.js';
 export { explainToken, paramsFor } from './explain.js';
 export * as cutting from './cutting.js';
 export { normalizeRanges, validateRange, inRanges, countInRanges, formatRanges, parseRanges, nextFreeVariable } from './macro-ranges.js';
+export { analyzeMacros, assignedVariables, referencedVariables, variableWarnings, REPEATED_LETTERS } from './macros.js';

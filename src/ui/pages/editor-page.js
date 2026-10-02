@@ -2,15 +2,16 @@ import { h } from '../../core/dom.js';
 import { EditorHost } from '../editor/editor-host.js';
 import { createToolbar } from '../toolbar.js';
 import { createStatusbar } from '../statusbar.js';
+import { createPanels } from '../panels.js';
 
 /**
  * Page « Éditeur » : barre d'outils, zone d'édition, barre d'état.
  * Créée une seule fois au démarrage (les modules s'y branchent), puis affichée / masquée.
  *
- * L'emplacement `side` accueillera les panneaux latéraux des étapes suivantes
- * (état modal, tableau des variables…) ; sur mobile ils passeront en volet escamotable.
+ * Les panneaux (tableau des variables, état modal…) s'affichent à droite de l'éditeur sur
+ * grand écran, en volet bas sur smartphone.
  */
-export function createEditorPage({ settings }) {
+export function createEditorPage({ settings, kv }) {
   const toolbarEl = h('div', { class: 'toolbar', role: 'toolbar', 'aria-label': 'Outils de l’éditeur' });
   const editorEl = h('div', { class: 'editor-host' });
   const sideEl = h('aside', { class: 'side-panel', hidden: true, 'aria-label': 'Panneaux' });
@@ -29,10 +30,12 @@ export function createEditorPage({ settings }) {
     lineWrapping: settings.get('editor.lineWrapping'),
   });
 
+  const toolbar = createToolbar(toolbarEl);
   return {
     element,
     editor,
-    toolbar: createToolbar(toolbarEl),
+    toolbar,
     statusbar: createStatusbar(statusEl),
+    panels: createPanels({ sideEl, toolbar, kv, onResize: () => editor.remeasure() }),
   };
 }

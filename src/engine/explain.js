@@ -143,7 +143,7 @@ function explainAddress(token, block, dictionary) {
   };
 }
 
-function explainVariable(token, dictionary, findAssignments) {
+function explainVariable(token, dictionary, findAssignments, variableInfo) {
   if (token.indirect) {
     return {
       kind: 'variable',
@@ -157,18 +157,21 @@ function explainVariable(token, dictionary, findAssignments) {
     };
   }
   const range = dictionary.variableRange(token.index);
+  const info = variableInfo?.(token.index) ?? {};
   const assignments = findAssignments?.(token.index) ?? [];
   const details = assignments.length
     ? assignments.slice(0, 5).map((a) => `Affectée ligne ${a.line} : ${a.text.trim()}`)
     : ['Aucune affectation dans ce programme : valeur fournie par la machine, un autre programme ou un argument.'];
   if (assignments.length > 5) details.push(`… et ${assignments.length - 5} autre(s) affectation(s).`);
+  if (range && info.name) details.push(`${range.name} : ${range.description}`);
   return {
     kind: 'variable',
     title: token.name,
-    subtitle: range?.name ?? 'Variable de macro',
+    subtitle: info.name || range?.name || 'Variable de macro',
     category: 'macro',
-    description: range?.description ?? null,
+    description: info.description || (info.name ? null : (range?.description ?? null)),
     details,
+    warnings: info.warnings ?? [],
     params: [],
     notes: [],
   };
@@ -183,16 +186,17 @@ const SYNTAX = {
 
 /**
  * @param token   jeton du moteur (tokenizeLine)
- * @param context { block, dictionary, findAssignments(index) → [{ line, text }] }
+ * @param context { block, dictionary, findAssignments(index) → [{ line, text }],
+ *                  variableInfo(index) → { name, description, warnings: [texte] } }
  * @returns explication, ou null pour un jeton sans explication (commentaire, nombre, opérateur)
  */
-export function explainToken(token, { block, dictionary, findAssignments }) {
+export function explainToken(token, { block, dictionary, findAssignments, variableInfo }) {
   if (!token) return null;
   switch (token.type) {
     case 'word':
       return token.code ? explainCode(token, block, dictionary) : explainAddress(token, block, dictionary);
     case 'variable':
-      return explainVariable(token, dictionary, findAssignments);
+      return explainVariable(token, dictionary, findAssignments, variableInfo);
     case 'keyword': {
       const entry = MACRO_KEYWORDS[token.keyword];
       return entry && { kind: 'keyword', title: token.keyword, subtitle: entry.name, category: 'macroKeyword', description: entry.description, syntax: entry.syntax, details: [], params: [], notes: [] };

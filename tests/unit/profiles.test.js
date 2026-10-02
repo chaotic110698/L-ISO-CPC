@@ -145,3 +145,36 @@ test('sauvegarde globale : export puis import (fusion / remplacement)', async ()
   await second.profiles.importAll(data, { mode: 'replace' });
   assert.equal(second.profiles.list().some((p) => p.id === other.id), false);
 });
+
+test('macros : noms personnels, prochaine variable libre, autres programmes', async () => {
+  const { createMacroService } = await import('../../src/core/macros.js');
+  const { Workspace } = await import('../../src/core/workspace.js');
+  const { createProgramRepository } = await import('../../src/storage/programs.js');
+  const { memoryKv } = await import('./helpers.js');
+  const db = memoryDb();
+  const bus = new EventBus();
+  const dictionary = createCodeDictionary();
+  const profiles = createProfileService({ db, dictionary, bus });
+  await profiles.init();
+  await profiles.update('fanuc-turning', { macroRanges: [{ from: 900, to: 905 }] });
+  const repo = createProgramRepository(db);
+  await repo.create({ name: 'Autre', content: '#900=1\n#902=2' });
+  const workspace = new Workspace({ repo, kv: memoryKv(), bus });
+  await workspace.init();
+  await workspace.create({ name: 'Courant', content: '#901=5' });
+  const macros = createMacroService({ db, profiles, workspace, bus });
+  await macros.init();
+  await macros.refreshOthers();
+
+  assert.deepEqual([...macros.assignedElsewhere().get(900)], ['Autre']);
+  assert.equal(macros.nextFree(new Set([901])), 903, '900 et 902 pris ailleurs, 901 ici');
+  await macros.setName(903, { name: 'Cote mesurée' });
+  assert.equal(macros.nextFree(new Set([901])), 904, 'variable nommée réservée');
+  assert.equal(macros.name(903).name, 'Cote mesurée');
+  await macros.setName(903, { name: '', description: '' });
+  assert.equal(macros.name(903), null);
+
+  const exported = [{ index: 950, name: 'Diamètre brut', updatedAt: 1 }];
+  assert.deepEqual(await macros.importAll(exported), { applied: 1, invalid: 0 });
+  assert.equal(macros.name(950).name, 'Diamètre brut');
+});
