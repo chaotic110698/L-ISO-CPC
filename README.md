@@ -21,7 +21,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 |---|---|---|
 | 1 | Socle, thème clair/sombre, stockage, sauvegarde automatique, export/import JSON | ✅ |
 | 2 | Moteur d'analyse (tokenizer, parseur) et coloration syntaxique par catégorie | ✅ |
-| 3 | Infobulles de définition au clic / tap | à venir |
+| 3 | Infobulles de définition au clic / tap | ✅ |
 | 4 | Profils machines (ISO générique, Fanuc tournage, profils personnels) | à venir |
 | 5 | Macros : plages libres, tableau des variables, avertissements | à venir |
 | 6 | Autocomplétion, vérificateur, état modal, renumérotation, recherche / décalage, repliage, comparaison, snippets / cycles, bibliothèque | à venir |
@@ -38,7 +38,10 @@ renommer, dupliquer, supprimer), numérotation des lignes, annuler/rétablir, en
 automatique (avec copie de secours à la fermeture), export `.nc`/`.txt`, thème clair/sombre,
 taille du texte, retour à la ligne, sauvegarde/restauration JSON, coloration syntaxique par
 catégorie (avec légende dans Paramètres), mise en évidence des occurrences d'une macro, d'un
-code ou d'une valeur sous le curseur.
+code ou d'une valeur sous le curseur, définition au clic / tap (ou F1, Ctrl+I) de chaque code,
+paramètre de cycle (selon le bloc : le U de `G71 U2. R0.5` n'est pas celui de `G71 P… Q… U0.4`),
+macro (plage, affectations), mot-clé de macro, avec décodage de T0101, G76 P020060, M98 P…
+et alerte sur les cotes sans point décimal.
 
 ## Structure du projet
 
@@ -155,6 +158,14 @@ codes: {
 - `category` doit exister dans `src/data/categories.js` (sa couleur est dans `css/tokens.css`,
   variables `--c-<catégorie>` pour chaque thème).
 - Un code absent du dictionnaire est souligné comme « inconnu du profil ».
+- Pour l'infobulle, ajouter `description`, `syntax`, `modal`, `params` (`{ lettre: sens }`),
+  ou `forms` pour les cycles à plusieurs blocs (la première variante dont toutes les lettres
+  `when` sont présentes dans le bloc s'applique), `notes` et `example`. Le format complet est
+  documenté en tête de `src/data/codes/iso-base.js`.
+- Les couches définissent aussi `addresses` (sens général des lettres) et `variables`
+  (plages de macros : locales, communes, système…).
+- Un code redéfini par une couche supérieure (G90 en tournage FANUC) est signalé dans son
+  infobulle avec son sens d'origine.
 
 Les profils machines (étape 4) permettront d'ajouter ou de redéfinir des codes depuis
 l'interface, sans toucher aux fichiers.
@@ -164,7 +175,8 @@ l'interface, sans toucher aux fichiers.
 `src/engine/` ne dépend ni du DOM ni de CodeMirror (réutilisable par la future simulation) :
 `tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
 variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
-`tokenCategory` (catégorie d'affichage), `occurrenceKey` (identité d'une macro, d'un code ou
+`tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
+`occurrenceKey` (identité d'une macro, d'un code ou
 d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).
 
 ## Sauvegarde JSON

@@ -45,3 +45,138 @@
 .cm-iso-occurrence .tok-macro {
   background: transparent;
 }
+
+/* ---- Infobulle de définition ---- */
+
+.def-tip {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(440px, calc(100vw - 16px));
+  max-height: min(60vh, 520px);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.def-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 6px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.def-code {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.def-category {
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.def-close {
+  width: 34px;
+  height: 34px;
+}
+
+.def-body {
+  display: grid;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.def-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.def-meta {
+  margin-top: -6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.def-redefined {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 13px;
+}
+
+.def-details,
+.def-notes {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.def-details li {
+  font-weight: 500;
+}
+
+.def-notes li {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.def-syntax,
+.def-example pre {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.def-params {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 0;
+}
+
+.def-params dt {
+  color: var(--c-address);
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.def-params dt.is-used {
+  color: var(--accent);
+}
+
+.def-params dd {
+  margin: 0;
+}
+
+.def-value {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.def-example span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

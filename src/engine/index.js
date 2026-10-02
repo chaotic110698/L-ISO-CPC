@@ -4,3 +4,4 @@ export { parseLine, parseProgram } from './parser.js';
 export { createCodeDictionary } from './code-dictionary.js';
 export { tokenCategory } from './classify.js';
 export { occurrenceKey, describeOccurrence, tokenAt } from './occurrences.js';
+export { explainToken, paramsFor } from './explain.js';

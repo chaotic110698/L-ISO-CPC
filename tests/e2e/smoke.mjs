@@ -155,6 +155,32 @@ const desktop = await open(DESKTOP);
     assert.equal(await page.locator('.cm-iso-occurrence').count(), 0);
   });
 
+  await step('définition au clic : code, paramètre de cycle, fermeture', async () => {
+    const tip = page.locator('.def-tip');
+    await page.locator('.cm-content .tok-cycle', { hasText: 'G71' }).first().click();
+    await tip.waitFor();
+    assert.equal(await tip.locator('.def-code').textContent(), 'G71');
+    assert.match(await tip.locator('.def-name').textContent(), /Cycle d’ébauche longitudinale/);
+    assert.match(await tip.textContent(), /FANUC tournage/);
+    await shot(page, 'pc-clair-definition');
+    await page.keyboard.press('Escape');
+    await tip.waitFor({ state: 'detached' });
+
+    // U du premier bloc G71 : profondeur de passe (variante selon les lettres du bloc).
+    await page.locator('.cm-line').nth(11).locator('.tok-address', { hasText: 'U' }).click();
+    await tip.waitFor();
+    assert.match(await tip.locator('.def-name').textContent(), /Profondeur de passe/);
+    await page.keyboard.type(' ');
+    await tip.waitFor({ state: 'detached' });
+    await page.keyboard.press('Backspace');
+
+    await page.locator('.cm-content .tok-macro').first().click();
+    await tip.waitFor();
+    assert.match(await tip.textContent(), /Affectée ligne 4/);
+    await tip.locator('.def-close').click();
+    await tip.waitFor({ state: 'detached' });
+  });
+
   await step('saisie, sauvegarde automatique et persistance après rechargement', async () => {
     await typeAtEnd(page, '\n(TEST E2E)');
     await page.waitForFunction(() => document.querySelector('[data-status="save-state"]').textContent === 'Enregistré');
@@ -235,6 +261,18 @@ const desktop = await open(DESKTOP);
     await toggle(page, 'modules.occurrences');
     await gotoEditor(page);
     assert.ok((await page.locator('.cm-content .tok-motion').count()) > 0);
+  });
+
+  await step('définitions désactivables', async () => {
+    await gotoSettings(page);
+    await toggle(page, 'modules.definitions');
+    await gotoEditor(page);
+    await page.locator('.cm-content .tok-cycle').first().click();
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('.def-tip').count(), 0);
+    await gotoSettings(page);
+    await toggle(page, 'modules.definitions');
+    await gotoEditor(page);
   });
 
   await step('sauvegarde automatique coupée : « Non enregistré » puis Ctrl+S', async () => {
@@ -344,6 +382,17 @@ const mobile = await open(MOBILE);
     await page.keyboard.press('Control+End');
     await page.keyboard.type('\nN310 M30');
     assert.match(await editorText(page), /N310 M30$/);
+  });
+
+  await step('définition au tap, lisible en largeur smartphone', async () => {
+    await page.locator('.cm-content .tok-cycle', { hasText: 'G76' }).first().tap();
+    const tip = page.locator('.def-tip');
+    await tip.waitFor();
+    const box = await tip.boundingBox();
+    assert.ok(box.x >= 0 && box.x + box.width <= 375, `infobulle dans l’écran (${box.x}, ${box.width})`);
+    await shot(page, 'mobile-clair-definition');
+    await tip.locator('.def-close').tap();
+    await tip.waitFor({ state: 'detached' });
   });
 
   await step('tiroir des programmes et menu d’actions', async () => {

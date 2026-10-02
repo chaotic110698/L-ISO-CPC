@@ -16,7 +16,8 @@ const FEATURES = [
   {
     icon: 'info',
     title: 'Définitions des codes',
-    text: 'Un clic ou un tap sur un code affiche sa définition, y compris les codes propres à votre machine.',
+    text: 'Un clic ou un tap sur un code, un paramètre ou une macro affiche sa définition : paramètres du bloc décodés, codes redéfinis par le profil, exemples.',
+    path: '/editeur',
   },
   {
     icon: 'machine',

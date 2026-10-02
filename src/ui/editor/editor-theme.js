@@ -43,4 +43,12 @@ export const editorTheme = EditorView.theme({
     color: 'var(--text)',
   },
   '.cm-specialChar': { color: 'var(--danger)' },
+  '.cm-tooltip': {
+    backgroundColor: 'var(--surface)',
+    color: 'var(--text)',
+    border: '1px solid var(--border-strong)',
+    borderRadius: '10px',
+    boxShadow: 'var(--shadow)',
+    fontFamily: 'var(--font-ui)',
+  },
 });
