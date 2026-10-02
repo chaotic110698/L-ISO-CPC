@@ -38,6 +38,7 @@ export const MODULE_GROUPS = [
   { id: 'outils', label: 'Outils' },
   { id: 'fichiers', label: 'Fichiers et enregistrement' },
   { id: 'calculateurs', label: 'Calculateurs' },
+  { id: 'apprendre', label: 'Apprendre' },
 ];
 
 export function systemPrefersDark() {

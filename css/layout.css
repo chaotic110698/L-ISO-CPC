@@ -590,3 +590,20 @@ a.feature-card:hover {
   align-items: start;
   gap: 14px;
 }
+
+/* ---- Cours d'ISO ---- */
+
+.courses-page {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.courses-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 20px max(var(--gutter), env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+}

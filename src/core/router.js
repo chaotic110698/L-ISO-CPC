@@ -3,19 +3,26 @@
  * Les pages sont créées à la première visite puis conservées (masquées) : l'éditeur garde ainsi
  * son état, son historique d'annulation et sa position quand on passe aux Paramètres.
  *
- * Routes prévues pour les phases suivantes : #/cours, #/simulation (enregistrées par leurs modules).
+ * Une route reçoit aussi ses sous-chemins : #/cours/repere-du-tour affiche la page /cours, qui
+ * lit la suite (« repere-du-tour ») dans onShow(sousChemin) ou l'événement « page:show ».
  */
 export function createRouter({ container, defaultPath, onChange }) {
   const routes = new Map();
   let current = null;
+  let currentFull = null;
 
-  function pathFromHash() {
-    const path = decodeURIComponent(location.hash.replace(/^#/, ''));
-    return routes.has(path) ? path : defaultPath;
+  /** { key, rest, full } : route enregistrée et sous-chemin éventuel. */
+  function resolve() {
+    const full = decodeURIComponent(location.hash.replace(/^#/, ''));
+    if (routes.has(full)) return { key: full, rest: '', full };
+    for (const key of routes.keys()) {
+      if (full.startsWith(`${key}/`)) return { key, rest: full.slice(key.length + 1), full };
+    }
+    return { key: defaultPath, rest: '', full: defaultPath };
   }
 
   function render() {
-    const path = pathFromHash();
+    const { key: path, rest, full } = resolve();
     const route = routes.get(path);
     if (!route) return;
     if (!route.element) {
@@ -27,11 +34,13 @@ export function createRouter({ container, defaultPath, onChange }) {
       if (other.element) other.element.hidden = other !== route;
     }
     const previous = current;
+    const previousFull = currentFull;
     current = path;
-    if (previous !== path) {
-      route.onShow?.();
-      route.element.dispatchEvent(new CustomEvent('page:show'));
-      onChange?.(path, route);
+    currentFull = full;
+    if (previous !== path || previousFull !== full) {
+      route.onShow?.(rest);
+      route.element.dispatchEvent(new CustomEvent('page:show', { detail: { path: rest } }));
+      if (previous !== path) onChange?.(path, route);
     }
   }
 
@@ -46,6 +55,7 @@ export function createRouter({ container, defaultPath, onChange }) {
         // Page retirée alors qu'elle était affichée (module désactivé) : page par défaut.
         if (current === path) {
           current = null;
+          currentFull = null;
           if (location.hash === `#${defaultPath}`) render();
           else location.hash = defaultPath;
         }

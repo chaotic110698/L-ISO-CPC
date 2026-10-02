@@ -29,15 +29,24 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | 7 | Calculateurs (Vc ↔ tr/min, avance, rectification en mm/min et mm/s, conversions, rugosité, rayon de bec) | ✅ (réalisée avant les étapes 4 à 6) |
 | 8 | Page Paramètres complète (recherche, sections, activation groupée, raccourcis, effacement) | ✅ |
 
-Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, cours d'ISO, autres types de
-machines, estimation du temps d'usinage.
+### Cours d'ISO
+
+| Étape | Contenu | État |
+|---|---|---|
+| C1 | Page Cours, catalogue, lecteur de leçon (schémas, exemples interactifs, « Ouvrir dans l'éditeur »), préférences « Votre machine », progression et sauvegarde JSON, leçons 1 à 4 | ✅ |
+| C2 | Quiz de fin de leçon, leçons 5 à 8 (parcours débutant complet) | à venir |
+| C3 | Parcours confirmé, leçons 9 à 15 | à venir |
+| C4 | Mode révision (questions générées par le profil, répétition espacée) | à venir |
+
+Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, autres types de machines,
+estimation du temps d'usinage.
 
 ## Pages
 
 - **Accueil** (page d'ouverture) : présentation du site et bouton **« Commencer à
   programmer »** qui ouvre l'éditeur.
-- **Menu latéral** (☰) : Accueil, Éditeur, Mes programmes, Profils machines, Calculateurs,
-  Cycles et bibliothèque, Paramètres, et les fonctions à venir (grisées). Affiché sur grand
+- **Menu latéral** (☰) : Accueil, Éditeur, Mes programmes, Profils machines, Cours d'ISO,
+  Calculateurs, Cycles, Ma bibliothèque, Paramètres, et les fonctions à venir (grisées). Affiché sur grand
   écran (repliable), escamoté sur smartphone. Une page dont la fonctionnalité est désactivée
   disparaît du menu.
 - **Éditeur** : barre d'outils (Programmes, Enregistrer, puis les outils des fonctionnalités
@@ -52,6 +61,13 @@ machines, estimation du temps d'usinage.
   (meule, pièce, rapport q, avance de table, en mm/min et mm/s), conversion mm/min ↔ mm/s ↔
   m/min ↔ m/s, rugosité théorique, compensation de rayon de bec. Chaque calculateur fonctionne
   dans les deux sens et peut être masqué.
+- **Cours d'ISO** : leçons courtes (débutant, puis confirmé) avec objectifs, sommaire,
+  schémas, encadrés « À retenir », « Piège courant », « En rectification », « Selon votre
+  machine », exemples colorés dont chaque code s'explique au tap et qui s'ouvrent dans
+  l'éditeur. **« Votre machine »** : outil (ou meule) derrière ou devant l'axe, système de
+  codes Fanuc A ou B/C — les leçons n'affichent que votre cas, ou toutes les versions côte à
+  côte. Progression enregistrée (et incluse dans la sauvegarde JSON). Ajouter ou corriger une
+  leçon : voir `src/data/courses/README.md`.
 - **Paramètres** : en-tête fixe avec **recherche** dans tous les réglages (sans tenir compte
   des accents) et raccourcis vers chaque section ; apparence, éditeur, profils, fonctionnalités,
   données (sauvegarde / restauration JSON, réinitialisation des réglages, **« Tout effacer »**
@@ -92,6 +108,7 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Fichiers | Sauvegarde automatique (avec copie de secours à la fermeture) | Barre d'état | `autosave` |
 | Fichiers | Export en fichier `.nc` / `.txt` (fins de ligne au choix) | Menu Outils | `export-file` |
 | Calculateurs | Calculateurs d'atelier | Page « Calculateurs » | `calculators` |
+| Apprendre | Cours d'ISO | Page « Cours d'ISO » | `courses` |
 
 Toujours présents (socle) : gestion de plusieurs programmes (créer, ouvrir un fichier
 `.nc`/`.txt`, renommer, dupliquer, supprimer), enregistrement (Ctrl+S), thème clair/sombre,
@@ -126,14 +143,15 @@ src/
   version.js            version de l'application (= package.json)
   core/                 bus d'événements, registre des modules, routeur, espace de travail,
                         profils machines, utilitaires
-  data/                 données pures : codes ISO / Fanuc, profils, cycles, langage macro, exemples
+  data/                 données pures : codes ISO / Fanuc, profils, cycles, langage macro, exemples,
+                        leçons des cours (data/courses/, format dans son README)
   engine/               moteur d'analyse ISO, indépendant de l'interface (réutilisable par la simulation)
   storage/              localStorage (kv), IndexedDB + repli (database), programmes, sauvegarde JSON
   settings/             schéma déclaratif des réglages et magasin persistant
   ui/                   coque (barre du haut + menu latéral), éditeur (enveloppe CodeMirror),
                         pages (accueil, éditeur, paramètres, profils), dialogues, barre d'outils…
   modules/              fonctionnalités branchables, une par dossier (+ emplacements futurs :
-                        simulation-2d, courses, machining-time)
+                        simulation-2d, machining-time)
 tests/unit/             tests Node (moteur, stockage, réglages, modules…)
 tests/e2e/              test de bout en bout dans Chromium (PC et smartphone)
 tools/                  build (esbuild)
@@ -179,7 +197,7 @@ lancer `npm run build`** : un test vérifie que `dist/` est à jour.
      id: 'monModule',
      label: 'Ma fonctionnalité',            // libellé dans Paramètres
      description: 'Ce qu’elle fait.',
-     group: 'outils',                       // editeur | analyse | outils | fichiers | calculateurs
+     group: 'outils',                       // editeur | analyse | outils | fichiers | calculateurs | apprendre
      where: 'Menu Outils de la barre d’outils', // affiché sous l'interrupteur dans Paramètres
      defaultEnabled: true,
      requires: [],                          // ids d'autres modules nécessaires

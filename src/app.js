@@ -188,6 +188,8 @@ export async function startApp(root) {
         toolbar: editorPage.toolbar.scoped(scope),
         statusbar: editorPage.statusbar.scoped(scope),
         panels: editorPage.panels.scoped(scope),
+        /** Affiche une page (« /editeur », « /cours/repere-du-tour »…). */
+        navigate: (path) => router.navigate(path),
         /** Ouvre l'éditeur avec le panneau demandé (depuis le menu latéral, par ex.). */
         showPanel(id) {
           router.navigate('/editeur');

@@ -54,7 +54,9 @@ const FEATURES = [
   {
     icon: 'book',
     title: 'Cours d’ISO',
-    text: 'Leçons pour débutants et mode révision pour les confirmés.',
+    text: 'Leçons pour débutants puis confirmés : repère du tour, déplacements, cycles, macros, avec schémas et exemples à ouvrir dans l’éditeur.',
+    path: '/cours',
+    module: 'courses',
   },
   {
     icon: 'simulation',

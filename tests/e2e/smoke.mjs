@@ -708,6 +708,80 @@ const desktop = await open(DESKTOP);
     assert.match(content, /^%\r\nO1000/);
   });
 
+  await step('cours : catalogue, préférences machine, schémas doublés', async () => {
+    await navTo(page, 'cours', '.courses-page:not([hidden])');
+    assert.equal(await page.locator('.lesson-card[href]').count(), 4, 'quatre leçons rédigées');
+    assert.ok((await page.locator('.lesson-card.is-upcoming').count()) >= 10, 'leçons en préparation annoncées');
+    await shot(page, 'ordinateur-cours-catalogue');
+    await page.locator('.lesson-card[href="#/cours/repere-du-tour"]').click();
+    await page.waitForSelector('.lesson-section');
+    assert.deepEqual(await page.locator('.course-figure').first().locator('[data-turret]').evaluateAll((els) => els.map((el) => el.dataset.turret)), ['rear', 'front']);
+    await page.locator('.course-machine [data-pref="turret"] .segment', { hasText: 'Avant' }).click();
+    assert.deepEqual(await page.locator('.course-figure').first().locator('[data-turret]').evaluateAll((els) => els.map((el) => el.dataset.turret)), ['front']);
+    await page.locator('.course-machine [data-pref="turret"] .segment', { hasText: 'Afficher les deux' }).click();
+    assert.equal(await page.locator('.course-figure').first().locator('[data-turret]').count(), 2);
+    await shot(page, 'ordinateur-cours-lecon');
+  });
+
+  await step('cours : définitions au clic (texte et exemple), variantes de système', async () => {
+    await page.goto(url.split('#')[0] + '#/cours/programme-iso');
+    await page.waitForSelector('[data-lesson-loaded], .lesson-section');
+    await page.locator('.course-anatomy .code-token', { hasText: 'G01' }).click();
+    assert.equal(await page.locator('.course-popover .def-code').textContent(), 'G1');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.course-popover').isVisible(), false);
+    const example = page.locator('.code-view').last();
+    await example.locator('.code-token', { hasText: 'T0101' }).click();
+    assert.match(await example.locator('.code-view-def').textContent(), /outil 01/i);
+    await page.goto(url.split('#')[0] + '#/cours/absolu-incremental');
+    await page.waitForSelector('.course-variants');
+    assert.deepEqual(await page.locator('.course-variant').evaluateAll((els) => els.map((el) => el.dataset.variant)), ['A', 'BC']);
+    // En systèmes B/C, G91 est expliqué comme le mode incrémental (ISO générique).
+    await page.locator('.course-variant[data-variant="BC"] .code-view .code-token', { hasText: 'G91' }).click();
+    assert.match(await page.locator('.course-variant[data-variant="BC"] .code-view-def').textContent(), /incrémental/i);
+  });
+
+  await step('cours : ouvrir un exemple dans l’éditeur', async () => {
+    await page.goto(url.split('#')[0] + '#/cours/programme-iso');
+    await page.waitForSelector('[data-action="open-example"]');
+    const previous = await page.evaluate(() => window.isoApp.workspace.current.id);
+    await page.locator('[data-action="open-example"]').click();
+    await page.waitForSelector('.editor-page:not([hidden])');
+    assert.match(await editorText(page), /^%\nO0001 \(PREMIER PROGRAMME\)/);
+    assert.equal(await page.evaluate(() => window.isoApp.workspace.current.name), 'Cours 1 - premier programme');
+    assert.equal(await page.locator('.cm-lintRange-error').count(), 0, 'exemple sans erreur');
+    await page.evaluate(async (id) => {
+      const created = window.isoApp.workspace.current.id;
+      await window.isoApp.workspace.open(id);
+      await window.isoApp.workspace.remove(created);
+    }, previous);
+  });
+
+  await step('cours : leçon terminée, leçon suivante, retour arrière, progression', async () => {
+    await page.goto(url.split('#')[0] + '#/cours/programme-iso');
+    await page.waitForSelector('[data-action="toggle-read"]');
+    await page.locator('[data-action="toggle-read"]').click();
+    await page.waitForFunction(() => location.hash === '#/cours/repere-du-tour');
+    assert.equal(await page.locator('.lesson-header h1').textContent(), 'Le repère du tour');
+    assert.equal(await page.locator('.courses-page').evaluate((el) => el.scrollTop), 0, 'nouvelle leçon affichée en haut');
+    await page.goBack();
+    await page.waitForFunction(() => location.hash === '#/cours/programme-iso');
+    assert.match(await page.locator('[data-action="toggle-read"]').textContent(), /non lue/);
+    await page.locator('.course-back').click();
+    assert.equal(await page.locator('li[data-lesson="programme-iso"]').getAttribute('data-status'), 'read');
+    assert.equal(await page.locator('li[data-lesson="repere-du-tour"]').getAttribute('data-status'), 'opened');
+    assert.match(await page.locator('.course-progress').textContent(), /1 leçon terminée sur 4/);
+  });
+
+  await step('cours désactivables (page et menu retirés, puis rétablis)', async () => {
+    await gotoSettings(page);
+    await toggle(page, 'modules.courses');
+    assert.equal(await page.locator('.courses-page').count(), 0);
+    assert.equal(await page.locator('.sidenav [data-nav="cours"] a').count(), 0);
+    await toggle(page, 'modules.courses');
+    assert.equal(await page.locator('.sidenav [data-nav="cours"] a').count(), 1);
+  });
+
   await step('paramètres : recherche, raccourcis vers les sections, emplacement des fonctionnalités', async () => {
     await gotoSettings(page);
     const search = page.locator('.settings-search-input');
@@ -792,6 +866,7 @@ await step('export d’une sauvegarde JSON globale', async () => {
   assert.equal(data.sections.programmes.length, 2);
   assert.equal(data.sections.parametres.theme, 'dark');
   assert.ok(data.sections.profils.some((p) => p.name === 'Tour Okuma' && p.codes.M50), 'profil personnel sauvegardé');
+  assert.ok(data.sections.cours.lessons['programme-iso'].readAt, 'progression des cours sauvegardée');
 });
 
 await step('import de la sauvegarde dans un navigateur vierge (remplacement)', async () => {
@@ -811,6 +886,9 @@ await step('import de la sauvegarde dans un navigateur vierge (remplacement)', a
   assert.ok(await page.evaluate(() => window.isoApp.codes.lookup('M50')?.name === 'Ouverture du mandrin'), 'profil restauré');
   const names = await page.evaluate(async () => (await window.isoApp.workspace.list()).map((p) => p.name).sort());
   assert.deepEqual(names, ['Arbre 25 — reprise', 'Exemple — tournage Fanuc']);
+  await navTo(page, 'cours', '.courses-page:not([hidden])');
+  assert.equal(await page.locator('li[data-lesson="programme-iso"]').getAttribute('data-status'), 'read', 'progression restaurée');
+  await gotoSettings(page);
 
   // « Tout effacer » : confirmation forte, puis retour à l'état d'un premier lancement.
   await page.locator('[data-action="wipe"]').click();
@@ -962,6 +1040,23 @@ const mobile = await open(MOBILE);
     assert.equal(onTop, true);
     await shot(page, 'mobile-clair-notification');
     await page.keyboard.press('Escape');
+  });
+
+  await step('cours lisibles en largeur smartphone, définition au tap', async () => {
+    await navTo(page, 'cours', '.courses-page:not([hidden])');
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-cours');
+    await page.locator('.lesson-card[href="#/cours/deplacements"]').tap();
+    await page.waitForSelector('.lesson-section');
+    assert.equal(await noHorizontalScroll(), true);
+    const example = page.locator('.code-view').last();
+    await example.scrollIntoViewIfNeeded();
+    await example.locator('.code-token', { hasText: 'G03' }).tap();
+    assert.equal(await example.locator('.code-view-def').isVisible(), true);
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-cours-exemple');
+    await page.locator('.course-figure').first().scrollIntoViewIfNeeded();
+    await shot(page, 'mobile-clair-cours-schema');
   });
 
   await step('paramètres lisibles, sans défilement horizontal', async () => {

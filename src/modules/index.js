@@ -21,5 +21,6 @@ import history from './history/index.js';
 import autosave from './autosave/index.js';
 import exportFile from './export-file/index.js';
 import calculators from './calculators/index.js';
+import courses from './courses/index.js';
 
-export const MODULES = [lineNumbers, highlighting, occurrences, definitions, autocomplete, macroSuggest, checker, modalState, variables, macroWarnings, folding, search, cycles, library, renumberModule, coordinateShift, versions, history, autosave, exportFile, calculators];
+export const MODULES = [lineNumbers, highlighting, occurrences, definitions, autocomplete, macroSuggest, checker, modalState, variables, macroWarnings, folding, search, cycles, library, renumberModule, coordinateShift, versions, history, autosave, exportFile, calculators, courses];
