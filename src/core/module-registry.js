@@ -20,12 +20,13 @@ import { createScope } from './scope.js';
  * Désactiver un module dans Paramètres le retire donc réellement, sans recharger la page.
  * Un module dont une dépendance est inactive reste inactif.
  */
-export function createModuleRegistry({ settings, createContext, onError = (def, error) => console.error(def.id, error) }) {
+export function createModuleRegistry({ settings, createContext, onError = (def, error) => console.error(def.id, error), batch = (fn) => fn() }) {
   const entries = new Map();
   const changeListeners = new Set();
   let started = false;
   let syncing = false;
   let syncAgain = false;
+  let deferred = 0; // > 0 pendant registry.batch() : synchronisation repoussée à la fin
 
   const toggleKey = (id) => `modules.${id}`;
   const isEnabled = (id) => settings.get(toggleKey(id)) === true;
@@ -86,30 +87,36 @@ export function createModuleRegistry({ settings, createContext, onError = (def, 
     scope?.dispose();
   }
 
+  /** Active et désactive les modules pour qu'ils correspondent aux interrupteurs. */
+  function reconcile() {
+    do {
+      syncAgain = false;
+      const ids = order();
+      // Un module désactivé par l'utilisateur oublie son éventuelle erreur (nouvel essai au réactivage).
+      for (const id of ids) if (!isEnabled(id)) entries.get(id).error = null;
+      // Désactivation des dépendants avant leurs dépendances…
+      for (const id of [...ids].reverse()) {
+        const entry = entries.get(id);
+        if (entry.scope && !shouldRun(id)) deactivate(entry);
+      }
+      // …puis activation des dépendances avant leurs dépendants.
+      for (const id of ids) {
+        const entry = entries.get(id);
+        if (!entry.scope && shouldRun(id)) activate(entry);
+      }
+    } while (syncAgain);
+  }
+
   function sync() {
     if (!started) return;
-    if (syncing) {
+    if (syncing || deferred) {
       syncAgain = true;
       return;
     }
     syncing = true;
     try {
-      do {
-        syncAgain = false;
-        const ids = order();
-        // Un module désactivé par l'utilisateur oublie son éventuelle erreur (nouvel essai au réactivage).
-        for (const id of ids) if (!isEnabled(id)) entries.get(id).error = null;
-        // Désactivation des dépendants avant leurs dépendances…
-        for (const id of [...ids].reverse()) {
-          const entry = entries.get(id);
-          if (entry.scope && !shouldRun(id)) deactivate(entry);
-        }
-        // …puis activation des dépendances avant leurs dépendants.
-        for (const id of ids) {
-          const entry = entries.get(id);
-          if (!entry.scope && shouldRun(id)) activate(entry);
-        }
-      } while (syncAgain);
+      // `batch` (fourni par l'application) regroupe les modifications de l'éditeur.
+      batch(reconcile);
     } finally {
       syncing = false;
     }
@@ -135,6 +142,23 @@ export function createModuleRegistry({ settings, createContext, onError = (def, 
         ...(def.settings ?? []).map((entry) => ({ ...entry, section: 'modules', parentModule: def.id })),
       ]);
       sync();
+    },
+
+    /**
+     * Change plusieurs interrupteurs en une seule synchronisation (« Tout activer »…) :
+     * les modules sont activés et retirés une seule fois, à la fin.
+     */
+    batch(fn) {
+      deferred++;
+      try {
+        fn();
+      } finally {
+        deferred--;
+        if (!deferred && syncAgain) {
+          syncAgain = false;
+          sync();
+        }
+      }
     },
 
     /** Active les modules selon les réglages, puis suit les changements d'interrupteurs. */

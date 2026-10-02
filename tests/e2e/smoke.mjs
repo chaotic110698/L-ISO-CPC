@@ -828,7 +828,7 @@ const desktop = await open(DESKTOP);
     await page.waitForSelector('[data-action="open-review"]');
     await page.locator('[data-action="open-review"]').click();
     await page.waitForSelector('.review-stats');
-    await page.locator('[data-option="source"] .segment', { hasText: 'Codes de mon profil' }).click();
+    await page.locator('[data-option="source"] .segment', { hasText: 'Codes de vos profils' }).click();
     await page.waitForFunction(() => document.querySelector('[data-action="review-start"]')?.textContent.includes('10 questions'));
     await shot(page, 'ordinateur-revision-accueil');
     await page.locator('[data-action="review-start"]').click();

@@ -96,3 +96,26 @@ test('enregistrement invalide ou en double refusé', () => {
   registry.register(mod('x'));
   assert.throws(() => registry.register(mod('x')));
 });
+
+test('batch : plusieurs interrupteurs, une seule synchronisation', () => {
+  const settings = createSettingsStore({ kv: memoryKv() });
+  const log = [];
+  let reconfigurations = 0;
+  const registry = createModuleRegistry({
+    settings,
+    createContext: (def, scope) => ({ onDispose: (fn) => scope.add(fn) }),
+    batch: (fn) => {
+      reconfigurations++;
+      return fn();
+    },
+  });
+  for (const id of ['a', 'b', 'c']) registry.register({ id, label: id, activate: (ctx) => { log.push(`+${id}`); ctx.onDispose(() => log.push(`-${id}`)); } });
+  registry.start();
+  assert.equal(reconfigurations, 1, 'démarrage : un seul regroupement pour tous les modules');
+  let changes = 0;
+  registry.onChange(() => changes++);
+  registry.batch(() => ['a', 'b', 'c'].forEach((id) => settings.set(registry.toggleKey(id), false)));
+  assert.deepEqual(log, ['+a', '+b', '+c', '-c', '-b', '-a']);
+  assert.equal(changes, 1, 'une seule synchronisation');
+  assert.equal(reconfigurations, 2);
+});

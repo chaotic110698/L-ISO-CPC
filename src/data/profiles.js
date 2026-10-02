@@ -6,7 +6,7 @@ import { FANUC_TURNING_BC_CODES } from './codes/fanuc-turning-bc.js';
  * Profils machines intégrés. Leurs définitions de codes sont des données en lecture seule ;
  * seul leur état est modifiable et enregistré (activé, ordre, plages de macros libres).
  * Pour modifier un code d'un profil intégré, on le redéfinit dans un profil personnel placé
- * au-dessus.
+ * après lui dans la liste (plus spécifique, il l'emporte).
  *
  * Futurs profils (Siemens, Heidenhain, fraisage…) : ajouter une entrée ici, avec sa couche
  * de codes dans ./codes/.
@@ -31,7 +31,7 @@ export const BUILTIN_PROFILES = [
   {
     id: 'fanuc-turning-bc',
     name: 'FANUC tournage — systèmes B/C',
-    description: 'À activer au-dessus de « FANUC tournage » si votre tour est en système de codes B ou C : G90/G91 absolu/incrémental, G92 S limite la broche, G94/G95 unité d’avance, G77/G78/G79 cycles simples.',
+    description: 'À activer en plus de « FANUC tournage » (il se place après lui dans la liste) si votre tour est en système de codes B ou C : G90/G91 absolu/incrémental, G92 S limite la broche, G94/G95 unité d’avance, G77/G78/G79 cycles simples.',
     machineType: 'tournage',
     layer: FANUC_TURNING_BC_CODES,
     defaults: { enabled: false, order: 2, macroRanges: [] },

@@ -61,7 +61,7 @@ export default {
         },
         {
           type: 'p',
-          text: 'Les **adresses** suivent la même logique : `F` et `S` restent en mémoire jusqu’à la valeur suivante. En revanche, X et Z ne « restent » pas : un axe absent du bloc ne bouge pas.',
+          text: 'Les **adresses** suivent la même logique : `F` et `S` restent en mémoire jusqu’à la valeur suivante. Pour les axes, c’est différent : seuls ceux écrits dans le bloc se déplacent, un axe absent reste où il est.',
         },
         {
           type: 'p',

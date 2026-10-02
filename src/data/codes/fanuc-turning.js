@@ -33,6 +33,9 @@ const LATHE_DRILL_PARAMS = {
   M: 'Code M de blocage de l’axe C (selon machine)',
 };
 
+/** Alésage : pas de passes de débourrage (Q). */
+const { Q: _peck, ...BORING_PARAMS } = LATHE_DRILL_PARAMS;
+
 export const FANUC_TURNING_CODES = {
   id: 'fanuc-turning',
   label: 'FANUC tournage',
@@ -59,7 +62,8 @@ export const FANUC_TURNING_CODES = {
       syntax: 'G32 Z… F(pas)',
       modal: true,
       params: { X: 'Diamètre à la fin de la passe (filetage conique)', Z: 'Fin du filetage', F: 'Pas du filet (mm)', Q: 'Décalage angulaire du départ (filets multiples, en millièmes de degré)' },
-      notes: ['Toujours en G97 (vitesse constante) : la synchronisation exige une vitesse de rotation fixe.'],
+      notes: ['Toujours en G97 : la synchronisation avec la broche exige une vitesse de rotation fixe.'],
+      example: 'G97 S800 M3\nG0 X19.4 Z5.\nG32 Z-22. F1.5\nG0 X24.\nZ5.',
     },
     G34: {
       category: 'motion', group: 'motion',
@@ -79,6 +83,7 @@ export const FANUC_TURNING_CODES = {
         'Avec S : vitesse de rotation maximale autorisée (tr/min), indispensable avant G96. Avec X et Z : définit l’origine pièce à partir de la position actuelle de l’outil (ancienne méthode, remplacée par les décalages G54…).',
       syntax: 'G50 S(tr/min maxi)   ou   G50 X… Z…',
       modal: false,
+      spindleLimit: true,
       forms: [
         { when: ['S'], params: { S: 'Vitesse de rotation maximale (tr/min)' } },
         { params: { X: 'Coordonnée X attribuée à la position actuelle', Z: 'Coordonnée Z attribuée à la position actuelle' } },
@@ -97,7 +102,7 @@ export const FANUC_TURNING_CODES = {
       syntax: 'G70 P(ns) Q(nf)',
       modal: false,
       params: { P: 'Numéro N du premier bloc du profil (ns)', Q: 'Numéro N du dernier bloc du profil (nf)' },
-      notes: ['Activer la correction de rayon de bec (G42 extérieur / G41 intérieur) avant G70, l’annuler après.'],
+      notes: ['Activer la compensation de rayon de bec (G42 extérieur / G41 intérieur) avant G70, l’annuler après.'],
       example: 'G0 G42 X52. Z2.\nG70 P90 Q160\nG0 G40 X100. Z100.',
     },
     G71: {
@@ -213,7 +218,7 @@ export const FANUC_TURNING_CODES = {
         },
       ],
       notes: ['Toujours en G97 (vitesse de rotation constante).', 'Point de départ : au-dessus du diamètre du filet, à au moins 2 à 3 pas en amont.'],
-      example: 'G97 S1200 M3\nG0 X24. Z5.\nG76 P020060 Q50 R0.02\nG76 X18.376 Z-22. P812 Q300 F1.5',
+      example: 'G97 S800 M3\nG0 X22. Z5.\nG76 P020060 Q50 R0.05\nG76 X18.16 Z-22. P920 Q300 F1.5',
     },
 
     // --- Cycles simples (redéfinissent G90 / G92 / G94 de l'ISO) ------------------------------------
@@ -252,10 +257,10 @@ export const FANUC_TURNING_CODES = {
     G80: { category: 'cycle', group: 'cycle', name: 'Annulation de cycle de perçage', description: 'Annule le cycle de perçage actif (G83 à G89).', modal: true },
     G83: { category: 'cycle', group: 'cycle', name: 'Cycle de perçage frontal avec débourrage', description: 'Perçage en face (axe Z), par passes Q avec débourrage.', syntax: 'G83 X(C) Z R Q P F K M', modal: true, params: LATHE_DRILL_PARAMS },
     G84: { category: 'cycle', group: 'cycle', name: 'Cycle de taraudage frontal', description: 'Taraudage en face (axe Z), avec inversion de la broche en fond de trou.', syntax: 'G84 X(C) Z R P F K M', modal: true, params: { ...LATHE_DRILL_PARAMS, F: 'Avance = pas du taraud (en G99)' } },
-    G85: { category: 'cycle', group: 'cycle', name: 'Cycle d’alésage frontal', description: 'Alésage en face : aller et retour à l’avance travail.', modal: true, params: LATHE_DRILL_PARAMS },
+    G85: { category: 'cycle', group: 'cycle', name: 'Cycle d’alésage frontal', description: 'Alésage en face : aller et retour à l’avance travail.', modal: true, params: BORING_PARAMS },
     G87: { category: 'cycle', group: 'cycle', name: 'Cycle de perçage radial', description: 'Perçage radial (axe X) avec outil motorisé, par passes Q.', syntax: 'G87 Z(C) X R Q P F K M', modal: true, params: { ...LATHE_DRILL_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
     G88: { category: 'cycle', group: 'cycle', name: 'Cycle de taraudage radial', description: 'Taraudage radial (axe X) avec outil motorisé.', modal: true, params: { ...LATHE_DRILL_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
-    G89: { category: 'cycle', group: 'cycle', name: 'Cycle d’alésage radial', description: 'Alésage radial (axe X) avec outil motorisé.', modal: true, params: { ...LATHE_DRILL_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
+    G89: { category: 'cycle', group: 'cycle', name: 'Cycle d’alésage radial', description: 'Alésage radial (axe X) avec outil motorisé.', modal: true, params: { ...BORING_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
 
     // --- Codes de fraisage sans équivalent en tournage système A ------------------------------
     G43: null,

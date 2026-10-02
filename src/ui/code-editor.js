@@ -28,7 +28,7 @@ export async function chooseCustomProfile(profiles) {
   if (custom.length) return custom.at(-1).id;
   const name = await promptDialog({
     title: 'Créer un profil personnel',
-    label: 'Les codes propres à votre machine sont enregistrés dans un profil personnel, placé au-dessus des profils intégrés. Nom du profil :',
+    label: 'Les codes propres à votre machine sont enregistrés dans un profil personnel, placé après les profils intégrés dans la liste (il l’emporte sur eux). Nom du profil :',
     value: 'Ma machine',
     confirmLabel: 'Créer le profil',
   });

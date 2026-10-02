@@ -1,13 +1,26 @@
-# Moteur d'analyse ISO (étape 2)
+# Moteur d'analyse ISO
 
-Ce dossier contiendra le **moteur d'analyse**, sans aucune dépendance au DOM ni à CodeMirror,
-pour pouvoir être réutilisé tel quel par l'éditeur, le vérificateur, la future simulation 2D
-et les tests Node :
+Fonctions **pures**, sans aucune dépendance au DOM ni à CodeMirror : elles servent à l'éditeur,
+au vérificateur, aux cours, aux tests Node, et serviront à la future simulation 2D. L'API
+publique est réexportée par `index.js`.
 
-- `tokenizer.js` : découpe une ligne en jetons (N, G, M, T, adresses X/Z/F/S…, `#macros`, commentaires, `%`, `O`…) ;
-- `parser.js` : regroupe les jetons en blocs structurés (sous-programmes, boucles `WHILE`/`GOTO`…) ;
-- `code-resolver.js` : fusionne les profils machines actifs en un dictionnaire de codes effectif ;
-- `modal-state.js` : calcule l'état modal (G90/G91, G96/G97, G98/G99, outil…) bloc par bloc ;
-- `checker/` : règles du vérificateur de syntaxe, une par fichier.
+| Fichier | Rôle |
+|---|---|
+| `tokenizer.js` | découpe une ligne en jetons (mots N/G/M/X…, `#macros`, mots-clés, commentaires, `%`…) |
+| `parser.js` | regroupe les jetons d'une ligne en bloc structuré ; `parseProgram` analyse un programme entier |
+| `code-dictionary.js` | superpose les couches de codes des profils actifs en un dictionnaire effectif |
+| `classify.js` | catégorie d'affichage d'un jeton (couleur de la coloration syntaxique) |
+| `explain.js` | définition d'un jeton dans le contexte de son bloc (infobulles, cours) |
+| `occurrences.js` | identité d'un jeton, pour repérer ses autres occurrences |
+| `modal-state.js` | état modal ligne par ligne : groupes G actifs, outil, broche, arrosage, F, S, limitation |
+| `checker.js` | vérificateur de syntaxe et de cohérence (règles `CHECKER_RULES`) |
+| `macro-ranges.js` | plages de macros libres : validation, lecture, prochaine variable libre |
+| `macros.js` | variables de macro, valeurs répétées, avertissements de plage et de double utilisation |
+| `renumber.js` | renumérotation des blocs N avec mise à jour des références P/Q, GOTO, M99 P |
+| `shift.js` | décalage des cotes absolues |
+| `folding.js` | zones repliables (sous-programmes, boucles, opérations) |
+| `format.js` | écriture d'une valeur à la manière d'un programme ISO (point décimal, sans zéros inutiles) |
+| `diff.js` | comparaison ligne à ligne (algorithme de Myers) pour les versions |
+| `cutting.js` | formules de coupe des calculateurs (tournage, fraisage, rectification) |
 
 Règle : **aucun import depuis `src/ui/` ni depuis `@codemirror/*`** dans ce dossier.

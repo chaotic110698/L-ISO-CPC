@@ -4,6 +4,7 @@ import { STORES } from '../../storage/database.js';
 import { SETTINGS_SECTIONS, MODULE_GROUPS } from '../../settings/schema.js';
 import { APP_VERSION } from '../../version.js';
 import { icon } from '../icons.js';
+import { segmented } from '../segmented.js';
 import { openDialog, confirmDialog } from '../dialogs.js';
 import { toast } from '../toast.js';
 
@@ -191,24 +192,8 @@ export function createSettingsPage({ settings, registry, backup, workspace, db, 
   }
 
   function segmentedControl(entry) {
-    const name = domId('choice');
-    const inputs = [];
-    const group = h(
-      'div',
-      { class: 'segmented', role: 'radiogroup', 'aria-label': entry.label },
-      entry.options.map((option) => {
-        const input = h('input', {
-          type: 'radio',
-          name,
-          value: option.value,
-          checked: settings.get(entry.key) === option.value,
-          onchange: () => settings.set(entry.key, option.value),
-        });
-        inputs.push(input);
-        return h('label', { class: 'segment' }, input, option.icon ? icon(option.icon) : null, h('span', null, option.label));
-      }),
-    );
-    settings.subscribe(entry.key, (value) => inputs.forEach((input) => (input.checked = input.value === value)));
+    const group = segmented({ label: entry.label, options: entry.options, value: settings.get(entry.key), onChange: (value) => settings.set(entry.key, value) });
+    settings.subscribe(entry.key, group.setValue);
     return group;
   }
 
@@ -283,9 +268,8 @@ export function createSettingsPage({ settings, registry, backup, workspace, db, 
     const statusEls = new Map();
     const counters = [];
 
-    const setAll = (mods, enabled) => {
-      for (const mod of mods) settings.set(registry.toggleKey(mod.id), enabled);
-    };
+    // Une seule synchronisation des modules pour tout le groupe.
+    const setAll = (mods, enabled) => registry.batch(() => mods.forEach((mod) => settings.set(registry.toggleKey(mod.id), enabled)));
     const bulkButtons = (mods, scopeLabel) =>
       h(
         'div',

@@ -17,7 +17,7 @@ function summary(state) {
 
 /**
  * État modal à la ligne du curseur : codes actifs de chaque groupe (déplacement, cotation,
- * unité d'avance, vitesse de broche, correction de rayon…), outil, broche, arrosage, F et S.
+ * unité d'avance, vitesse de broche, compensation de rayon…), outil, broche, arrosage, F et S.
  */
 export default {
   id: 'modalState',
@@ -68,7 +68,7 @@ export default {
               ...Object.entries(M_STATES).map(([key, info]) => row(info.label, state[key], state[key] ? info.codes[state[key]] : null)),
               row('Avance F', state.feed != null ? `F${format(state.feed)}` : null, feedUnit),
               row('Vitesse S', state.speed != null ? `S${format(state.speed)}` : null, speedUnit),
-              state.maxSpeed != null ? row('Vitesse maxi (G50)', `S${format(state.maxSpeed)}`, 'tr/min') : null,
+              state.maxSpeed != null ? row('Vitesse maxi (limitation)', `S${format(state.maxSpeed)}`, 'tr/min') : null,
             ),
           );
         };

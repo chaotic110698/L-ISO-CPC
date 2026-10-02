@@ -48,7 +48,7 @@ export default {
         {
           type: 'list',
           items: [
-            '**Vitesse de rotation fixe** : toujours en `G97`. En `G96`, la vitesse changerait à chaque passe et les passes ne tomberaient plus dans le même sillon.',
+            '**Vitesse de rotation fixe** : toujours en `G97`. En `G96`, la vitesse de rotation varierait avec le diamètre de chaque passe, et les passes ne tomberaient plus dans le même sillon.',
             '**L’avance F est le pas** : `F1.5` pour un pas de 1,5 mm (en avance par tour).',
             '**Point de départ en amont** : au moins 2 à 3 pas avant le début du filet (`Z5.` par exemple), le temps que l’axe atteigne sa vitesse.',
             '**Vitesse limitée** : la vitesse d’avance vaut N × P. À 1 200 tr/min avec un pas de 1,5, l’axe Z avance à 1 800 mm/min ; les machines ont une limite, et le dégagement en fin de filet doit avoir la place.',
@@ -57,7 +57,7 @@ export default {
         {
           type: 'note',
           tone: 'piege',
-          text: 'Pendant un filetage, le bouton de correction d’avance et l’arrêt d’avance sont sans effet (ou retardés à la fin de la passe) : surveillez le premier essai avec la main sur l’arrêt d’urgence et le correcteur de vitesse broche bloqué à 100 %.',
+          text: 'Pendant un filetage, le bouton de correction d’avance et l’arrêt d’avance sont sans effet (ou retardés à la fin de la passe) : surveillez le premier essai avec la main sur l’arrêt d’urgence et le correcteur de vitesse broche laissé à 100 %.',
         },
       ],
     },
@@ -135,7 +135,7 @@ export default {
         {
           type: 'note',
           tone: 'piege',
-          text: 'Dans `G76`, P et Q s’écrivent **en microns, sans point décimal** : `P920` = 0,920 mm, `Q300` = 0,3 mm. Un `Q0.3` serait refusé ou mal interprété. Le premier P, lui, regroupe trois valeurs à deux chiffres.',
+          text: 'Dans `G76`, P et Q s’écrivent **en microns, sans point décimal** : `P920` = 0,920 mm, `Q300` = 0,3 mm. Un `Q0.3` déclenche une alarme sur la plupart des Fanuc. Le premier P, lui, regroupe trois valeurs à deux chiffres.',
         },
         {
           type: 'code',

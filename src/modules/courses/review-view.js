@@ -1,4 +1,5 @@
-import { h, domId } from '../../core/dom.js';
+import { h } from '../../core/dom.js';
+import { segmented } from '../../ui/segmented.js';
 import { icon } from '../../ui/icons.js';
 import { createQuestionCard } from './quiz-view.js';
 import { BOX_DAYS, REVIEW_SIZES, REVIEW_SOURCES, filterPool, reviewStats, selectSession } from './review.js';
@@ -14,35 +15,16 @@ export function createReviewView({ progress, buildPool, ctx, record }) {
   let session = null;
 
   const back = () => h('a', { class: 'course-back', href: '#/cours' }, icon('arrowLeft'), 'Tous les cours');
-  const sourceLabel = (q) => (q.source === 'lesson' ? `Leçon ${q.lesson.number} · ${q.lesson.title}` : 'Codes de votre profil');
+  const sourceLabel = (q) => (q.source === 'lesson' ? `Leçon ${q.lesson.number} · ${q.lesson.title}` : 'Codes de vos profils');
 
-  function segmented(label, key, options) {
-    const name = domId('review');
-    return h(
+  // La page se redessine à chaque changement de progression : l'accueil reste à jour.
+  const option = (label, key, options) =>
+    h(
       'div',
       { class: 'course-pref', dataset: { option: key } },
       h('p', { class: 'course-pref-label' }, label),
-      h(
-        'div',
-        { class: 'segmented', role: 'radiogroup', 'aria-label': label },
-        options.map((option) =>
-          h(
-            'label',
-            { class: 'segment' },
-            h('input', {
-              type: 'radio',
-              name,
-              value: String(option.value),
-              checked: progress.get().review.options[key] === option.value,
-              // La page se redessine à chaque changement de progression (accueil à jour).
-              onchange: () => progress.setReviewOption(key, option.value),
-            }),
-            h('span', null, option.label),
-          ),
-        ),
-      ),
+      segmented({ label, options, value: progress.get().review.options[key], onChange: (value) => progress.setReviewOption(key, value) }),
     );
-  }
 
   function renderIntro() {
     const { items, options } = progress.get().review;
@@ -62,7 +44,7 @@ export function createReviewView({ progress, buildPool, ctx, record }) {
         ' jours).',
       ),
       h('div', { class: 'review-stats', role: 'group', 'aria-label': 'Compteurs de révision' }, tile(stats.due, 'à revoir', stats.due ? 'due' : ''), tile(stats.fresh, 'nouvelles'), tile(stats.mastered, 'maîtrisées', 'ok'), tile(stats.total, 'au total')),
-      h('section', { class: 'card review-options' }, segmented('Questions', 'source', REVIEW_SOURCES), segmented('Longueur de la session', 'size', REVIEW_SIZES.map((n) => ({ value: n, label: `${n} questions` })))),
+      h('section', { class: 'card review-options' }, option('Questions', 'source', REVIEW_SOURCES), option('Longueur de la session', 'size', REVIEW_SIZES.map((n) => ({ value: n, label: `${n} questions` })))),
       h(
         'div',
         { class: 'button-row' },

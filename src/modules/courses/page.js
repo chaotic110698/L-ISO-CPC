@@ -1,4 +1,5 @@
-import { h, domId } from '../../core/dom.js';
+import { h } from '../../core/dom.js';
+import { segmented } from '../../ui/segmented.js';
 import { icon } from '../../ui/icons.js';
 import { LESSONS, LEVELS, isAvailable } from '../../data/courses/index.js';
 import { MACHINE_PREFS } from './progress.js';
@@ -66,27 +67,15 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
     return h(
       'div',
       { class: `course-prefs${compact ? ' is-compact' : ''}` },
-      prefs.map((pref) => {
-        const name = domId('pref');
-        return h(
+      prefs.map((pref) =>
+        h(
           'div',
           { class: 'course-pref', dataset: { pref: pref.key } },
           h('p', { class: 'course-pref-label' }, pref.label),
-          h(
-            'div',
-            { class: 'segmented', role: 'radiogroup', 'aria-label': pref.label },
-            pref.options.map((option) =>
-              h(
-                'label',
-                { class: 'segment' },
-                h('input', { type: 'radio', name, value: option.value, checked: progress.pref(pref.key) === option.value, onchange: () => progress.setPref(pref.key, option.value) }),
-                h('span', null, option.label),
-              ),
-            ),
-          ),
+          segmented({ label: pref.label, options: pref.options, value: progress.pref(pref.key), onChange: (value) => progress.setPref(pref.key, value) }),
           compact ? null : h('p', { class: 'setting-description' }, pref.help),
-        );
-      }),
+        ),
+      ),
     );
   }
 

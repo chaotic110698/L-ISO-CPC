@@ -149,7 +149,7 @@ export default {
             ['N20 T0202 (FINITION)', 'Outil de finition'],
             ['N30 S1500 M03', 'Broche à 1 500 tr/min'],
             ['N40 G00 X16. Z2. M08', 'Approche devant la face'],
-            ['N50 G01 Z0. F0.1', 'Contact sur la face, avance de finition'],
+            ['N50 G01 Z0. F0.1', 'Arrivée sur la face (Z0), avance de finition'],
             ['N60 G03 X20. Z-2. R2.', 'Arrondi convexe R2'],
             ['N70 G01 Z-15.', 'Ø20 sur 15 mm'],
             ['N80 G02 X26. Z-18. R3.', 'Congé concave R3 au pied de l’épaulement'],

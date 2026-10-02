@@ -163,7 +163,7 @@ export function createProfilesPage({ profiles, codes, bus }) {
   }
 
   async function profileActions(profile) {
-    const actions = [{ label: 'Dupliquer', value: 'copy', icon: 'copy', description: profile.builtin ? 'Crée un profil personnel placé au-dessus, avec les mêmes plages de macros' : null }];
+    const actions = [{ label: 'Dupliquer', value: 'copy', icon: 'copy', description: profile.builtin ? 'Crée un profil personnel placé après lui dans la liste, avec les mêmes plages de macros' : null }];
     if (!profile.builtin) actions.push({ label: 'Exporter ce profil (.json)', value: 'export', icon: 'download' });
     if (!profile.builtin) actions.push({ label: 'Supprimer', value: 'delete', icon: 'trash', danger: true });
     const choice = await actionSheet({ title: profile.name, actions });

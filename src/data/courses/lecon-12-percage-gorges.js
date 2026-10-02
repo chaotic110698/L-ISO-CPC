@@ -24,7 +24,7 @@ export default {
         {
           type: 'code',
           open: 'Cours 12 - percage G74',
-          caption: 'Foret Ø10, trou de 40 mm de profondeur, passes de 5 mm.',
+          caption: 'Foret Ø10, profondeur 40 mm à la pointe, passes de 5 mm.',
           lines: [
             ['%', null],
             ['O0012 (PERCAGE G74)', null],
@@ -76,7 +76,7 @@ export default {
           type: 'note',
           tone: 'retenir',
           title: 'Le point de référence de l’outil',
-          text: 'Un outil à gorge a deux coins : celui mesuré au réglage (souvent le coin côté face, à droite) est la position programmée. Ici l’outil de 3 mm est réglé sur son coin droit : la plongée à `Z-10.` coupe de Z-10 à Z-13, la dernière à `Z-13.` coupe de Z-13 à Z-16. Si votre outil est réglé sur l’autre coin, décalez toutes les cotes Z de la largeur de l’outil.',
+          text: 'Un outil à gorge a deux coins : celui mesuré au réglage (le droit ou le gauche, selon l’habitude de l’atelier) est la position programmée. Ici l’outil de 3 mm est réglé sur son coin droit : la plongée à `Z-10.` coupe de Z-10 à Z-13, la dernière à `Z-13.` coupe de Z-13 à Z-16. Si votre outil est réglé sur l’autre coin, décalez toutes les cotes Z de la largeur de l’outil.',
         },
         {
           type: 'list',

@@ -61,7 +61,7 @@ function decodeValue(word, block, contextCode) {
 
   if (COORDINATE_LETTERS.has(letter) && !hasDecimal && value !== 0) {
     details.push(
-      `Sans point décimal : sur une commande FANUC sans saisie « calculatrice », ${letter}${valueText} vaut ${(value / 1000).toLocaleString('fr-FR')} mm. Écrire ${letter}${valueText}. pour ${value.toLocaleString('fr-FR')} mm.`,
+      `Sans point décimal : sur une commande FANUC sans « mode calculatrice », ${letter}${valueText} vaut ${(value / 1000).toLocaleString('fr-FR')} mm. Écrire ${letter}${valueText}. pour ${value.toLocaleString('fr-FR')} mm.`,
     );
   }
   return details;

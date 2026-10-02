@@ -38,10 +38,6 @@ export function debounce(fn, wait) {
   return debounced;
 }
 
-export function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
 /** Nom unique parmi `existing` : « Nom », « Nom 2 », « Nom 3 »… */
 export function uniqueName(base, existing) {
   const taken = new Set(existing.map((name) => name.toLowerCase()));

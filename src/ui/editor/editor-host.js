@@ -52,6 +52,8 @@ const FRENCH_PHRASES = EditorState.phrases.of({
 export class EditorHost {
   #view;
   #extensions = new Map();
+  /** Effets en attente pendant batch() : appliqués en une seule transaction. */
+  #pending = null;
   #updateListeners = new Set();
   #replaceListeners = new Set();
   #dark = new Compartment();
@@ -105,11 +107,33 @@ export class EditorHost {
   addExtension(extension) {
     const compartment = new Compartment();
     this.#extensions.set(compartment, extension);
-    this.#view.dispatch({ effects: StateEffect.appendConfig.of(compartment.of(extension)) });
+    this.#reconfigure(StateEffect.appendConfig.of(compartment.of(extension)));
     return () => {
       if (!this.#extensions.delete(compartment)) return;
-      this.#view.dispatch({ effects: compartment.reconfigure([]) });
+      this.#reconfigure(compartment.reconfigure([]));
     };
+  }
+
+  /**
+   * Regroupe les ajouts et retraits d'extensions faits pendant fn() en une seule
+   * reconfiguration de l'éditeur (au démarrage, une vingtaine de modules s'activent :
+   * sans regroupement, l'éditeur se reconfigurerait et se redessinerait à chaque fois).
+   */
+  batch(fn) {
+    if (this.#pending) return fn();
+    this.#pending = [];
+    try {
+      return fn();
+    } finally {
+      const effects = this.#pending;
+      this.#pending = null;
+      if (effects.length) this.#view.dispatch({ effects });
+    }
+  }
+
+  #reconfigure(effect) {
+    if (this.#pending) this.#pending.push(effect);
+    else this.#view.dispatch({ effects: effect });
   }
 
   /** Abonnement à chaque mise à jour CodeMirror (ViewUpdate). */
@@ -130,6 +154,8 @@ export class EditorHost {
 
   /** Remplace tout le document (nouvel historique d'annulation, curseur au début). */
   setText(text) {
+    // Le nouvel état reprend toutes les extensions actuelles : les ajouts en attente sont inclus.
+    if (this.#pending) this.#pending.length = 0;
     this.#view.setState(this.#createState(text));
     for (const listener of [...this.#replaceListeners]) listener();
   }

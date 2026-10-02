@@ -50,8 +50,8 @@ export default {
           type: 'table',
           head: ['Code', 'S signifie', 'Usage'],
           rows: [
-            ['`G97`', 'vitesse de rotation en tr/min, fixe', 'perçage au centre, filetage, petites pièces, tronçonnage avec limite'],
-            ['`G96`', 'vitesse de coupe en m/min, constante', 'chariotage, dressage, profils : la broche accélère quand le diamètre diminue'],
+            ['`G97`', 'vitesse de rotation en tr/min, fixe', 'perçage et taraudage au centre, filetage'],
+            ['`G96`', 'vitesse de coupe en m/min, constante', 'chariotage, dressage, profils, tronçonnage (avec limitation) : la broche accélère quand le diamètre diminue'],
           ],
         },
         {
@@ -177,7 +177,7 @@ export default {
             ['N60 G01 Z-40. F0.25', 'Chariotage à 0,25 mm/tr'],
             ['N70 G00 X60.', null],
             ['N80 Z2.', null],
-            ['N90 G97 S600', 'Retour à une vitesse fixe avant de quitter la pièce'],
+            ['N90 G97 S600', 'Retour à une vitesse fixe avant le retour au point de référence'],
             ['N100 M09', null],
             ['N110 M05', null],
             ['N120 G28 U0. W0.', null],

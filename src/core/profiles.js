@@ -33,6 +33,7 @@ export function sanitizeCodeDefinition(raw) {
     if (text) definition[key] = text;
   }
   if (typeof raw.modal === 'boolean') definition.modal = raw.modal;
+  if (raw.spindleLimit === true) definition.spindleLimit = true;
   if (raw.group === NON_MODAL || MODAL_GROUP_IDS.has(raw.group)) definition.group = raw.group;
   if (raw.params && typeof raw.params === 'object') {
     const params = {};

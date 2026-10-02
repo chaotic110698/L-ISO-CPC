@@ -61,7 +61,7 @@ export default {
           type: 'note',
           tone: 'retenir',
           title: 'Rattraper une cote',
-          text: 'Diamètre mesuré 20,04 pour 20,00 demandé : la pièce est trop grosse de 0,04 mm. Entrez **−0,04** dans l’usure X de l’outil (au diamètre, comme X), puis usinez la pièce suivante. Ne modifiez pas le programme pour ça.',
+          text: 'Diamètre mesuré 20,04 pour 20,00 demandé : la pièce est trop grosse de 0,04 mm. Entrez **−0,04** dans l’usure X de l’outil (au diamètre, comme X), puis usinez la pièce suivante. Ne modifiez pas le programme pour cela.',
         },
         {
           type: 'note',

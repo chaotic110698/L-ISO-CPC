@@ -9,7 +9,7 @@ export const MODAL_GROUPS = [
   { id: 'distance', label: 'Cotation (absolu / relatif)' },
   { id: 'feedMode', label: 'Unité d’avance' },
   { id: 'spindleMode', label: 'Vitesse de broche' },
-  { id: 'cutterComp', label: 'Correction de rayon' },
+  { id: 'cutterComp', label: 'Compensation de rayon' },
   { id: 'lengthComp', label: 'Correction de longueur' },
   { id: 'plane', label: 'Plan' },
   { id: 'units', label: 'Unités' },

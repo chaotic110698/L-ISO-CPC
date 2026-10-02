@@ -20,7 +20,7 @@ export default {
           type: 'list',
           items: [
             '**Absolu** : on donne la **position** à atteindre, mesurée depuis l’origine pièce. « Va au Ø30, à 15 mm de la face. »',
-            '**Incrémental** (ou relatif) : on donne le **déplacement** depuis la position actuelle. « Monte de 10 mm au diamètre, recule de 15 mm. »',
+            '**Incrémental** (ou relatif) : on donne le **déplacement** depuis la position actuelle. « Augmente le diamètre de 10 mm, avance de 15 mm vers le mandrin. »',
           ],
         },
         {
@@ -75,7 +75,7 @@ export default {
                 items: [
                   '`G90` : mode **absolu** ; `G91` : mode **incrémental** ;',
                   'ces codes sont **modaux** : ils restent actifs jusqu’au suivant ;',
-                  '`X` et `Z` changent donc de sens selon le mode actif. En X, le déplacement reste généralement au diamètre.',
+                  '`X` et `Z` changent donc de signification selon le mode actif. En X, le déplacement reste généralement au diamètre.',
                 ],
               },
               {

@@ -315,8 +315,12 @@
 
 /* ---- Page Paramètres ---- */
 
+/* Pages à défilement vertical (tout sauf l'éditeur). */
 .settings-page,
-.profiles-page {
+.profiles-page,
+.home-page,
+.calc-page,
+.courses-page {
   height: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -428,12 +432,6 @@
 }
 
 /* ---- Page d'accueil ---- */
-
-.home-page {
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 .home-inner {
   display: grid;
@@ -570,12 +568,6 @@ a.feature-card:hover {
 
 /* ---- Page Calculateurs ---- */
 
-.calc-page {
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
 .calc-inner {
   display: grid;
   gap: 14px;
@@ -592,12 +584,6 @@ a.feature-card:hover {
 }
 
 /* ---- Cours d'ISO ---- */
-
-.courses-page {
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 .courses-inner {
   display: grid;

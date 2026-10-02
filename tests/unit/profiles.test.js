@@ -73,6 +73,14 @@ test('profil FANUC systèmes B/C : à activer au-dessus du système A', async ()
   assert.equal(profiles.macroRanges().profile.id, 'fanuc-turning', 'plages de macros du profil A conservées');
 });
 
+test('code personnalisé : la limitation de broche (spindleLimit) est conservée', async () => {
+  const { profiles, dictionary } = await setup();
+  const mine = await profiles.create({ name: 'Perso' });
+  await profiles.setCode(mine.id, 'G50', { ...dictionary.lookup('G50'), name: 'Limitation maison' });
+  assert.equal(dictionary.lookup('G50').name, 'Limitation maison');
+  assert.equal(dictionary.lookup('G50').spindleLimit, true);
+});
+
 test('désactiver un profil change immédiatement le dictionnaire, état conservé', async () => {
   const { profiles, dictionary, db } = await setup();
   await profiles.update('fanuc-turning', { enabled: false, macroRanges: [{ from: 900, to: 999 }] });
@@ -86,7 +94,7 @@ test('désactiver un profil change immédiatement le dictionnaire, état conserv
 test('profil personnel : code propriétaire, code standard redéfini, code retiré', async () => {
   const { profiles, dictionary, changes } = await setup();
   const mine = await profiles.create({ name: 'Tour Okuma' });
-  assert.equal(profiles.list().at(-1).id, mine.id, 'placé au-dessus des profils existants');
+  assert.equal(profiles.list().at(-1).id, mine.id, 'placé en fin de liste (le plus spécifique)');
   await profiles.setCode(mine.id, 'M50', { category: 'mcode', name: 'Ouverture du mandrin' });
   await profiles.setCode(mine.id, 'M8', { category: 'mcode', name: 'Arrosage haute pression' });
   await profiles.setCode(mine.id, 'G28', null);

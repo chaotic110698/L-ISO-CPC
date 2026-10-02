@@ -256,7 +256,8 @@
   height: 16px;
 }
 
-.segment:has(input:checked) {
+.segment:has(input:checked),
+.tabs .segment[aria-selected='true'] {
   background: var(--surface);
   color: var(--text);
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
@@ -345,7 +346,8 @@
   margin-top: 8px;
 }
 
-.module-group-title {
+.module-group-title,
+.lesson-toc > p {
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;
@@ -922,12 +924,6 @@ dialog::backdrop {
   font: inherit;
 }
 
-.tabs .segment[aria-selected='true'] {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
-}
-
 .profile-stack {
   display: grid;
   gap: 10px;
@@ -1042,7 +1038,9 @@ dialog::backdrop {
   flex: 1 1 200px;
 }
 
-.code-list {
+.code-list,
+.var-list,
+.version-list {
   display: grid;
   margin: 0;
   padding: 0;
@@ -1117,13 +1115,6 @@ dialog::backdrop {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-}
-
-.var-list {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 .var-row {
@@ -1313,12 +1304,14 @@ dialog::backdrop {
   font-weight: 600;
 }
 
-.diff-badge.is-insert {
+.diff-badge.is-insert,
+.diff-line.is-insert {
   background: var(--diff-insert);
   color: var(--diff-insert-text);
 }
 
-.diff-badge.is-delete {
+.diff-badge.is-delete,
+.diff-line.is-delete {
   background: var(--diff-delete);
   color: var(--diff-delete-text);
 }
@@ -1347,16 +1340,6 @@ dialog::backdrop {
   font-family: inherit;
 }
 
-.diff-line.is-insert {
-  background: var(--diff-insert);
-  color: var(--diff-insert-text);
-}
-
-.diff-line.is-delete {
-  background: var(--diff-delete);
-  color: var(--diff-delete-text);
-}
-
 .diff-num {
   color: var(--text-muted);
   text-align: right;
@@ -1374,13 +1357,6 @@ dialog::backdrop {
   font-family: var(--font-ui);
   font-size: 12px;
   text-align: center;
-}
-
-.version-list {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 .version-item {
@@ -1892,14 +1868,6 @@ a.lesson-card:hover {
   display: grid;
   gap: 4px;
   font-size: 14px;
-}
-
-.lesson-toc > p {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .lesson-toc ol {

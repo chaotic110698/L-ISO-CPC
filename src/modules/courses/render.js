@@ -1,6 +1,6 @@
 import { h } from '../../core/dom.js';
-import { parseLine, tokenCategory, explainToken } from '../../engine/index.js';
-import { createCodeView } from '../../ui/code-view.js';
+import { explainToken } from '../../engine/index.js';
+import { createCodeView, renderTokens } from '../../ui/code-view.js';
 import { renderExplanation } from '../../ui/editor/definition-view.js';
 import { icon } from '../../ui/icons.js';
 import { FIGURES } from './figures.js';
@@ -59,28 +59,13 @@ export function hideDefinition() {
   if (popover?.matches(':popover-open')) popover.hidePopover();
 }
 
-/** Code en ligne coloré ; chaque élément explicable est un bouton. */
+/** Code en ligne coloré ; un tap sur un élément affiche sa définition dans une infobulle. */
 function inlineCode(text, dictionary) {
-  const { tokens, block } = parseLine(text);
-  const parts = [];
-  let pos = 0;
-  for (const token of tokens) {
-    if (token.from > pos) parts.push(text.slice(pos, token.from));
-    const piece = text.slice(token.from, token.to);
-    const category = tokenCategory(token, dictionary);
+  const onSelect = (button, token, block) => {
     const explanation = explainToken(token, { block, dictionary, findAssignments: () => [], variableInfo: () => ({}) });
-    const className = category ? `tok-${category}` : '';
-    if (explanation) {
-      const button = h('button', { type: 'button', class: `code-token ${className}`, title: 'Afficher la définition' }, piece);
-      button.addEventListener('click', () => showDefinition(button, explanation));
-      parts.push(button);
-    } else {
-      parts.push(className ? h('span', { class: className }, piece) : piece);
-    }
-    pos = token.to;
-  }
-  if (pos < text.length) parts.push(text.slice(pos));
-  return h('code', { class: 'inline-code' }, parts);
+    if (explanation) showDefinition(button, explanation);
+  };
+  return h('code', { class: 'inline-code' }, renderTokens(text, dictionary, { onSelect }));
 }
 
 export function renderInline(text, ctx) {

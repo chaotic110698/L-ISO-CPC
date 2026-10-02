@@ -3,7 +3,7 @@ import { NON_MODAL, M_STATES } from '../data/modal-groups.js';
 
 /**
  * État modal à la fin d'une ligne donnée : codes actifs par groupe, outil, broche,
- * arrosage, dernières valeurs F et S, vitesse maxi G50 S. Fonction pure.
+ * arrosage, dernières valeurs F et S, vitesse maxi (G50 S en système A, G92 S en B/C). Fonction pure.
  *
  *   { groups: { motion: 'G1', feedMode: 'G99', … }, tool: { word: 'T0202', number: 2, offset: 2 } | null,
  *     spindle: 'M3', coolant: 'M8', feed: 0.12, speed: 280, maxSpeed: 3000, program: 1000, line }
@@ -18,7 +18,8 @@ export function applyBlock(state, block, dictionary) {
   for (const word of block.codes) {
     const definition = dictionary.lookup(word.code);
     if (definition?.group && definition.group !== NON_MODAL) state.groups[definition.group] = word.code;
-    if (definition?.forms?.some((f) => f.when?.includes('S')) && block.words.some((w) => w.letter === 'S')) isMaxSpeedBlock = true;
+    // Code de limitation de vitesse (champ `spindleLimit` de sa définition) suivi d'un S.
+    if (definition?.spindleLimit && block.words.some((w) => w.letter === 'S')) isMaxSpeedBlock = true;
     for (const [key, info] of Object.entries(M_STATES)) if (info.codes[word.code]) state[key] = word.code;
   }
   for (const word of block.words) {

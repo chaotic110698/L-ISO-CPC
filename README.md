@@ -265,8 +265,9 @@ d'un module : la page Paramètres l'affiche automatiquement. Types : `boolean`, 
 ### Ajouter un code
 
 Les codes sont des **données** (`src/data/codes/`), organisées en couches superposées :
-`iso-base.js` (codes ISO génériques) puis `fanuc-turning.js` (tournage Fanuc), qui complète
-ou redéfinit certains codes (G90 devient un cycle, G98/G99 l'unité d'avance…).
+`iso-base.js` (codes ISO génériques), `fanuc-turning.js` (tournage Fanuc, système A), qui complète
+ou redéfinit certains codes (G90 devient un cycle, G98/G99 l'unité d'avance…), et
+`fanuc-turning-bc.js` (systèmes B/C, désactivé par défaut).
 
 ```js
 // src/data/codes/fanuc-turning.js
@@ -291,6 +292,8 @@ codes: {
   infobulle avec son sens d'origine.
 - `group` : groupe modal (`src/data/modal-groups.js`) ; deux codes du même groupe s'excluent
   dans un bloc (vérificateur) et le dernier reste actif (état modal). `nonModal` : groupe 00.
+- `spindleLimit: true` : avec S, ce code fixe la vitesse de rotation maximale (G50 en
+  système A, G92 en B/C) ; l'état modal et la règle « G96 sans limitation » s'en servent.
 
 Pour **votre** machine, inutile de toucher aux fichiers : créez un profil personnel dans la
 page Profils machines et ajoutez-y vos codes (ou « Personnaliser » un code depuis son

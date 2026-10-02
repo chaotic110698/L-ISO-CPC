@@ -8,6 +8,7 @@
  *   description  explication (infobulle)
  *   syntax       forme(s) d'écriture
  *   modal        true : reste actif jusqu'à un code du même groupe ; false : ce bloc seulement
+ *   spindleLimit true : avec S, ce code fixe la vitesse de rotation maximale (G50 Fanuc A, G92 B/C)
  *   params       { lettre: signification } des adresses utilisées avec ce code
  *   forms        variantes à plusieurs blocs : [{ when: ['P','Q'], params: {…} }, …] — la première
  *                dont toutes les lettres `when` sont présentes dans le bloc s'applique
@@ -149,19 +150,19 @@ export const ISO_BASE_CODES = {
     G17: {
       category: 'mode', group: 'plane',
       name: 'Plan XY',
-      description: 'Sélectionne le plan XY pour les arcs et la correction de rayon (fraisage).',
+      description: 'Sélectionne le plan XY pour les arcs et la compensation de rayon (fraisage).',
       modal: true,
     },
     G18: {
       category: 'mode', group: 'plane',
       name: 'Plan ZX',
-      description: 'Sélectionne le plan ZX pour les arcs et la correction de rayon. C’est le plan par défaut en tournage.',
+      description: 'Sélectionne le plan ZX pour les arcs et la compensation de rayon. C’est le plan par défaut en tournage.',
       modal: true,
     },
     G19: {
       category: 'mode', group: 'plane',
       name: 'Plan YZ',
-      description: 'Sélectionne le plan YZ pour les arcs et la correction de rayon.',
+      description: 'Sélectionne le plan YZ pour les arcs et la compensation de rayon.',
       modal: true,
     },
     G20: {
@@ -243,28 +244,28 @@ export const ISO_BASE_CODES = {
     // --- Outils et corrections --------------------------------------------------------------
     G40: {
       category: 'tool', group: 'cutterComp',
-      name: 'Annulation de la correction de rayon',
-      description: 'Désactive la correction de rayon d’outil (G41/G42). À programmer sur un déplacement de dégagement, avant un changement d’outil ou la fin du programme.',
+      name: 'Annulation de la compensation de rayon',
+      description: 'Désactive la compensation de rayon d’outil (G41/G42). À programmer sur un déplacement de dégagement, avant un changement d’outil ou la fin du programme.',
       modal: true,
       example: 'G0 G40 X100. Z100.',
     },
     G41: {
       category: 'tool', group: 'cutterComp',
-      name: 'Correction de rayon à gauche',
+      name: 'Compensation de rayon à gauche',
       description:
         'L’outil est décalé de son rayon à gauche du profil programmé (vu dans le sens du déplacement). Activée sur un déplacement linéaire d’approche (G0/G1).',
       modal: true,
       params: { D: 'Numéro du correcteur de rayon' },
-      notes: ['Ne jamais activer ni annuler la correction sur un arc.'],
+      notes: ['Ne jamais activer ni annuler la compensation sur un arc.'],
     },
     G42: {
       category: 'tool', group: 'cutterComp',
-      name: 'Correction de rayon à droite',
+      name: 'Compensation de rayon à droite',
       description:
         'L’outil est décalé de son rayon à droite du profil programmé (vu dans le sens du déplacement). Activée sur un déplacement linéaire d’approche (G0/G1).',
       modal: true,
       params: { D: 'Numéro du correcteur de rayon' },
-      notes: ['Ne jamais activer ni annuler la correction sur un arc.'],
+      notes: ['Ne jamais activer ni annuler la compensation sur un arc.'],
     },
     G43: {
       category: 'tool', group: 'lengthComp',

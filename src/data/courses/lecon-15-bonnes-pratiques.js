@@ -20,7 +20,7 @@ export default {
           type: 'table',
           head: ['Erreur', 'Conséquence', 'Parade'],
           rows: [
-            ['cote sans point : `X20`', 'déplacement de 0,020 mm, ou en mm selon la machine', 'toujours `X20.` ; le vérificateur le signale'],
+            ['cote sans point : `X20`', 'cote lue 0,020 mm (ou 20 mm selon le réglage de la machine)', 'toujours `X20.` ; le vérificateur le signale'],
             ['`G00` resté actif avant un usinage', 'l’outil traverse la matière en rapide', '`G01` explicite sur le premier bloc d’usinage'],
             ['`G96` sans limitation', 'survitesse au centre', '`G50 S2500` (A) ou **G92 S2500** (B/C) avant'],
             ['`G96` pour percer au centre', 'broche à la vitesse limite', '`G97` pour les outils au centre'],
@@ -47,7 +47,7 @@ export default {
             '**Essai à vide** ou visualisation graphique de la commande, si elle existe.',
             '**Premier passage en bloc par bloc**, avance rapide réduite (25 % ou moins), main sur le bouton d’arrêt d’avance.',
             'Avant chaque approche, comparer la distance restante affichée avec la position réelle de l’outil.',
-            '**Laisser de la matière** sur la première pièce : ajouter une valeur positive dans l’usure X (+0,2 par exemple), mesurer, puis corriger.',
+            '**Laisser de la matière** sur la première pièce : ajouter une valeur positive dans l’usure X (+0,4 au diamètre pour garder 0,2 mm au rayon), mesurer, puis corriger.',
           ],
         },
         {

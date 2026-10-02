@@ -212,7 +212,7 @@ export default {
       question: 'Quelle ligne contient une erreur ?',
       lines: ['O0010 (ESSAI)', 'N10 G21 G40 G97 G99', 'N20 T0101', 'N30 S800 M03', 'N40 G00 X42. Z2. M08', 'N50 G01 Z-30 F0.2', 'N60 G00 X50.'],
       answer: 5,
-      explain: '`Z-30` n’a pas de point décimal : sur beaucoup de Fanuc, l’outil ne bougerait que de 0,030 mm. Il faut `Z-30.`.',
+      explain: '`Z-30` n’a pas de point décimal : sur beaucoup de Fanuc, il est lu comme Z-0,030 mm, et l’outil s’arrêterait au ras de la face au lieu de charioter sur 30 mm. Il faut `Z-30.`.',
     },
   ],
 };

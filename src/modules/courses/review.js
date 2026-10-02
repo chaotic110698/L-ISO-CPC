@@ -22,7 +22,7 @@ const DAY = 24 * 60 * 60 * 1000;
 export const REVIEW_SOURCES = [
   { value: 'all', label: 'Tout' },
   { value: 'lessons', label: 'Questions des leçons' },
-  { value: 'codes', label: 'Codes de mon profil' },
+  { value: 'codes', label: 'Codes de vos profils' },
 ];
 export const REVIEW_SIZES = [10, 20];
 

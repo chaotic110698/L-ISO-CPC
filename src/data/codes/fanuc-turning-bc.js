@@ -34,7 +34,11 @@ export const FANUC_TURNING_BC_CODES = {
       description: 'Systèmes B/C : avec S, limite la vitesse de rotation maximale (indispensable avant G96) ; avec X et Z, déclare la position actuelle de l’outil (ancienne méthode de prise d’origine).',
       syntax: 'G92 S(tr/min maxi)   ou   G92 X… Z…',
       modal: false,
-      params: { S: 'Vitesse de rotation maximale (tr/min)', X: 'Position actuelle déclarée en X', Z: 'Position actuelle déclarée en Z' },
+      spindleLimit: true,
+      forms: [
+        { when: ['S'], params: { S: 'Vitesse de rotation maximale (tr/min)' } },
+        { params: { X: 'Position actuelle déclarée en X', Z: 'Position actuelle déclarée en Z' } },
+      ],
       notes: ['Équivaut à G50 du système A.'],
       example: 'G92 S2500\nG96 S180 M03',
     },

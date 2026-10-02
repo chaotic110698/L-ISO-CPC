@@ -52,10 +52,19 @@ export function iconSvg(name) {
   return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${PATHS[name] ?? ''}</svg>`;
 }
 
-/** Élément <span class="icon"> contenant l'icône demandée. */
+const templates = new Map();
+
+/**
+ * Élément <span class="icon"> contenant l'icône demandée. Chaque icône n'est analysée
+ * qu'une fois (modèle mis en cache), puis copiée : plusieurs centaines d'appels au démarrage.
+ */
 export function icon(name) {
-  const span = document.createElement('span');
-  span.className = 'icon';
-  span.innerHTML = iconSvg(name);
-  return span;
+  let template = templates.get(name);
+  if (!template) {
+    template = document.createElement('span');
+    template.className = 'icon';
+    template.innerHTML = iconSvg(name);
+    templates.set(name, template);
+  }
+  return template.cloneNode(true);
 }

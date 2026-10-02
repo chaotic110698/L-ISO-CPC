@@ -14,7 +14,7 @@ export default {
   id: 'checker',
   label: 'Vérificateur de syntaxe',
   description:
-    'Signale parenthèses non fermées, codes incompatibles sur une même ligne, M30 manquant, G40 oublié, avance non définie, blocs P/Q introuvables, cotes sans point décimal…',
+    'Signale les parenthèses non fermées, les codes incompatibles sur une même ligne, un M30 manquant, un G40 oublié, une avance non définie, les blocs P/Q introuvables, les cotes sans point décimal…',
   group: 'analyse',
   where: 'Soulignements, marge et barre d’état (clic : liste)',
   settings: CHECKER_RULES.map((rule) => ({ key: `checker.${rule.id}`, type: 'boolean', label: rule.label, default: true })),

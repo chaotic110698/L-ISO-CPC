@@ -78,6 +78,13 @@ test('broche : M3 sans S, G96 sans G50 S (tournage FANUC uniquement)', () => {
   assert.deepEqual(rules(check('M3\nM30')), ['1:spindle']);
   assert.deepEqual(rules(check('G96 S200 M3\nM30')), ['1:spindle']);
   assert.deepEqual(rules(check('G50 S2500\nG96 S200 M3\nM30')), []);
+  // Systèmes B/C : la limitation s'écrit G92 S, et le message le dit.
+  const bc = createCodeDictionary([ISO_BASE_CODES, FANUC_TURNING_CODES, FANUC_TURNING_BC_CODES]);
+  assert.deepEqual(rules(check('G92 S2500\nG96 S200 M3\nM30', bc)), []);
+  const missing = check('G96 S200 M3\nM30', bc);
+  assert.deepEqual(rules(missing), ['1:spindle']);
+  assert.match(missing[0].message, /G92 S/);
+  assert.equal(modalStateAt(lines('G92 S2500\nG96 S200'), 2, bc).maxSpeed, 2500);
   assert.deepEqual(rules(check('G96 S200 M3\nM30', iso)), []);
 });
 

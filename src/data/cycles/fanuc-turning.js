@@ -213,7 +213,7 @@ export const FANUC_TURNING_CYCLES = [
     generate(v) {
       return {
         lines: [`G0 X${mm(v.xStart)} Z${mm(v.zStart)}`, `G75 R${mm(v.retract)}`, `G75 X${mm(v.xEnd)} Z${mm(v.zEnd)} P${um(v.peck)} Q${um(v.shift)} F${mm(v.f)}`, `G0 X${mm(v.xStart + 50)}`],
-        notes: ['Z de départ = position du bord de l’outil retenu comme référence (en général le bord gauche).'],
+        notes: ['Z de départ = position du coin de l’outil mesuré au réglage (coin droit ou gauche selon l’habitude de l’atelier).'],
       };
     },
   },

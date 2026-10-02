@@ -158,6 +158,7 @@ export async function startApp(root) {
   };
   const registry = createModuleRegistry({
     settings,
+    batch: (fn) => editor.batch(fn),
     createContext: (def, scope) => ({
       id: def.id,
       signal: scope.signal,

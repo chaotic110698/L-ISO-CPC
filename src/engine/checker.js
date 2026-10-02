@@ -17,8 +17,8 @@ export const CHECKER_RULES = [
   { id: 'multipleM', label: 'Plusieurs codes M dans un bloc' },
   { id: 'decimalPoint', label: 'Cote sans point décimal (X25 au lieu de X25.)' },
   { id: 'feed', label: 'Avance F non définie avant un usinage (G1, G2, G3)' },
-  { id: 'spindle', label: 'Broche démarrée sans vitesse S, vitesse de coupe sans limite G50' },
-  { id: 'compensation', label: 'G40 oublié (correction de rayon active en fin de programme ou au changement d’outil)' },
+  { id: 'spindle', label: 'Broche démarrée sans vitesse S, vitesse de coupe constante sans limitation (G50 S / G92 S)' },
+  { id: 'compensation', label: 'G40 oublié (compensation de rayon active en fin de programme ou au changement d’outil)' },
   { id: 'blockRefs', label: 'Blocs P / Q / GOTO introuvables, numéros N en double' },
   { id: 'programEnd', label: 'Fin de programme M30 / M02 manquante' },
 ];
@@ -49,6 +49,9 @@ export function checkProgram(lineTexts, dictionary, { rules = {} } = {}) {
   };
 
   const state = createModalState();
+  // Code qui limite la vitesse de broche dans ce dictionnaire (G50 en système A, G92 en B/C) :
+  // sans lui (ISO générique, fraisage), la règle « G96 sans limitation » ne s'applique pas.
+  const limitCode = dictionary.entries().find((definition) => definition.spindleLimit)?.key ?? null;
   const blockNumbers = new Map(); // N → [lignes]
   const references = []; // { value, line, from, to, label }
   let hasEnd = false;
@@ -94,7 +97,7 @@ export function checkProgram(lineTexts, dictionary, { rules = {} } = {}) {
         letters.set(word.letter, word);
       }
       if (COORDINATE_LETTERS.has(word.letter) && word.valueKind === 'number' && !word.hasDecimal && word.value !== 0) {
-        add(number, token.from, token.to, 'warning', 'decimalPoint', `${word.letter}${word.valueText} sans point décimal : ${(word.value / 1000).toLocaleString('fr-FR')} mm sur une FANUC sans saisie « calculatrice ». Écrire ${word.letter}${word.valueText}. ?`);
+        add(number, token.from, token.to, 'warning', 'decimalPoint', `${word.letter}${word.valueText} sans point décimal : ${(word.value / 1000).toLocaleString('fr-FR')} mm sur une FANUC sans « mode calculatrice ». Écrire ${word.letter}${word.valueText}. ?`);
       }
     }
     if (mCodes.length > 1) {
@@ -135,18 +138,18 @@ export function checkProgram(lineTexts, dictionary, { rules = {} } = {}) {
     }
     for (const word of block.codes) {
       if ((word.code === 'M3' || word.code === 'M4') && state.speed == null) add(number, word.token.from, word.token.to, 'warning', 'spindle', `${word.code} sans vitesse de broche S programmée.`);
-      if (word.code === 'G96' && state.maxSpeed == null && dictionary.lookup('G50')?.forms?.some((f) => f.when?.includes('S'))) {
-        add(number, word.token.from, word.token.to, 'warning', 'spindle', 'Vitesse de coupe constante (G96) sans limitation préalable de la vitesse de broche (G50 S…).');
+      if (word.code === 'G96' && state.maxSpeed == null && limitCode) {
+        add(number, word.token.from, word.token.to, 'warning', 'spindle', `Vitesse de coupe constante (G96) sans limitation préalable de la vitesse de broche (${limitCode} S…).`);
       }
     }
     const toolWord = block.words.find((w) => w.letter === 'T');
     const compensation = before.groups.cutterComp;
     if (toolWord && compensation && compensation !== 'G40' && state.groups.cutterComp === compensation) {
-      add(number, toolWord.token.from, toolWord.token.to, 'warning', 'compensation', `Changement d’outil avec la correction de rayon ${compensation} encore active : programmer G40 avant.`);
+      add(number, toolWord.token.from, toolWord.token.to, 'warning', 'compensation', `Changement d’outil avec la compensation de rayon ${compensation} encore active : programmer G40 avant.`);
     }
     const end = block.codes.find((w) => w.code === 'M30' || w.code === 'M2');
     if (end && state.groups.cutterComp && state.groups.cutterComp !== 'G40') {
-      add(number, end.token.from, end.token.to, 'warning', 'compensation', `Fin de programme avec la correction de rayon ${state.groups.cutterComp} encore active : G40 oublié.`);
+      add(number, end.token.from, end.token.to, 'warning', 'compensation', `Fin de programme avec la compensation de rayon ${state.groups.cutterComp} encore active : G40 oublié.`);
     }
   }
 

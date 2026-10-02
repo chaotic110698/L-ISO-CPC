@@ -105,7 +105,7 @@ export default {
                     ),
                   ),
                 )
-              : [h('li', { class: 'var-empty' }, term ? 'Aucun résultat.' : 'Bibliothèque vide : sélectionnez un sous-programme dans l’éditeur puis « Ajouter ».')]),
+              : [h('li', { class: 'var-empty' }, term ? 'Aucun résultat.' : 'Bibliothèque vide : sélectionnez un sous-programme dans l’éditeur, puis « Ajouter à la bibliothèque ».')]),
           );
         };
 

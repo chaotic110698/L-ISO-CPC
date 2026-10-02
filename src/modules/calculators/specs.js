@@ -47,7 +47,7 @@ export const CALCULATORS = [
       { key: 'd', label: 'Diamètre', unit: 'mm', decimals: 3 },
       { key: 'vc', label: 'Vitesse de coupe Vc', units: ALL_UNITS, unitKey: 'vcUnit', decimals: 3 },
       { key: 'n', label: 'Vitesse de rotation N', unit: 'tr/min', decimals: 0 },
-      { key: 'nmax', label: 'Vitesse maxi (G50), facultatif', unit: 'tr/min', decimals: 0 },
+      { key: 'nmax', label: 'Vitesse maxi (limitation G50 / G92), facultatif', unit: 'tr/min', decimals: 0 },
     ],
     onUnitChange: convertOnUnitChange({ vcUnit: 'vc' }),
     compute(s, changed) {
@@ -59,7 +59,7 @@ export const CALCULATORS = [
       const lines = [line('Vc', allUnits(s.vc, s.vcUnit)), line('N', `${formatResult(s.n, 0)} tr/min`)];
       if (ok(s.nmax, s.vc)) {
         const dLimit = limitDiameter(s.vc, s.nmax, s.vcUnit);
-        lines.push(line('Limite G50 atteinte sous', `Ø ${formatResult(dLimit, 2)} mm`));
+        lines.push(line('Limitation atteinte sous', `Ø ${formatResult(dLimit, 2)} mm`));
         if (s.n > s.nmax) lines.push(line('Attention', `N dépasse la vitesse maxi (${formatResult(s.nmax, 0)} tr/min)`, 'warning'));
       }
       return lines;
@@ -206,6 +206,6 @@ export const CALCULATORS = [
       ];
     },
     formula:
-      'ΔZ = r × (1 − tan(α/2))   ·   ΔX (diamètre) = 2 r × (1 − tan((90° − α)/2)). Avec G41/G42 et l’orientation de plaquette (T) renseignée dans le correcteur, la commande fait ce calcul elle-même.',
+      'ΔZ = r × (1 − tan(α/2))   ·   ΔX (diamètre) = 2 r × (1 − tan((90° − α)/2)). Avec G41/G42, le rayon et le code de position de la pointe renseignés dans le correcteur, la commande fait ce calcul elle-même.',
   },
 ];
