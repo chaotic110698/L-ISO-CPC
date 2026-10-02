@@ -66,7 +66,7 @@ async function typeAtEnd(page, text) {
 
 /** Navigue via le menu latéral (ouvert d'abord s'il est escamoté, sur mobile). */
 async function navTo(page, id, pageSelector) {
-  const item = page.locator(`.sidenav [data-nav="${id}"] > *`);
+  const item = page.locator(`.sidenav li[data-nav="${id}"]:not([hidden]) > *`);
   const box = await item.boundingBox();
   if (!box || box.x < 0) {
     await page.locator('button[aria-label="Menu"]').click();
@@ -275,6 +275,65 @@ const desktop = await open(DESKTOP);
     await gotoEditor(page);
   });
 
+  await step('calculateurs : Vc ↔ tr/min, unités mm/min et mm/s, rectification', async () => {
+    await navTo(page, 'calculateurs', '.calc-page:not([hidden])');
+    const field = (calc, key) => page.locator(`[data-calc="${calc}"] input[data-key="${key}"]`);
+    const unit = (calc, key) => page.locator(`[data-calc="${calc}"] select[data-unit-for="${key}"]`);
+    const results = (calc) => page.locator(`[data-calc="${calc}"] .calc-results`).textContent();
+
+    await field('cutting', 'd').fill('50');
+    await field('cutting', 'vc').fill('220');
+    assert.equal(await field('cutting', 'n').inputValue(), '1401');
+    await unit('cutting', 'vc').selectOption('mm/s');
+    assert.equal(await field('cutting', 'vc').inputValue(), '3666,667', 'même vitesse convertie en mm/s');
+    await field('cutting', 'n').fill('1000');
+    assert.equal(await field('cutting', 'vc').inputValue(), '2617,994');
+    assert.match(await results('cutting'), /157,08 m\/min/);
+
+    await field('feed', 'f').fill('0,2');
+    await field('feed', 'n').fill('1500');
+    assert.equal(await field('feed', 'vf').inputValue(), '300');
+    await unit('feed', 'vf').selectOption('mm/s');
+    assert.equal(await field('feed', 'vf').inputValue(), '5');
+
+    await field('grinding', 'ds').fill('400');
+    await field('grinding', 'ns').fill('1500');
+    assert.equal(await field('grinding', 'vs').inputValue(), '31,416');
+    await field('grinding', 'dw').fill('50');
+    await field('grinding', 'nw').fill('120');
+    assert.equal(await field('grinding', 'vw').inputValue(), '314,159', 'Vw en mm/s');
+    await field('grinding', 'fa').fill('10');
+    assert.equal(await field('grinding', 'vfa').inputValue(), '20', '10 mm/tr × 120 tr/min = 1200 mm/min = 20 mm/s');
+    assert.match(await results('grinding'), /Rapport q = Vs \/ Vw100/);
+
+    await field('roughness', 'f').fill('0,2');
+    await field('roughness', 'r').fill('0,8');
+    assert.equal(await field('roughness', 'ra').inputValue(), '1,604');
+    await field('nose', 'r').fill('0,8');
+    await field('nose', 'angle').fill('45');
+    assert.match(await results('nose'), /ΔZ\)0,469 mm.*ΔX\)0,937 mm/); // 0,8 × (1 − tan 22,5°)
+    await shot(page, 'pc-sombre-calculateurs');
+
+    await page.reload();
+    await waitReady(page);
+    assert.equal(await field('cutting', 'n').inputValue(), '1000', 'valeurs mémorisées');
+  });
+
+  await step('calculateurs désactivables (page et menu retirés, puis rétablis)', async () => {
+    await gotoSettings(page);
+    await toggle(page, 'modules.calculators');
+    assert.equal(await page.locator('.sidenav [data-nav="calculateurs"] .is-upcoming').isVisible(), true);
+    assert.equal(await page.locator('.sidenav [data-nav="calculateurs"] a').count(), 0);
+    assert.equal(await page.locator('.calc-page').count(), 0, 'page retirée');
+    await toggle(page, 'modules.calculators');
+    await page.locator('.setting[data-key="calculators.nose"] input').click();
+    await navTo(page, 'calculateurs', '.calc-page:not([hidden])');
+    assert.equal(await page.locator('[data-calc="nose"]').isVisible(), false);
+    await gotoSettings(page);
+    await page.locator('.setting[data-key="calculators.nose"] input').click();
+    await gotoEditor(page);
+  });
+
   await step('sauvegarde automatique coupée : « Non enregistré » puis Ctrl+S', async () => {
     await gotoSettings(page);
     await toggle(page, 'modules.autosave');
@@ -393,6 +452,15 @@ const mobile = await open(MOBILE);
     await shot(page, 'mobile-clair-definition');
     await tip.locator('.def-close').tap();
     await tip.waitFor({ state: 'detached' });
+  });
+
+  await step('calculateurs lisibles en largeur smartphone', async () => {
+    await navTo(page, 'calculateurs', '.calc-page:not([hidden])');
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-calculateurs');
+    await page.locator('[data-calc="grinding"]').scrollIntoViewIfNeeded();
+    await shot(page, 'mobile-clair-rectification');
+    await gotoEditor(page);
   });
 
   await step('tiroir des programmes et menu d’actions', async () => {

@@ -476,3 +476,26 @@ a.feature-card:hover {
   color: var(--text-muted);
   font-size: 14px;
 }
+
+/* ---- Page Calculateurs ---- */
+
+.calc-page {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.calc-inner {
+  display: grid;
+  gap: 14px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px max(var(--gutter), env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+  align-items: start;
+  gap: 14px;
+}

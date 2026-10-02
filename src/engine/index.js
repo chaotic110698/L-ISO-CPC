@@ -5,3 +5,4 @@ export { createCodeDictionary } from './code-dictionary.js';
 export { tokenCategory } from './classify.js';
 export { occurrenceKey, describeOccurrence, tokenAt } from './occurrences.js';
 export { explainToken, paramsFor } from './explain.js';
+export * as cutting from './cutting.js';

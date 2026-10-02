@@ -143,7 +143,17 @@ export async function startApp(root) {
         ...ui,
         toolbar: editorPage.toolbar.scoped(scope),
         statusbar: editorPage.statusbar.scoped(scope),
+        /** Ajoute une page et son entrée de menu (retirées à la désactivation du module). */
+        addPage({ id, path, label, icon, order, mount, onShow }) {
+          const removeRoute = router.register(path, { title: label, mount, onShow });
+          const removeNav = shell.addNavItem({ id, path, label, icon, order });
+          scope.add(() => {
+            removeNav();
+            removeRoute();
+          });
+        },
       },
+      kv,
     }),
     onError: (def, error) => {
       console.error(`Module « ${def.id} »`, error);
@@ -160,7 +170,7 @@ export async function startApp(root) {
   });
   router.register('/accueil', {
     title: 'Accueil',
-    mount: () => createHomePage({ workspace, bus }),
+    mount: () => createHomePage({ workspace, bus, registry }),
   });
   router.register('/editeur', {
     title: 'Éditeur',
@@ -174,18 +184,19 @@ export async function startApp(root) {
 
   // Menu latéral. Les fonctions à venir y figurent grisées ; chaque module les remplacera
   // par une vraie entrée (avec sa page) lorsqu'il sera développé.
-  shell.addNavItem({ id: 'accueil', path: '/accueil', label: 'Accueil', icon: 'home' });
-  shell.addNavItem({ id: 'editeur', path: '/editeur', label: 'Éditeur', icon: 'code' });
+  shell.addNavItem({ id: 'accueil', path: '/accueil', label: 'Accueil', icon: 'home', order: 10 });
+  shell.addNavItem({ id: 'editeur', path: '/editeur', label: 'Éditeur', icon: 'code', order: 20 });
   shell.addNavItem({
     id: 'programmes',
     label: 'Mes programmes',
     icon: 'folder',
+    order: 30,
     onSelect: () => {
       router.navigate('/editeur');
       openPrograms();
     },
   });
-  shell.addNavItem({ id: 'parametres', path: '/parametres', label: 'Paramètres', icon: 'settings' });
+  shell.addNavItem({ id: 'parametres', path: '/parametres', label: 'Paramètres', icon: 'settings', order: 90 });
   for (const item of [
     { id: 'profils', label: 'Profils machines', icon: 'machine' },
     { id: 'calculateurs', label: 'Calculateurs', icon: 'calculator' },

@@ -27,7 +27,9 @@ const FEATURES = [
   {
     icon: 'calculator',
     title: 'Calculateurs',
-    text: 'Vitesse de coupe ↔ tr/min, avance, rugosité théorique, compensation de rayon de bec.',
+    text: 'Vitesse de coupe ↔ tr/min, avance, rectification (vitesses en mm/min et mm/s), conversions, rugosité théorique, rayon de bec.',
+    path: '/calculateurs',
+    module: 'calculators',
   },
   {
     icon: 'library',
@@ -47,7 +49,7 @@ const FEATURES = [
 ];
 
 /** Page d'accueil : présentation du site et accès rapide à l'éditeur. */
-export function createHomePage({ workspace, bus }) {
+export function createHomePage({ workspace, bus, registry }) {
   const resume = h('p', { class: 'home-resume' });
   const updateResume = () => {
     const program = workspace.current;
@@ -97,22 +99,27 @@ export function createHomePage({ workspace, bus }) {
         'ul',
         { class: 'feature-grid' },
         FEATURES.map((feature) => {
-          const body = [
-            h('span', { class: 'feature-icon' }, icon(feature.icon)),
-            h('span', { class: 'feature-title' }, feature.title, feature.path ? null : h('span', { class: 'badge' }, 'bientôt')),
-            h('span', { class: 'feature-text' }, feature.text),
-          ];
-          return h(
-            'li',
-            null,
-            feature.path
-              ? h('a', { class: 'feature-card', href: `#${feature.path}` }, body)
-              : h('div', { class: 'feature-card is-upcoming' }, body),
-          );
+          const item = h('li');
+          renderFeature(item, feature);
+          // Fonction fournie par un module : disponible seulement s'il est actif.
+          if (feature.module) registry.onChange(() => renderFeature(item, feature));
+          return item;
         }),
       ),
     ),
   );
   updateResume();
   return page;
+
+  function renderFeature(item, feature) {
+    const available = feature.path && (!feature.module || registry.isActive(feature.module));
+    const body = [
+      h('span', { class: 'feature-icon' }, icon(feature.icon)),
+      h('span', { class: 'feature-title' }, feature.title, available ? null : h('span', { class: 'badge' }, feature.module ? 'désactivé' : 'bientôt')),
+      h('span', { class: 'feature-text' }, feature.text),
+    ];
+    item.replaceChildren(
+      available ? h('a', { class: 'feature-card', href: `#${feature.path}` }, body) : h('div', { class: 'feature-card is-upcoming' }, body),
+    );
+  }
 }

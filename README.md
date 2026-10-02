@@ -25,7 +25,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | 4 | Profils machines (ISO générique, Fanuc tournage, profils personnels) | à venir |
 | 5 | Macros : plages libres, tableau des variables, avertissements | à venir |
 | 6 | Autocomplétion, vérificateur, état modal, renumérotation, recherche / décalage, repliage, comparaison, snippets / cycles, bibliothèque | à venir |
-| 7 | Calculateurs (Vc ↔ tr/min, avance, rugosité, rayon de bec) | à venir |
+| 7 | Calculateurs (Vc ↔ tr/min, avance, rectification en mm/min et mm/s, conversions, rugosité, rayon de bec) | ✅ (réalisée avant les étapes 4 à 6) |
 | 8 | Page Paramètres complète | à venir |
 
 À l'ouverture, une **page d'accueil** présente le site ; le bouton **« Commencer à
@@ -41,7 +41,10 @@ catégorie (avec légende dans Paramètres), mise en évidence des occurrences d
 code ou d'une valeur sous le curseur, définition au clic / tap (ou F1, Ctrl+I) de chaque code,
 paramètre de cycle (selon le bloc : le U de `G71 U2. R0.5` n'est pas celui de `G71 P… Q… U0.4`),
 macro (plage, affectations), mot-clé de macro, avec décodage de T0101, G76 P020060, M98 P…
-et alerte sur les cotes sans point décimal.
+et alerte sur les cotes sans point décimal ; page **Calculateurs** (menu latéral) : vitesse de
+coupe ↔ tr/min, avance (tournage / fraisage), rectification (meule, pièce, rapport q, avance de
+table), conversion mm/min ↔ mm/s ↔ m/min ↔ m/s, rugosité théorique, compensation de rayon de
+bec — chaque calculateur fonctionne dans les deux sens et peut être masqué dans Paramètres.
 
 ## Structure du projet
 
@@ -129,7 +132,14 @@ d'outils, barre d'état, dialogues, notifications), `listen()` (écouteur DOM), 
 
 ### Ajouter une page et son entrée de menu
 
-Dans `src/app.js` : `router.register('/ma-page', { title, mount: () => element })` puis
+Depuis un module (page retirée automatiquement si le module est désactivé, comme
+`src/modules/calculators/`) :
+
+```js
+ctx.ui.addPage({ id: 'calculateurs', path: '/calculateurs', label: 'Calculateurs', icon: 'calculator', order: 40, mount: () => element });
+```
+
+Une entrée de même `id` remplace l'entrée « à venir » du menu. Pour une page du socle, dans `src/app.js` : `router.register('/ma-page', { title, mount: () => element })` puis
 `shell.addNavItem({ id, path: '/ma-page', label, icon })`. Retirer l'entrée « à venir »
 correspondante et mettre à jour la carte de la page d'accueil (`src/ui/pages/home-page.js`).
 
@@ -175,7 +185,7 @@ l'interface, sans toucher aux fichiers.
 `src/engine/` ne dépend ni du DOM ni de CodeMirror (réutilisable par la future simulation) :
 `tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
 variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
-`tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
+`cutting` (formules de coupe et conversions d'unités), `tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
 `occurrenceKey` (identité d'une macro, d'un code ou
 d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).
 

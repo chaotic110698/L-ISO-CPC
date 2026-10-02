@@ -43,6 +43,12 @@ export function createRouter({ container, defaultPath, onChange }) {
       return () => {
         routes.get(path)?.element?.remove();
         routes.delete(path);
+        // Page retirée alors qu'elle était affichée (module désactivé) : page par défaut.
+        if (current === path) {
+          current = null;
+          if (location.hash === `#${defaultPath}`) render();
+          else location.hash = defaultPath;
+        }
       };
     },
     start() {

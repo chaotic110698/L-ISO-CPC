@@ -731,3 +731,115 @@ dialog::backdrop {
   color: var(--text-muted);
   font-size: 12px;
 }
+
+/* ---- Calculateurs ---- */
+
+.calc-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.calc-field {
+  display: grid;
+  gap: 4px;
+}
+
+.calc-field label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.calc-input {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.calc-input .input {
+  flex: 1;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.calc-input .calc-unit {
+  flex: none;
+  width: 104px;
+  padding-right: 4px;
+}
+
+.calc-unit-text {
+  flex: none;
+  width: 104px;
+  padding-left: 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.calc-hint {
+  font-size: 12px;
+}
+
+.calc-results {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+
+.calc-results:empty {
+  display: none;
+}
+
+.calc-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  font-size: 14px;
+}
+
+.calc-line span {
+  color: var(--text-muted);
+}
+
+.calc-line strong {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.calc-units {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.calc-units > span {
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.calc-units > span b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.calc-units > span.is-current {
+  outline: 1px solid var(--accent);
+}
+
+.calc-line.is-warning strong,
+.calc-line.is-warning span {
+  color: var(--warning);
+}
+
+.calc-formula {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

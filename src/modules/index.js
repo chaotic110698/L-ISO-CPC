@@ -7,5 +7,6 @@ import definitions from './definitions/index.js';
 import history from './history/index.js';
 import autosave from './autosave/index.js';
 import exportFile from './export-file/index.js';
+import calculators from './calculators/index.js';
 
-export const MODULES = [lineNumbers, highlighting, occurrences, definitions, history, autosave, exportFile];
+export const MODULES = [lineNumbers, highlighting, occurrences, definitions, history, autosave, exportFile, calculators];

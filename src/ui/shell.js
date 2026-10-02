@@ -60,6 +60,9 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
 
   const wide = window.matchMedia(WIDE_QUERY);
   const items = new Map();
+  const refreshUpcoming = () => {
+    upcomingSection.hidden = ![...upcomingList.children].some((li) => !li.hidden);
+  };
 
   function setOpen(open) {
     root.classList.toggle('nav-open', open);
@@ -96,14 +99,16 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
 
     /**
      * Ajoute une entrée au menu. `path` : lien vers une page ; `onSelect` : action ;
-     * `upcoming: true` : fonction à venir (grisée, non cliquable).
+     * `upcoming: true` : fonction à venir (grisée, non cliquable) ; `order` : position.
+     * Une entrée portant l'identifiant d'une entrée existante la remplace (une fonction
+     * « à venir » devient disponible) ; l'ancienne réapparaît quand la nouvelle est retirée.
+     * @returns {() => void} retrait de l'entrée
      */
-    addNavItem({ id, path, label, icon: iconName, onSelect, upcoming = false, description }) {
+    addNavItem({ id, path, label, icon: iconName, onSelect, upcoming = false, description, order = 50 }) {
       const content = [icon(iconName), h('span', { class: 'sidenav-label' }, label)];
       let element;
       if (upcoming) {
         element = h('span', { class: 'sidenav-item is-upcoming', title: description ?? 'Bientôt disponible' }, content, h('span', { class: 'badge' }, 'bientôt'));
-        upcomingSection.hidden = false;
       } else if (path) {
         element = h('a', { class: 'sidenav-item', href: `#${path}`, title: label, onclick: () => setOpen(false) }, content);
       } else {
@@ -121,9 +126,28 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
           content,
         );
       }
-      const li = h('li', { dataset: { nav: id } }, element);
-      (upcoming ? upcomingList : mainList).append(li);
-      items.set(id, { path, element });
+      const li = h('li', { dataset: { nav: id, order: String(order) } }, element);
+      const list = upcoming ? upcomingList : mainList;
+      const next = [...list.children].find((child) => Number(child.dataset.order) > order);
+      list.insertBefore(li, next ?? null);
+
+      const replaced = items.get(id);
+      if (replaced) replaced.li.hidden = true;
+      const item = { path, element, li, replaced };
+      items.set(id, item);
+      refreshUpcoming();
+
+      return () => {
+        li.remove();
+        if (items.get(id) !== item) return;
+        if (replaced) {
+          replaced.li.hidden = false;
+          items.set(id, replaced);
+        } else {
+          items.delete(id);
+        }
+        refreshUpcoming();
+      };
     },
 
     setRoute(path) {
