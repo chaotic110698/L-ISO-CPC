@@ -710,8 +710,8 @@ const desktop = await open(DESKTOP);
 
   await step('cours : catalogue, préférences machine, schémas doublés', async () => {
     await navTo(page, 'cours', '.courses-page:not([hidden])');
-    assert.equal(await page.locator('.lesson-card[href]').count(), 8, 'huit leçons rédigées');
-    assert.ok((await page.locator('.lesson-card.is-upcoming').count()) >= 7, 'leçons en préparation annoncées');
+    assert.equal(await page.locator('.lesson-card[href]').count(), 15, 'quinze leçons rédigées');
+    assert.equal(await page.locator('.lesson-card.is-upcoming').count(), 0, 'plus aucune leçon en préparation');
     await shot(page, 'ordinateur-cours-catalogue');
     await page.locator('.lesson-card[href="#/cours/repere-du-tour"]').click();
     await page.waitForSelector('.lesson-section');
@@ -770,7 +770,7 @@ const desktop = await open(DESKTOP);
     await page.locator('.course-back').click();
     assert.equal(await page.locator('li[data-lesson="programme-iso"]').getAttribute('data-status'), 'read');
     assert.equal(await page.locator('li[data-lesson="repere-du-tour"]').getAttribute('data-status'), 'opened');
-    assert.match(await page.locator('.course-progress').textContent(), /1 leçon terminée sur 8/);
+    assert.match(await page.locator('.course-progress').textContent(), /1 leçon terminée sur 15/);
   });
 
   await step('cours : aucune leçon n’affiche de texte parasite', async () => {

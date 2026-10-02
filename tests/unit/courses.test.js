@@ -86,8 +86,11 @@ for (const lesson of LESSONS.filter(isAvailable)) {
           if (block.type === 'code') {
             const lines = codeLines(block);
             for (const line of lines) assert.deepEqual(unknownTokens(line, dictionary), [], `« ${line} » ${where}`);
-            // Les programmes complets (ouvrables dans l'éditeur) passent le vérificateur sans erreur.
-            if (block.open) {
+            // Les programmes complets (ouvrables dans l'éditeur) passent le vérificateur sans erreur,
+            // sauf les exercices volontairement fautifs, qui doivent au contraire en contenir.
+            if (block.open && block.exercise) {
+              assert.ok(checkProgram(lines, dictionary).length > 0, `exercice sans aucun signalement ${where}`);
+            } else if (block.open) {
               const errors = checkProgram(lines, dictionary).filter((d) => d.severity === 'error');
               assert.deepEqual(errors.map((e) => `${e.line}: ${e.message}`), [], where);
             }

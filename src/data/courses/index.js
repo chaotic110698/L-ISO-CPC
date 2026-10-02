@@ -6,6 +6,13 @@ import brocheAvance from './lecon-05-broche-avance.js';
 import outils from './lecon-06-outils.js';
 import modaux from './lecon-07-modaux.js';
 import programmeType from './lecon-08-programme-type.js';
+import ebaucheFinition from './lecon-09-ebauche-finition.js';
+import cyclesSimples from './lecon-10-cycles-simples.js';
+import filetage from './lecon-11-filetage.js';
+import percageGorges from './lecon-12-percage-gorges.js';
+import sousProgrammes from './lecon-13-sous-programmes.js';
+import macros from './lecon-14-macros.js';
+import bonnesPratiques from './lecon-15-bonnes-pratiques.js';
 
 /**
  * Catalogue des cours d'ISO. Une leçon rédigée est un fichier de ce dossier (format :
@@ -25,13 +32,13 @@ export const LESSONS = [
   outils,
   modaux,
   programmeType,
-  { id: 'ebauche-finition', level: 'confirme', number: 9, title: 'Ébauche et finition : G71, G70, G72, G73', summary: 'Cycles de chariotage et de dressage par passes, puis finition du contour.' },
-  { id: 'cycles-simples', level: 'confirme', number: 10, title: 'Cycles simples : G90, G94', summary: 'Chariotage et dressage en une passe répétée, cônes.' },
-  { id: 'filetage', level: 'confirme', number: 11, title: 'Filetage : G92 et G76', summary: 'Pas, hauteur de filet, passes, et paramètres P, Q, R du G76.' },
-  { id: 'percage-gorges', level: 'confirme', number: 12, title: 'Perçage et gorges : G74, G75', summary: 'Débourrage en Z, gorges en X, choix des paramètres.' },
-  { id: 'sous-programmes', level: 'confirme', number: 13, title: 'Sous-programmes : M98, M99', summary: 'Appeler, répéter, imbriquer ; décalages en incrémental.' },
-  { id: 'macros', level: 'confirme', number: 14, title: 'Macros : variables et conditions', summary: 'Variables #, calculs, IF, GOTO, WHILE, plages libres de la machine.' },
-  { id: 'bonnes-pratiques', level: 'confirme', number: 15, title: 'Erreurs courantes et bonnes pratiques', summary: 'Les pièges qui cassent des outils, et les habitudes qui les évitent.' },
+  ebaucheFinition,
+  cyclesSimples,
+  filetage,
+  percageGorges,
+  sousProgrammes,
+  macros,
+  bonnesPratiques,
 ];
 
 export const isAvailable = (lesson) => Array.isArray(lesson.sections);

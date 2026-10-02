@@ -31,7 +31,7 @@ le vérifient) ; les mots d'autres commandes (Siemens…) s'écrivent en **gras*
 | `p` | `text` | paragraphe |
 | `list` | `items`, `ordered?` | liste |
 | `note` | `tone`, `title?`, `text` ou `blocks` | encadré : `retenir`, `piege`, `info`, `rectif`, `machine` |
-| `code` | `lines` : `[['N10 G00 X20.', 'explication'], …]` ou `code` (texte), `caption?`, `open?` | extrait coloré ; `open` : nom du programme créé par « Ouvrir dans l'éditeur » |
+| `code` | `lines` : `[['N10 G00 X20.', 'explication'], …]` ou `code` (texte), `caption?`, `open?` | extrait coloré ; `open` : nom du programme créé par « Ouvrir dans l'éditeur » ; `exercise: true` : programme volontairement fautif |
 | `figure` | `figure`, `turret?`, `caption?` | schéma de `src/modules/courses/figures.js` ; `turret: true` le dessine outil derrière et/ou devant l'axe selon « Votre machine » |
 | `table` | `head?`, `rows` | tableau |
 | `anatomy` | `parts` : `[{ text: 'G01', label: '…' }]` | bloc décomposé mot par mot |

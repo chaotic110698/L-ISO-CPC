@@ -41,14 +41,14 @@ function svg(content, label) {
 </defs>${content}</svg>`;
 }
 
-/** Mandrin, axe de broche et repère (flèches X+ et Z+) en haut à droite. */
-function machineBase(f) {
+/** Mandrin, axe de broche et repère (flèches X+ et Z+), en haut à droite par défaut. */
+function machineBase(f, { frameAt = [1.5, 17] } = {}) {
   const left = f.x(Z_MIN);
   const chuckRight = f.x(CHUCK_Z);
   const outer = f.y(R_MAX - 1);
   const top = Math.min(outer, f.axisY);
-  const ox = f.x(1.5);
-  const oy = f.y(17);
+  const ox = f.x(frameAt[0]);
+  const oy = f.y(frameAt[1]);
   return `
   <rect x="${fmt(left)}" y="${fmt(top)}" width="${fmt(chuckRight - left)}" height="${fmt(Math.abs(outer - f.axisY))}" class="fig-chuck"/>
   <text transform="translate(${fmt((left + chuckRight) / 2 + 5)} ${fmt(f.y(9))}) rotate(-90)" class="fig-small" text-anchor="middle">mandrin</text>
@@ -162,8 +162,56 @@ export function absoluIncremental({ turret }) {
   );
 }
 
+/**
+ * Ébauche G71 : passes parallèles à Z (profondeur 2 mm au rayon) arrêtées sur le profil,
+ * dans un brut Ø42. Profil de la leçon 9.
+ */
+export function g71({ turret }) {
+  const f = frame(turret);
+  const BRUT = 21;
+  const profile = [
+    [0, 12],
+    [-2, 14],
+    [-12, 14],
+    [-18, 18],
+    [-26, 18],
+  ];
+  // Z où le profil atteint le rayon r (premier point en partant de la face), ou fin du profil.
+  const reach = (r) => {
+    for (let i = 1; i < profile.length; i++) {
+      const [z0, r0] = profile[i - 1];
+      const [z1, r1] = profile[i];
+      if (r1 >= r && r1 !== r0) return z0 + ((r - r0) / (r1 - r0)) * (z1 - z0);
+      if (r0 >= r) return z0;
+    }
+    return profile.at(-1)[0];
+  };
+  const brut = `<rect x="${fmt(f.x(CHUCK_Z))}" y="${fmt(Math.min(f.y(BRUT), f.axisY))}" width="${fmt(-CHUCK_Z * SCALE)}" height="${fmt(BRUT * SCALE)}" class="fig-stock"/>`;
+  const outline =
+    `M${fmt(f.x(0))} ${fmt(f.axisY)} ` +
+    profile.map(([z, r]) => `L${fmt(f.x(z))} ${fmt(f.y(r))}`).join(' ') +
+    ` L${fmt(f.x(-26))} ${fmt(f.y(BRUT))} L${fmt(f.x(CHUCK_Z))} ${fmt(f.y(BRUT))} L${fmt(f.x(CHUCK_Z))} ${fmt(f.axisY)} Z`;
+  const passes = [19, 17, 15, 13]
+    .map((r) => `<line x1="${fmt(f.x(2))}" y1="${fmt(f.y(r))}" x2="${fmt(f.x(reach(r)))}" y2="${fmt(f.y(r))}" class="fig-pass" marker-end="url(#fig-arrow)"/>`)
+    .join('');
+  const finish = `<path d="M${profile.map(([z, r]) => `${fmt(f.x(z))} ${fmt(f.y(r))}`).join(' L')}" class="fig-path"/>`;
+  return svg(
+    machineBase(f, { frameAt: [2, 3] }) +
+      brut +
+      `<path d="${outline}" class="fig-part"/>` +
+      passes +
+      finish +
+      `<circle cx="${fmt(f.x(2))}" cy="${fmt(f.y(BRUT + 1))}" r="4" class="fig-point"/>
+  <text x="${fmt(f.x(2) + 8)}" y="${fmt(f.ty(BRUT + 1, 4))}" class="fig-small">départ X44. Z2.</text>
+  <text x="${fmt(f.x(-4))}" y="${fmt(f.ty(BRUT, 6))}" class="fig-small" text-anchor="end">brut Ø42</text>
+  <text x="${fmt(f.x(-6))}" y="${fmt(f.ty(9))}" class="fig-code">G70</text>`,
+    `Passes d’ébauche G71 et contour de finition G70, outil ${turret === 'front' ? 'devant' : 'derrière'} l’axe`,
+  );
+}
+
 export const FIGURES = {
   'repere-tour': repereTour,
   arcs,
   'absolu-incremental': absoluIncremental,
+  g71,
 };

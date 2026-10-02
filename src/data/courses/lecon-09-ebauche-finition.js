@@ -1,0 +1,201 @@
+/** Leçon 9 — cycles d'ébauche G71/G72/G73 et de finition G70. */
+export default {
+  id: 'ebauche-finition',
+  level: 'confirme',
+  number: 9,
+  title: 'Ébauche et finition : G71, G70, G72, G73',
+  summary: 'Décrire le contour fini une seule fois, laisser le cycle calculer les passes d’ébauche, puis finir avec G70.',
+  duration: 30,
+  goals: [
+    'écrire un cycle `G71` et le profil qu’il utilise ;',
+    'choisir les surépaisseurs de finition ;',
+    'finir le contour avec `G70` et la compensation de rayon ;',
+    'savoir quand préférer `G72` ou `G73`.',
+  ],
+  sections: [
+    {
+      id: 'principe',
+      title: 'Le principe',
+      blocks: [
+        {
+          type: 'p',
+          text: 'Dans la leçon 8, l’ébauche était écrite passe par passe : long, et à refaire au moindre changement de cote. Les cycles multipasses inversent la logique : vous décrivez **une seule fois le contour fini**, entre deux numéros de bloc, et la commande calcule toutes les passes d’ébauche.',
+        },
+        {
+          type: 'figure',
+          figure: 'g71',
+          turret: true,
+          caption: 'G71 enlève la matière par passes parallèles à l’axe (en violet), en s’arrêtant sur le contour décalé des surépaisseurs ; G70 suit ensuite le contour fini (en bleu).',
+        },
+      ],
+    },
+    {
+      id: 'g71',
+      title: 'G71 : ébauche en chariotage',
+      blocks: [
+        {
+          type: 'p',
+          text: 'Sur la plupart des Fanuc actuels (séries 0i, 16i, 18i, 21i, 30i), `G71` s’écrit sur **deux blocs** :',
+        },
+        {
+          type: 'code',
+          lines: [
+            ['G71 U2. R0.5', 'U : profondeur de passe au rayon (2 mm) ; R : dégagement en fin de passe'],
+            ['G71 P80 Q140 U0.4 W0.1 F0.25', 'P/Q : premier et dernier bloc du contour ; U/W : surépaisseurs ; F : avance d’ébauche'],
+          ],
+        },
+        {
+          type: 'note',
+          tone: 'piege',
+          text: 'Les deux blocs utilisent la lettre U avec deux sens différents : dans le premier, la **profondeur de passe au rayon** ; dans le second, la **surépaisseur en X au diamètre**. Touchez chaque U pour voir sa définition selon le bloc.',
+        },
+        {
+          type: 'list',
+          items: [
+            'Le cycle part du **point où se trouve l’outil** : placez-le juste au-dessus du brut et devant la face (ici `X44. Z2.` pour un brut Ø42).',
+            'Le **premier bloc du contour** (P) ne contient qu’un déplacement en X : c’est le profil « type I », où X et Z évoluent dans un seul sens, sans creux.',
+            'Pendant l’ébauche, les `F`, `S` et `T` écrits **dans** le contour sont ignorés : ils serviront à la finition `G70`.',
+            'Surépaisseurs courantes : `U0.4` à `U0.5` (au diamètre), `W0.05` à `W0.1`.',
+          ],
+        },
+        {
+          type: 'note',
+          tone: 'machine',
+          text: 'Sur des Fanuc plus anciens (0-T, 10/11-T, ou selon un paramètre), `G71` s’écrit sur un seul bloc, avec une adresse D pour la profondeur de passe : reprenez la forme des programmes existants. Les commandes récentes acceptent aussi des contours avec creux (« type II »), dont le premier bloc contient X et Z.',
+        },
+      ],
+    },
+    {
+      id: 'g70',
+      title: 'G70 : la finition',
+      blocks: [
+        {
+          type: 'p',
+          text: '`G70 P80 Q140` usine le contour des blocs N80 à N140 en une passe, avec les avances et vitesses écrites dans ces blocs. On l’utilise en général avec un **outil de finition** différent, et avec la compensation de rayon de bec activée avant le cycle.',
+        },
+        {
+          type: 'code',
+          open: 'Cours 9 - G71 et G70',
+          caption: 'Brut Ø42, contour : chanfrein, Ø28, cône, Ø36.',
+          lines: [
+            ['%', null],
+            ['O0009 (G71 ET G70)', null],
+            ['N10 G21 G40 G97 G99 G18', null],
+            ['(EBAUCHE)', null],
+            ['N20 T0101', null],
+            ['N30 G50 S2500', null],
+            ['N40 G96 S180 M03', null],
+            ['N50 G00 X44. Z2. M08', 'Point de départ du cycle'],
+            ['N60 G71 U2. R0.5', 'Passes de 2 mm au rayon'],
+            ['N70 G71 P80 Q140 U0.4 W0.1 F0.25', 'Contour N80 à N140'],
+            ['N80 G00 X24.', 'Début du contour : X seul'],
+            ['N90 G01 Z0. F0.1', 'F0.1 : avance de finition (utilisée par G70)'],
+            ['N100 X28. Z-2.', 'Chanfrein'],
+            ['N110 Z-12.', 'Ø28'],
+            ['N120 X36. Z-18.', 'Cône'],
+            ['N130 Z-26.', 'Ø36'],
+            ['N140 X44.', 'Fin du contour, au-dessus du brut'],
+            ['N150 G28 U0.', null],
+            ['N160 G28 W0.', null],
+            ['N170 M01', null],
+            ['(FINITION)', null],
+            ['N180 T0202', null],
+            ['N190 G50 S3000', null],
+            ['N200 G96 S220 M03', null],
+            ['N210 G00 G42 X44. Z2. M08', 'Compensation activée avant G70'],
+            ['N220 G70 P80 Q140', 'Finition du contour'],
+            ['N230 G00 G40 X60. M09', 'Annulation sur le dégagement'],
+            ['N240 G97 S600', null],
+            ['N250 M05', null],
+            ['N260 G28 U0.', null],
+            ['N270 G28 W0.', null],
+            ['N280 M30', null],
+            ['%', null],
+          ],
+        },
+        {
+          type: 'note',
+          tone: 'info',
+          text: 'Le formulaire « Cycles » de l’éditeur génère le couple `G71` / `G70` à partir de vos valeurs, et le vérificateur signale un P ou un Q qui ne correspond à aucun bloc.',
+        },
+      ],
+    },
+    {
+      id: 'g72-g73',
+      title: 'G72 et G73',
+      blocks: [
+        {
+          type: 'table',
+          head: ['Cycle', 'Passes', 'Quand l’utiliser'],
+          rows: [
+            ['`G71`', 'parallèles à Z (chariotage)', 'pièces plus longues que larges : le cas courant'],
+            ['`G72`', 'parallèles à X (dressage)', 'pièces courtes de grand diamètre, faces importantes ; le premier bloc du contour ne contient que Z'],
+            ['`G73`', 'parallèles au contour', 'bruts déjà proches de la forme (forgés, moulés) : chaque passe recopie le contour décalé'],
+          ],
+        },
+        {
+          type: 'code',
+          lines: [
+            ['G72 W2. R0.5', 'G72 : W = profondeur de passe en Z'],
+            ['G72 P80 Q140 U0.4 W0.1 F0.25', null],
+            ['G73 U3. W1. R3', 'G73 : matière à enlever en X (au rayon) et en Z, nombre de passes'],
+            ['G73 P80 Q140 U0.4 W0.1 F0.2', null],
+          ],
+        },
+        {
+          type: 'note',
+          tone: 'piege',
+          text: '`G73` repasse partout, même là où il n’y a pas de matière : sur une barre cylindrique, il fait beaucoup de passes dans le vide. Il n’est intéressant que si le brut suit déjà la forme.',
+        },
+        {
+          type: 'note',
+          tone: 'rectif',
+          text: 'Attention aux numéros : sur une rectifieuse cylindrique Fanuc, `G71` à `G74` peuvent désigner des **cycles de rectification** (plongée, enfilade, oscillation) totalement différents des cycles de tournage. Beaucoup de rectifieuses utilisent aussi des cycles ou des macros propres au constructeur. Vérifiez toujours la notice de la machine avant de reprendre un code d’un tour.',
+        },
+      ],
+    },
+  ],
+  quiz: [
+    {
+      type: 'choice',
+      question: 'Dans `G71 U2. R0.5`, que signifie U ?',
+      options: ['La surépaisseur de finition en X', 'La profondeur de chaque passe, au rayon', 'Le diamètre du brut'],
+      answer: 1,
+      explain: 'Dans le premier bloc de G71, U est la profondeur de passe au rayon. Dans le second bloc, U est la surépaisseur de finition au diamètre.',
+    },
+    {
+      type: 'block',
+      question: 'Écrivez le bloc de finition du contour compris entre N80 et N140.',
+      expect: 'G70 P80 Q140',
+      explain: '`G70` suivi de P (premier bloc) et Q (dernier bloc) du contour.',
+    },
+    {
+      type: 'choice',
+      question: 'Pendant l’ébauche G71, quelle avance est utilisée ?',
+      options: ['Le F du second bloc G71', 'Les F écrits dans le contour', 'L’avance rapide'],
+      answer: 0,
+      explain: 'L’ébauche utilise le F du second bloc `G71` (celui qui contient P et Q) ; les F du contour sont réservés à la finition `G70`.',
+    },
+    {
+      type: 'error',
+      question: 'Contour de type I pour G71 : quelle ligne pose problème ?',
+      lines: ['N60 G71 U2. R0.5', 'N70 G71 P80 Q130 U0.4 W0.1 F0.25', 'N80 G00 X24. Z0.', 'N90 G01 X28. Z-2. F0.1', 'N100 Z-12.', 'N110 X36. Z-18.', 'N120 Z-26.', 'N130 X44.'],
+      answer: 2,
+      explain: 'En type I, le premier bloc du contour ne contient qu’un déplacement en X. Ici il contient aussi Z : selon la commande, alarme ou interprétation en type II.',
+    },
+    {
+      type: 'choice',
+      question: 'Pour un disque de Ø200 et 20 mm d’épaisseur, quel cycle d’ébauche est le plus adapté ?',
+      options: ['`G71`', '`G72`', '`G73`'],
+      answer: 1,
+      explain: 'Pièce courte et large : les passes de dressage de `G72` sont plus courtes et plus efficaces que de longues passes de chariotage.',
+    },
+    {
+      type: 'choice',
+      question: 'Où active-t-on la compensation de rayon pour la finition ?',
+      options: ['Dans le premier bloc du contour', 'Sur l’approche, avant `G70`', 'Dans le bloc `G70` lui-même'],
+      answer: 1,
+      explain: 'On active `G42` (ou `G41`) sur l’approche en ligne droite avant `G70`, et on l’annule avec `G40` sur le dégagement après.',
+    },
+  ],
+};

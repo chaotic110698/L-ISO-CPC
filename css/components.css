@@ -2127,6 +2127,17 @@ a.lesson-card:hover {
   stroke-width: 1.5;
 }
 
+.course-svg .fig-stock {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-dasharray: 4 3;
+}
+
+.course-svg .fig-pass {
+  stroke: var(--c-cycle);
+  stroke-width: 2;
+}
+
 .course-svg .fig-path {
   fill: none;
   stroke: var(--c-motion);

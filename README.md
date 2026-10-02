@@ -35,7 +35,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 |---|---|---|
 | C1 | Page Cours, catalogue, lecteur de leçon (schémas, exemples interactifs, « Ouvrir dans l'éditeur »), préférences « Votre machine », progression et sauvegarde JSON, leçons 1 à 4 | ✅ |
 | C2 | Quiz de fin de leçon, leçons 5 à 8 (parcours débutant complet), profil FANUC systèmes B/C | ✅ |
-| C3 | Parcours confirmé, leçons 9 à 15 | à venir |
+| C3 | Parcours confirmé, leçons 9 à 15 (G71/G70/G72/G73, cycles simples, filetage, G74/G75, sous-programmes, macros, bonnes pratiques) | ✅ |
 | C4 | Mode révision (questions générées par le profil, répétition espacée) | à venir |
 
 Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, autres types de machines,
