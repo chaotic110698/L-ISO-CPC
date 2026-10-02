@@ -4,6 +4,8 @@ import { LESSONS, LEVELS, isAvailable } from '../../data/courses/index.js';
 import { MACHINE_PREFS } from './progress.js';
 import { renderBlocks, renderInline, hideDefinition } from './render.js';
 import { createQuiz } from './quiz-view.js';
+import { createReviewView } from './review-view.js';
+import { codeQuestions, filterPool, lessonQuestions, reviewStats } from './review.js';
 
 const STATUS_LABELS = { new: 'À découvrir', opened: 'Commencée', read: 'Terminée' };
 
@@ -27,7 +29,7 @@ function usesPrefs(lesson) {
 /**
  * Page « Cours d'ISO » : catalogue (#/cours) et lecteur de leçon (#/cours/<id>).
  */
-export function createCoursesPage({ progress, dictionaries, openExample, navigate }) {
+export function createCoursesPage({ progress, dictionaries, openExample, navigate, reviewEnabled = () => true, onReviewToggle = () => {} }) {
   const inner = h('div', { class: 'courses-inner' });
   const page = h('section', { class: 'courses-page', 'aria-label': 'Cours d’ISO' }, inner);
   let currentId = '';
@@ -35,6 +37,30 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
   const setContent = (...nodes) => inner.replaceChildren(...nodes.filter((node) => node != null));
 
   const ctx = () => ({ dictionary: dictionaries.default, dictionaries, prefs: progress.get().prefs, openExample });
+
+  // Réserve du mode révision : quiz des leçons + questions sur les codes des profils actifs.
+  const buildPool = () => [...lessonQuestions(LESSONS.filter(isAvailable)), ...codeQuestions(dictionaries.default.entries())];
+  let review = null;
+  const reviewView = () =>
+    (review ??= createReviewView({ progress, buildPool, ctx, record: (id, ok) => quietly(() => progress.recordReview(id, ok)) }));
+
+  function renderReviewCard() {
+    const { items, options } = progress.get().review;
+    const stats = reviewStats(filterPool(buildPool(), options.source), items);
+    return h(
+      'a',
+      { class: 'card review-card', href: '#/cours/revision', dataset: { action: 'open-review' } },
+      h('span', { class: 'review-card-icon', 'aria-hidden': 'true' }, icon('history')),
+      h(
+        'span',
+        { class: 'lesson-text' },
+        h('span', { class: 'lesson-title' }, 'Mode révision'),
+        h('span', { class: 'lesson-summary' }, 'Questions des leçons et des codes de vos profils, avec répétition espacée.'),
+        h('span', { class: 'lesson-meta' }, h('span', { class: stats.due ? 'review-due' : '' }, `${stats.due} à revoir`), h('span', null, `${stats.fresh} nouvelles`), h('span', null, `${stats.mastered} maîtrisées`)),
+      ),
+      icon('arrowRight'),
+    );
+  }
 
   function prefsControl(prefs, { compact = false } = {}) {
     return h(
@@ -82,6 +108,7 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
         h('span', null, `${read} leçon${read > 1 ? 's' : ''} terminée${read > 1 ? 's' : ''} sur ${available.length}`),
         h('progress', { max: available.length, value: read, 'aria-hidden': 'true' }),
       ),
+      reviewEnabled() ? renderReviewCard() : null,
       ...LEVELS.map((level) =>
         h(
           'section',
@@ -227,10 +254,14 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
     hideDefinition();
     const top = page.scrollTop;
     const lesson = LESSONS.find((l) => l.id === currentId);
+    const showReview = currentId === 'revision' && reviewEnabled();
     if (!currentId) renderCatalog();
-    else if (lesson && isAvailable(lesson)) renderLesson(lesson);
+    else if (showReview) {
+      setContent(reviewView().element);
+      reviewView().show();
+    } else if (lesson && isAvailable(lesson)) renderLesson(lesson);
     else renderNotFound();
-    page.dataset.view = currentId ? 'lesson' : 'catalog';
+    page.dataset.view = !currentId ? 'catalog' : showReview ? 'review' : 'lesson';
     page.scrollTop = keepScroll ? top : 0;
   }
 
@@ -255,5 +286,6 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
   progress.onChange(() => {
     if (!quiet) render({ keepScroll: true });
   });
+  onReviewToggle(() => render({ keepScroll: true }));
   return page;
 }

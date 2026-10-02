@@ -16,6 +16,15 @@ export default {
   description: 'Leçons de programmation ISO en tournage, du premier bloc aux macros : schémas, exemples colorés avec définitions au tap, ouverture des exemples dans l’éditeur, progression enregistrée.',
   group: 'apprendre',
   where: 'Page « Cours d’ISO » (menu latéral)',
+  settings: [
+    {
+      key: 'courses.revision',
+      type: 'boolean',
+      label: 'Mode révision',
+      description: 'Questions des leçons et des codes de vos profils, avec répétition espacée.',
+      default: true,
+    },
+  ],
   activate(ctx) {
     const progress = createProgressStore(ctx.kv);
     // Dictionnaires des exemples : par défaut les profils actifs de l'utilisateur ; les passages
@@ -40,7 +49,15 @@ export default {
       label: 'Cours d’ISO',
       icon: 'book',
       order: 38,
-      mount: () => (page = createCoursesPage({ progress, dictionaries, openExample, navigate: ctx.ui.navigate })),
+      mount: () =>
+        (page = createCoursesPage({
+          progress,
+          dictionaries,
+          openExample,
+          navigate: ctx.ui.navigate,
+          reviewEnabled: () => ctx.settings.get('courses.revision'),
+          onReviewToggle: (listener) => ctx.settings.subscribe('courses.revision', listener),
+        })),
       onShow: (path) => page?.show(path ?? ''),
     });
 
@@ -54,7 +71,8 @@ export default {
       },
       describe: (data) => {
         const read = Object.values(data?.lessons ?? {}).filter((entry) => entry?.readAt).length;
-        return `${read} leçon${read > 1 ? 's' : ''} terminée${read > 1 ? 's' : ''} sur ${LESSONS.filter(isAvailable).length}`;
+        const reviewed = Object.keys(data?.review?.items ?? {}).length;
+        return `${read} leçon${read > 1 ? 's' : ''} terminée${read > 1 ? 's' : ''} sur ${LESSONS.filter(isAvailable).length}, ${reviewed} question${reviewed > 1 ? 's' : ''} de révision suivie${reviewed > 1 ? 's' : ''}`;
       },
     });
   },

@@ -8,6 +8,7 @@ import { LESSONS, LEVELS, isAvailable } from '../../src/data/courses/index.js';
 import { FIGURES } from '../../src/modules/courses/figures.js';
 import { parseInline, BLOCK_TYPES, NOTE_TONES } from '../../src/modules/courses/render.js';
 import { checkAnswer, checkBlock, compareBlock, describeBlockResult, parseNumber, validateQuestion } from '../../src/modules/courses/quiz.js';
+import { BOX_DAYS, MASTERED_BOX, codeQuestions, filterPool, lessonQuestions, mergeReview, reviewStats, sanitizeReview, schedule, seededRandom, selectSession } from '../../src/modules/courses/review.js';
 import { MACHINE_PREFS, sanitizeProgress, mergeProgress, createProgressStore, lessonStatus } from '../../src/modules/courses/progress.js';
 import { memoryKv, fakeClock } from './helpers.js';
 
@@ -179,7 +180,7 @@ test('texte enrichi : code, gras, italique', () => {
 
 test('progression : nettoyage des données lues', () => {
   const clean = sanitizeProgress({ lessons: { a: { openedAt: 5, readAt: 'x', junk: 1 }, b: 'n' }, prefs: { turret: 'front', system: 'Z' } });
-  assert.deepEqual(clean, { lessons: { a: { openedAt: 5 } }, prefs: { turret: 'front', system: 'all' } });
+  assert.deepEqual(clean, { lessons: { a: { openedAt: 5 } }, prefs: { turret: 'front', system: 'all' }, review: { items: {}, options: { source: 'all', size: 10 } } });
   assert.deepEqual(sanitizeProgress(null).lessons, {});
 });
 
@@ -224,4 +225,103 @@ test('progression : magasin persistant (ouverture, lecture, préférences)', () 
   again.reset();
   assert.equal(again.status('a'), 'new');
   assert.equal(again.pref('turret'), 'front', 'les préférences survivent à la remise à zéro');
+});
+
+// ---- Mode révision ---------------------------------------------------------------------
+
+const DAY = 24 * 60 * 60 * 1000;
+
+test('révision : questions générées à partir des codes, valides et réussissables', () => {
+  const questions = codeQuestions(dictionaries.default.entries(), seededRandom(7));
+  const ids = questions.map((q) => q.id);
+  assert.equal(new Set(ids).size, ids.length, 'identifiants uniques');
+  for (const kind of ['name', 'code', 'modal', 'param']) assert.ok(ids.some((id) => id.startsWith(`gen:${kind}:`)), kind);
+  for (const q of questions) {
+    assert.deepEqual(validateQuestion(q), [], q.id);
+    assert.equal(new Set(q.options).size, q.options.length, `options distinctes ${q.id}`);
+    assert.equal(checkAnswer(q, q.answer).ok, true, q.id);
+    for (const text of [q.question, q.explain, ...q.options]) {
+      for (const part of parseInline(text).filter((p) => p.type === 'code')) assert.deepEqual(unknownTokens(part.text, dictionaries.default), [], `${q.id} : ${part.text}`);
+    }
+  }
+  const g76 = questions.find((q) => q.id === 'gen:name:G76');
+  assert.equal(g76.options[g76.answer], 'Cycle de filetage multipasses');
+  const g4 = questions.find((q) => q.id === 'gen:modal:G4');
+  assert.equal(g4.options[g4.answer], 'Non : il ne vaut que pour son bloc');
+});
+
+test('révision : codes personnels inclus, avec le nom du profil', () => {
+  const custom = createCodeDictionary([ISO_BASE_CODES, FANUC_TURNING_CODES, { id: 'perso', label: 'Tour Okuma', codes: { M50: { category: 'mcode', name: 'Ouverture du mandrin' } } }]);
+  const questions = codeQuestions(custom.entries(), seededRandom(3));
+  const q = questions.find((x) => x.id === 'gen:name:M50');
+  assert.match(q.question, /Tour Okuma/);
+  assert.doesNotMatch(questions.find((x) => x.id === 'gen:name:G71').question, /profil/, 'profils intégrés non cités');
+  assert.equal(q.options[q.answer], 'Ouverture du mandrin');
+});
+
+test('révision : questions des leçons identifiées et rattachées à leur leçon', () => {
+  const questions = lessonQuestions(LESSONS.filter(isAvailable));
+  assert.equal(questions.length, LESSONS.reduce((n, l) => n + (l.quiz?.length ?? 0), 0));
+  assert.equal(questions[0].id, 'lesson:programme-iso:0');
+  assert.equal(questions[0].lesson.number, 1);
+  assert.equal(filterPool([...questions, { id: 'gen:x', source: 'code' }], 'codes').length, 1);
+});
+
+test('révision : boîtes de Leitner', () => {
+  const now = 1_000 * DAY;
+  let item = schedule(undefined, true, now);
+  assert.deepEqual(item, { box: 1, due: now + BOX_DAYS[1] * DAY, right: 1, wrong: 0, last: now });
+  item = schedule(item, true, now);
+  assert.equal(item.box, 2);
+  assert.equal(item.due, now + 3 * DAY);
+  item = schedule(item, false, now);
+  assert.deepEqual([item.box, item.due, item.right, item.wrong], [1, now, 2, 1], 'erreur : retour en boîte 1, à revoir tout de suite');
+  for (let i = 0; i < 10; i++) item = schedule(item, true, now);
+  assert.equal(item.box, BOX_DAYS.length - 1, 'boîte maximale');
+});
+
+test('révision : session = questions dues d’abord, puis nouvelles ; révision libre sinon', () => {
+  const now = 100 * DAY;
+  const pool = [
+    { id: 'a', source: 'lesson' },
+    { id: 'b', source: 'lesson' },
+    { id: 'c', source: 'code' },
+    { id: 'd', source: 'code' },
+  ];
+  const items = {
+    a: { box: 2, due: now - 2 * DAY, last: 1 },
+    b: { box: 3, due: now + DAY, last: 2 },
+    c: { box: 1, due: now - DAY, last: 3 },
+  };
+  const { questions, mode } = selectSession(pool, items, { size: 3, now, rng: seededRandom(1) });
+  assert.equal(mode, 'due');
+  assert.deepEqual(questions.map((q) => q.id).sort(), ['a', 'c', 'd'], 'b n’est pas encore dû');
+  assert.deepEqual(reviewStats(pool, items, now), { due: 2, fresh: 1, mastered: 0, total: 4 });
+
+  const allLater = { a: { box: MASTERED_BOX, due: now + DAY, last: 5 }, b: { box: 4, due: now + DAY, last: 1 }, c: { box: 5, due: now + DAY, last: 3 }, d: { box: 4, due: now + DAY, last: 2 } };
+  const free = selectSession(pool, allLater, { size: 2, now, rng: seededRandom(1) });
+  assert.equal(free.mode, 'free');
+  assert.deepEqual(free.questions.map((q) => q.id).sort(), ['b', 'd'], 'les moins récemment vues');
+  assert.equal(reviewStats(pool, allLater, now).mastered, 4);
+});
+
+test('révision : nettoyage et fusion des états', () => {
+  const clean = sanitizeReview({ items: { a: { box: 9 }, b: { box: 2, due: 5, last: 7 }, c: 'x' }, options: { source: 'codes', size: 99 } });
+  assert.deepEqual(clean, { items: { b: { box: 2, due: 5, right: 0, wrong: 0, last: 7 } }, options: { source: 'codes', size: 10 } });
+  const merged = mergeReview(
+    { items: { a: { box: 1, last: 10 }, b: { box: 3, last: 50 } }, options: { source: 'all', size: 10 } },
+    { items: { a: { box: 4, last: 20 }, b: { box: 1, last: 40 }, c: { box: 2, last: 5 } }, options: { source: 'lessons', size: 20 } },
+  );
+  assert.deepEqual(Object.fromEntries(Object.entries(merged.items).map(([k, v]) => [k, v.box])), { a: 4, b: 3, c: 2 });
+  assert.equal(merged.options.size, 20);
+});
+
+test('progression : réponses de révision enregistrées et persistantes', () => {
+  const kv = memoryKv();
+  const store = createProgressStore(kv, { now: () => 1000 });
+  store.recordReview('lesson:programme-iso:0', true);
+  store.setReviewOption('source', 'codes');
+  const again = createProgressStore(kv);
+  assert.equal(again.get().review.items['lesson:programme-iso:0'].box, 1);
+  assert.equal(again.get().review.options.source, 'codes');
 });

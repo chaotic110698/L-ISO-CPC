@@ -36,7 +36,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | C1 | Page Cours, catalogue, lecteur de leçon (schémas, exemples interactifs, « Ouvrir dans l'éditeur »), préférences « Votre machine », progression et sauvegarde JSON, leçons 1 à 4 | ✅ |
 | C2 | Quiz de fin de leçon, leçons 5 à 8 (parcours débutant complet), profil FANUC systèmes B/C | ✅ |
 | C3 | Parcours confirmé, leçons 9 à 15 (G71/G70/G72/G73, cycles simples, filetage, G74/G75, sous-programmes, macros, bonnes pratiques) | ✅ |
-| C4 | Mode révision (questions générées par le profil, répétition espacée) | à venir |
+| C4 | Mode révision (questions générées par le profil, répétition espacée) | ✅ |
 
 Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, autres types de machines,
 estimation du temps d'usinage.
@@ -69,7 +69,11 @@ estimation du temps d'usinage.
   codes Fanuc A ou B/C — les leçons n'affichent que votre cas, ou toutes les versions côte à
   côte. **Quiz** en fin de leçon : choix, bloc à écrire (vérifié par le parseur : ordre des
   mots libre, point décimal exigé), calcul, ligne fausse à trouver. Progression et meilleurs
-  scores enregistrés (et inclus dans la sauvegarde JSON). Ajouter ou corriger une
+  scores enregistrés (et inclus dans la sauvegarde JSON). **Mode révision** : sessions de 10 ou
+  20 questions tirées des quiz et générées à partir des codes des profils actifs (codes
+  personnels compris : fonction d'un code, code d'une fonction, modal ou non, adresses d'un
+  cycle) ; répétition espacée par boîtes de Leitner (une question réussie revient après 1, 3,
+  7, 16 puis 35 jours, une question ratée tout de suite). Désactivable dans Paramètres. Ajouter ou corriger une
   leçon : voir `src/data/courses/README.md`.
 - **Paramètres** : en-tête fixe avec **recherche** dans tous les réglages (sans tenir compte
   des accents) et raccourcis vers chaque section ; apparence, éditeur, profils, fonctionnalités,

@@ -823,6 +823,55 @@ const desktop = await open(DESKTOP);
     assert.equal(await page.locator('.quiz-question').nth(0).locator('.quiz-feedback.is-ok').isVisible(), true);
   });
 
+  await step('cours : mode révision (session complète, bilan, répétition espacée)', async () => {
+    await page.goto(url.split('#')[0] + '#/cours');
+    await page.waitForSelector('[data-action="open-review"]');
+    await page.locator('[data-action="open-review"]').click();
+    await page.waitForSelector('.review-stats');
+    await page.locator('[data-option="source"] .segment', { hasText: 'Codes de mon profil' }).click();
+    await page.waitForFunction(() => document.querySelector('[data-action="review-start"]')?.textContent.includes('10 questions'));
+    await shot(page, 'ordinateur-revision-accueil');
+    await page.locator('[data-action="review-start"]').click();
+    let answered = 0;
+    let wrong = 0;
+    for (let guard = 0; guard < 30 && (await page.locator('[data-action="review-next"]').count()); guard++) {
+      const card = page.locator('.quiz-question');
+      // Une option sur deux : réponses justes et fausses mêlées (le score est relevé au fil de l'eau).
+      const again = (await card.locator('.quiz-number').textContent()).includes('à revoir');
+      const options = card.locator('.quiz-option');
+      const index = again || answered % 2 === 0 ? 0 : 1;
+      await options.nth(index).click();
+      await card.locator('[data-action="quiz-check"]').click();
+      if (!again) {
+        answered++;
+        if (await card.locator('.quiz-feedback.is-ko').count()) wrong++;
+      }
+      if (guard === 0) await shot(page, 'ordinateur-revision-question');
+      await page.locator('[data-action="review-next"]').click();
+    }
+    assert.equal(answered, 10, 'dix premières réponses');
+    assert.match(await page.locator('.quiz-score').textContent(), new RegExp(`^${10 - wrong} / 10 justes`));
+    const recorded = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('isocpc:courses.progress')).review.items));
+    assert.equal(recorded.length, 10);
+    assert.ok(recorded.every((id) => id.startsWith('gen:')), 'questions sur les codes du profil');
+    await shot(page, 'ordinateur-revision-bilan');
+    await page.locator('[data-action="review-again"]').click();
+    const due = Number(await page.locator('.review-stat').first().locator('strong').textContent());
+    assert.equal(due, wrong, 'les questions ratées sont à revoir tout de suite');
+  });
+
+  await step('mode révision désactivable dans Paramètres', async () => {
+    await gotoSettings(page);
+    await toggle(page, 'courses.revision');
+    await navTo(page, 'cours', '.courses-page:not([hidden])');
+    assert.equal(await page.locator('[data-action="open-review"]').count(), 0);
+    await page.goto(url.split('#')[0] + '#/cours/revision');
+    await page.waitForSelector('.course-back');
+    assert.equal(await page.locator('.review-stats').count(), 0, 'page de révision retirée');
+    await gotoSettings(page);
+    await toggle(page, 'courses.revision');
+  });
+
   await step('cours désactivables (page et menu retirés, puis rétablis)', async () => {
     await gotoSettings(page);
     await toggle(page, 'modules.courses');
@@ -1107,6 +1156,19 @@ const mobile = await open(MOBILE);
     await shot(page, 'mobile-clair-cours-exemple');
     await page.locator('.course-figure').first().scrollIntoViewIfNeeded();
     await shot(page, 'mobile-clair-cours-schema');
+  });
+
+  await step('révision lisible en largeur smartphone', async () => {
+    await page.goto(url.split('#')[0] + '#/cours/revision');
+    await page.waitForSelector('.review-stats');
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-revision');
+    await page.locator('[data-action="review-start"]').tap();
+    await page.waitForSelector('.quiz-question');
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-revision-question');
+    await page.locator('[data-action="review-quit"]').tap();
+    await page.waitForSelector('.review-stats');
   });
 
   await step('paramètres lisibles, sans défilement horizontal', async () => {

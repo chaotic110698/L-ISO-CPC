@@ -1,10 +1,13 @@
+import { sanitizeReview, mergeReview, schedule } from './review.js';
+
 /**
  * Progression dans les cours, conservée dans le stockage clé/valeur du navigateur et incluse
  * dans la sauvegarde JSON (section « cours »).
  *
  *   {
  *     lessons: { [idLeçon]: { openedAt, readAt?, quiz?: { best, total, at } } },
- *     prefs: { turret: 'both'|'rear'|'front', system: 'all'|'A'|'BC' }
+ *     prefs: { turret: 'both'|'rear'|'front', system: 'all'|'A'|'BC' },
+ *     review: { items: { [idQuestion]: { box, due, right, wrong, last } }, options: { source, size } }
  *   }
  */
 
@@ -60,7 +63,7 @@ export function sanitizeProgress(raw) {
       if (pref.options.some((option) => option.value === value)) prefs[pref.key] = value;
     }
   }
-  return { lessons, prefs };
+  return { lessons, prefs, review: sanitizeReview(raw?.review) };
 }
 
 /** Fusion (import) : on garde ce qui a été fait de part et d'autre, et le meilleur score. */
@@ -76,6 +79,7 @@ export function mergeProgress(current, incoming) {
     result.lessons[id] = merged;
   }
   result.prefs = { ...incoming.prefs };
+  result.review = mergeReview(current.review, incoming.review);
   return result;
 }
 
@@ -124,6 +128,15 @@ export function createProgressStore(kv, { now = () => Date.now() } = {}) {
       entry.openedAt ??= now();
       const previous = entry.quiz;
       if (!previous || score / total >= previous.best / previous.total) entry.quiz = { best: score, total, at: now() };
+      commit();
+    },
+    /** Réponse en mode révision : nouvelle boîte et date de révision de la question. */
+    recordReview(id, ok) {
+      progress.review.items[id] = schedule(progress.review.items[id], ok, now());
+      commit();
+    },
+    setReviewOption(key, value) {
+      progress.review = sanitizeReview({ ...progress.review, options: { ...progress.review.options, [key]: value } });
       commit();
     },
     replace(data) {
