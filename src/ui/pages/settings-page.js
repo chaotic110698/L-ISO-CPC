@@ -143,7 +143,11 @@ export function createSettingsPage({ settings, registry, backup, workspace, db }
               row.querySelector('.setting-text').append(status);
               statusEls.set(mod.id, status);
               const own = settings.entries().filter((e) => e.parentModule === mod.id);
-              const sub = own.length ? h('div', { class: 'module-settings', dataset: { module: mod.id } }, own.map(renderEntry)) : null;
+              const info = mod.renderInfo?.();
+              const sub =
+                own.length || info
+                  ? h('div', { class: 'module-settings', dataset: { module: mod.id } }, own.map(renderEntry), info)
+                  : null;
               return h('div', { class: 'module-row' }, row, sub);
             }),
           ),

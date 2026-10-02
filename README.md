@@ -20,7 +20,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | Étape | Contenu | État |
 |---|---|---|
 | 1 | Socle, thème clair/sombre, stockage, sauvegarde automatique, export/import JSON | ✅ |
-| 2 | Moteur d'analyse (tokenizer, parseur) et coloration syntaxique par catégorie | à venir |
+| 2 | Moteur d'analyse (tokenizer, parseur) et coloration syntaxique par catégorie | ✅ |
 | 3 | Infobulles de définition au clic / tap | à venir |
 | 4 | Profils machines (ISO générique, Fanuc tournage, profils personnels) | à venir |
 | 5 | Macros : plages libres, tableau des variables, avertissements | à venir |
@@ -31,7 +31,9 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 Déjà disponible : gestion de plusieurs programmes (créer, ouvrir un fichier `.nc`/`.txt`…,
 renommer, dupliquer, supprimer), numérotation des lignes, annuler/rétablir, enregistrement
 automatique (avec copie de secours à la fermeture), export `.nc`/`.txt`, thème clair/sombre,
-taille du texte, retour à la ligne, sauvegarde/restauration JSON.
+taille du texte, retour à la ligne, sauvegarde/restauration JSON, coloration syntaxique par
+catégorie (avec légende dans Paramètres), mise en évidence des occurrences d'une macro, d'un
+code ou d'une valeur sous le curseur.
 
 ## Structure du projet
 
@@ -122,10 +124,36 @@ Ajouter une entrée dans `CORE_SETTINGS` (`src/settings/schema.js`) ou dans le c
 d'un module : la page Paramètres l'affiche automatiquement. Types : `boolean`, `number`
 (`min`, `max`, `step`), `choice` (`options`), `string`.
 
-### Ajouter un code ou un profil machine
+### Ajouter un code
 
-Prévu aux étapes 2 (définitions des codes, catégories) et 4 (profils). Cette section sera
-complétée à ce moment-là.
+Les codes sont des **données** (`src/data/codes/`), organisées en couches superposées :
+`iso-base.js` (codes ISO génériques) puis `fanuc-turning.js` (tournage Fanuc), qui complète
+ou redéfinit certains codes (G90 devient un cycle, G98/G99 l'unité d'avance…).
+
+```js
+// src/data/codes/fanuc-turning.js
+codes: {
+  G71: { category: 'cycle', name: 'Cycle d’ébauche longitudinale (chariotage)' },
+  G43: null,   // null : code retiré par cette couche
+}
+```
+
+- La clé est normalisée : lettre + valeur sans zéros inutiles (`G1` pour G01, `M3` pour M03,
+  `G12.1`).
+- `category` doit exister dans `src/data/categories.js` (sa couleur est dans `css/tokens.css`,
+  variables `--c-<catégorie>` pour chaque thème).
+- Un code absent du dictionnaire est souligné comme « inconnu du profil ».
+
+Les profils machines (étape 4) permettront d'ajouter ou de redéfinir des codes depuis
+l'interface, sans toucher aux fichiers.
+
+### Moteur d'analyse
+
+`src/engine/` ne dépend ni du DOM ni de CodeMirror (réutilisable par la future simulation) :
+`tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
+variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
+`tokenCategory` (catégorie d'affichage), `occurrenceKey` (identité d'une macro, d'un code ou
+d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).
 
 ## Sauvegarde JSON
 

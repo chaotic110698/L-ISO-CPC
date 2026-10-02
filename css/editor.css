@@ -1,0 +1,47 @@
+/* Coloration syntaxique ISO : une couleur par catégorie (variables --c-* de tokens.css). */
+
+.tok-motion { color: var(--c-motion); font-weight: 600; }
+.tok-cycle { color: var(--c-cycle); font-weight: 600; }
+.tok-mode { color: var(--c-mode); font-weight: 600; }
+.tok-tool { color: var(--c-tool); font-weight: 600; }
+.tok-mcode { color: var(--c-mcode); font-weight: 600; }
+.tok-program { color: var(--c-program); font-weight: 600; }
+.tok-macroKeyword { color: var(--c-macroKeyword); font-weight: 600; }
+.tok-address { color: var(--c-address); }
+.tok-value { color: var(--c-value); }
+.tok-blockNumber { color: var(--c-blockNumber); }
+.tok-comment { color: var(--c-comment); font-style: italic; }
+
+/* Variables de macro : toujours mises en évidence (couleur + fond léger). */
+.tok-macro {
+  color: var(--c-macro);
+  background: var(--c-macro-bg);
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+/* Code absent du profil actif, ou caractère invalide : soulignement ondulé. */
+.tok-unknown,
+.tok-invalid {
+  color: var(--c-unknown);
+  text-decoration: underline wavy var(--c-unknown);
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+}
+
+/* Occurrences de l'élément sous le curseur. */
+.cm-iso-occurrence {
+  background: var(--occurrence-bg);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--occurrence-bg);
+}
+
+.cm-iso-occurrence-current {
+  background: var(--occurrence-current);
+  box-shadow: 0 0 0 1px var(--occurrence-current);
+}
+
+.cm-iso-occurrence.tok-macro,
+.cm-iso-occurrence .tok-macro {
+  background: transparent;
+}

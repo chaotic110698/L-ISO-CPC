@@ -682,3 +682,33 @@ dialog::backdrop {
     opacity: 0;
   }
 }
+
+/* ---- Légende des couleurs (coloration syntaxique) ---- */
+
+.color-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 6px 16px;
+  margin: 4px 0 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--editor-bg);
+  border: 1px solid var(--border);
+  list-style: none;
+  font-size: 13px;
+}
+
+.color-legend li {
+  display: grid;
+  gap: 1px;
+}
+
+.color-legend code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.color-legend span {
+  color: var(--text-muted);
+  font-size: 12px;
+}

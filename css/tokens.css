@@ -1,7 +1,8 @@
 /*
  * Variables de conception : couleurs (thèmes clair et sombre), typographie, dimensions.
  * Toute couleur de l'interface et de l'éditeur doit venir d'ici.
- * Les couleurs des catégories de codes ISO (coloration syntaxique) seront ajoutées à l'étape 2.
+ * Couleurs des catégories de codes (--c-*) : une par catégorie (src/data/categories.js),
+ * appliquées par css/editor.css, contrastées sur le fond de l'éditeur dans les deux thèmes.
  */
 
 :root {
@@ -46,6 +47,23 @@
   --editor-active-line: #f0f4fa;
   --editor-selection: #cddfff;
   --editor-cursor: #1c2128;
+
+  --c-motion: #1a5fd0;
+  --c-cycle: #8b2fc9;
+  --c-mode: #0b7a75;
+  --c-tool: #b55400;
+  --c-mcode: #c4262e;
+  --c-program: #7a5c00;
+  --c-macro: #1f7a35;
+  --c-macro-bg: #e6f4ea;
+  --c-macroKeyword: #a1307c;
+  --c-address: #3f5872;
+  --c-value: #1c2128;
+  --c-blockNumber: #8b94a1;
+  --c-comment: #737c89;
+  --c-unknown: #c4262e;
+  --occurrence-bg: #ffe58a;
+  --occurrence-current: #f2c200;
 }
 
 [data-theme='dark'] {
@@ -77,4 +95,21 @@
   --editor-active-line: #1f232a;
   --editor-selection: #2c4a78;
   --editor-cursor: #e4e7ec;
+
+  --c-motion: #6aa6ff;
+  --c-cycle: #c792ea;
+  --c-mode: #4cc9c0;
+  --c-tool: #f5a25d;
+  --c-mcode: #ff7b72;
+  --c-program: #e5c07b;
+  --c-macro: #8fd694;
+  --c-macro-bg: #1d3324;
+  --c-macroKeyword: #f08fc8;
+  --c-address: #a9bccf;
+  --c-value: #e4e7ec;
+  --c-blockNumber: #69717e;
+  --c-comment: #7f8896;
+  --c-unknown: #ff7b72;
+  --occurrence-bg: #5a4b12;
+  --occurrence-current: #8a7316;
 }

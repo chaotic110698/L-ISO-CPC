@@ -17,6 +17,9 @@ import { renameProgram } from './ui/program-actions.js';
 import { openDialog, actionSheet, confirmDialog, promptDialog } from './ui/dialogs.js';
 import { toast } from './ui/toast.js';
 import { MODULES } from './modules/index.js';
+import { createCodeDictionary } from './engine/index.js';
+import { ISO_BASE_CODES } from './data/codes/iso-base.js';
+import { FANUC_TURNING_CODES } from './data/codes/fanuc-turning.js';
 import { APP_VERSION } from './version.js';
 
 /**
@@ -38,6 +41,8 @@ export async function startApp(root) {
   });
   const programs = createProgramRepository(db);
   const workspace = new Workspace({ repo: programs, kv, bus });
+  // Dictionnaire des codes ; à l'étape 4, ses couches viendront des profils machines actifs.
+  const codes = createCodeDictionary([ISO_BASE_CODES, FANUC_TURNING_CODES]);
 
   const backup = createBackupService({ appVersion: APP_VERSION });
   backup.register('programmes', {
@@ -128,6 +133,7 @@ export async function startApp(root) {
         on: (type, handler) => scope.add(bus.on(type, handler)),
       },
       editor: editor.scoped(scope),
+      codes,
       workspace,
       backup: { register: (id, section) => scope.add(backup.register(id, section)) },
       ui: {
@@ -169,7 +175,7 @@ export async function startApp(root) {
   if (!kv.available) toast('Stockage du navigateur indisponible : rien ne sera conservé après fermeture.', { type: 'error', timeout: 10000 });
 
   // Point d'accès pour le débogage et les tests de bout en bout.
-  return { settings, bus, workspace, editor, registry, router, backup, db };
+  return { settings, bus, workspace, editor, registry, router, backup, db, codes };
 }
 
 /** Fonctions du socle toujours présentes : enregistrement manuel, position du curseur, état. */

@@ -92,6 +92,33 @@ const desktop = await open(DESKTOP);
     await shot(page, 'pc-clair-editeur');
   });
 
+  await step('coloration syntaxique par catégorie', async () => {
+    const classOf = (text) =>
+      page.evaluate((t) => [...document.querySelectorAll('.cm-content span')].find((el) => el.textContent === t)?.className ?? null, text);
+    assert.match(await classOf('G00'), /tok-motion/);
+    assert.match(await classOf('G01'), /tok-motion/);
+    assert.match(await classOf('G03'), /tok-motion/);
+    assert.match(await classOf('G71'), /tok-cycle/);
+    assert.match(await classOf('M03'), /tok-mcode/);
+    assert.match(await classOf('T0101'), /tok-tool/);
+    assert.match(await classOf('#901'), /tok-macro/);
+    assert.match(await classOf('(EXEMPLE TOURNAGE FANUC)'), /tok-comment/);
+    assert.equal(await page.locator('.tok-unknown, .tok-invalid').count(), 0);
+  });
+
+  await step('mise en évidence des occurrences d’une macro et d’une valeur', async () => {
+    const status = page.locator('[data-status="occurrences"]');
+    await page.locator('.cm-content .tok-macro').first().click();
+    assert.equal(await status.textContent(), '#901 : 2 occurrences · 1 affectation');
+    assert.equal(await page.locator('.cm-iso-occurrence').count(), 2);
+    await page.locator('.cm-content .tok-value', { hasText: /^52\.$/ }).first().click();
+    assert.equal(await status.textContent(), 'X52. : 2 occurrences');
+    await shot(page, 'pc-clair-occurrences');
+    await page.locator('.cm-content .tok-comment').first().click();
+    assert.equal(await status.textContent(), '');
+    assert.equal(await page.locator('.cm-iso-occurrence').count(), 0);
+  });
+
   await step('saisie, sauvegarde automatique et persistance après rechargement', async () => {
     await typeAtEnd(page, '\n(TEST E2E)');
     await page.waitForFunction(() => document.querySelector('[data-status="save-state"]').textContent === 'Enregistré');
@@ -156,6 +183,22 @@ const desktop = await open(DESKTOP);
     await gotoEditor(page);
     assert.equal(await page.locator('.cm-lineNumbers').count(), 1);
     assert.equal(await page.locator('[data-tool="undo"]').count(), 1);
+  });
+
+  await step('coloration et occurrences désactivables (réellement retirées)', async () => {
+    await gotoSettings(page);
+    assert.ok((await page.locator('.color-legend li').count()) >= 10, 'légende des couleurs affichée');
+    await toggle(page, 'modules.highlighting');
+    await toggle(page, 'modules.occurrences');
+    assert.equal(await page.locator('.color-legend').isVisible(), false);
+    await gotoEditor(page);
+    assert.equal(await page.locator('.cm-content [class*="tok-"]').count(), 0);
+    assert.equal(await page.locator('[data-status="occurrences"]').count(), 0);
+    await gotoSettings(page);
+    await toggle(page, 'modules.highlighting');
+    await toggle(page, 'modules.occurrences');
+    await gotoEditor(page);
+    assert.ok((await page.locator('.cm-content .tok-motion').count()) > 0);
   });
 
   await step('sauvegarde automatique coupée : « Non enregistré » puis Ctrl+S', async () => {
