@@ -12,6 +12,7 @@ import { applyTheme, applyEditorFontSize } from './ui/theme.js';
 import { createShell } from './ui/shell.js';
 import { createEditorPage } from './ui/pages/editor-page.js';
 import { createSettingsPage } from './ui/pages/settings-page.js';
+import { createHomePage } from './ui/pages/home-page.js';
 import { openProgramsDrawer } from './ui/programs-drawer.js';
 import { renameProgram } from './ui/program-actions.js';
 import { openDialog, actionSheet, confirmDialog, promptDialog } from './ui/dialogs.js';
@@ -59,8 +60,10 @@ export async function startApp(root) {
   });
 
   // --- Interface ---------------------------------------------------------------------------
+  const openPrograms = () => openProgramsDrawer({ workspace, bus });
   const shell = createShell(root, {
-    onMenu: () => openProgramsDrawer({ workspace, bus }),
+    collapsed: kv.get('navCollapsed', false) === true,
+    onCollapsedChange: (collapsed) => kv.set('navCollapsed', collapsed),
     onRename: () => workspace.current && renameProgram(workspace, workspace.current),
     onToggleTheme: () => settings.set('theme', settings.get('theme') === 'dark' ? 'light' : 'dark'),
   });
@@ -95,7 +98,7 @@ export async function startApp(root) {
   bus.on('workspace:dirty', ({ dirty }) => shell.setDirty(dirty));
   bus.on('workspace:save-failed', ({ error }) => toast(`Échec de l’enregistrement : ${error.message}`, { type: 'error' }));
 
-  setupCoreEditorFeatures({ editorPage, workspace, bus });
+  setupCoreEditorFeatures({ editorPage, workspace, bus, openPrograms });
 
   // Fermeture de la page avec des modifications non enregistrées (sauvegarde automatique coupée).
   window.addEventListener('beforeunload', (event) => {
@@ -152,8 +155,12 @@ export async function startApp(root) {
   // --- Pages et navigation -----------------------------------------------------------------
   const router = createRouter({
     container: shell.pages,
-    defaultPath: '/editeur',
+    defaultPath: '/accueil',
     onChange: (path) => shell.setRoute(path),
+  });
+  router.register('/accueil', {
+    title: 'Accueil',
+    mount: () => createHomePage({ workspace, bus }),
   });
   router.register('/editeur', {
     title: 'Éditeur',
@@ -164,8 +171,30 @@ export async function startApp(root) {
     title: 'Paramètres',
     mount: () => createSettingsPage({ settings, registry, backup, workspace, db }),
   });
-  shell.addNavLink({ path: '/editeur', label: 'Éditeur', icon: 'code' });
-  shell.addNavLink({ path: '/parametres', label: 'Paramètres', icon: 'settings' });
+
+  // Menu latéral. Les fonctions à venir y figurent grisées ; chaque module les remplacera
+  // par une vraie entrée (avec sa page) lorsqu'il sera développé.
+  shell.addNavItem({ id: 'accueil', path: '/accueil', label: 'Accueil', icon: 'home' });
+  shell.addNavItem({ id: 'editeur', path: '/editeur', label: 'Éditeur', icon: 'code' });
+  shell.addNavItem({
+    id: 'programmes',
+    label: 'Mes programmes',
+    icon: 'folder',
+    onSelect: () => {
+      router.navigate('/editeur');
+      openPrograms();
+    },
+  });
+  shell.addNavItem({ id: 'parametres', path: '/parametres', label: 'Paramètres', icon: 'settings' });
+  for (const item of [
+    { id: 'profils', label: 'Profils machines', icon: 'machine' },
+    { id: 'calculateurs', label: 'Calculateurs', icon: 'calculator' },
+    { id: 'bibliotheque', label: 'Cycles et bibliothèque', icon: 'library' },
+    { id: 'cours', label: 'Cours d’ISO', icon: 'book' },
+    { id: 'simulation', label: 'Simulation 2D', icon: 'simulation' },
+  ]) {
+    shell.addNavItem({ ...item, upcoming: true });
+  }
 
   const { recovered } = await workspace.init();
   registry.start();
@@ -179,8 +208,10 @@ export async function startApp(root) {
 }
 
 /** Fonctions du socle toujours présentes : enregistrement manuel, position du curseur, état. */
-function setupCoreEditorFeatures({ editorPage, workspace, bus }) {
+function setupCoreEditorFeatures({ editorPage, workspace, bus, openPrograms }) {
   const { editor, toolbar, statusbar } = editorPage;
+
+  toolbar.add({ id: 'programs', icon: 'folder', label: 'Programmes', title: 'Mes programmes (ouvrir, créer, renommer…)', order: 0, onClick: openPrograms });
 
   const save = () => workspace.save().catch(() => {});
   toolbar.add({ id: 'save', icon: 'save', label: 'Enregistrer', title: 'Enregistrer (Ctrl+S)', order: 1, onClick: save });

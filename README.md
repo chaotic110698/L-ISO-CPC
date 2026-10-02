@@ -28,6 +28,11 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | 7 | Calculateurs (Vc ↔ tr/min, avance, rugosité, rayon de bec) | à venir |
 | 8 | Page Paramètres complète | à venir |
 
+À l'ouverture, une **page d'accueil** présente le site ; le bouton **« Commencer à
+programmer »** ouvre l'éditeur. Un **menu latéral** (☰) donne accès aux fonctions : Accueil,
+Éditeur, Mes programmes, Paramètres, et les fonctions à venir (grisées). Il reste affiché sur
+grand écran (repliable) et s'escamote sur smartphone.
+
 Déjà disponible : gestion de plusieurs programmes (créer, ouvrir un fichier `.nc`/`.txt`…,
 renommer, dupliquer, supprimer), numérotation des lignes, annuler/rétablir, enregistrement
 automatique (avec copie de secours à la fermeture), export `.nc`/`.txt`, thème clair/sombre,
@@ -50,7 +55,8 @@ src/
   engine/               moteur d'analyse ISO, indépendant de l'interface (étape 2)
   storage/              localStorage (kv), IndexedDB + repli (database), programmes, sauvegarde JSON
   settings/             schéma déclaratif des réglages et magasin persistant
-  ui/                   coque, éditeur (enveloppe CodeMirror), pages, dialogues, barre d'outils…
+  ui/                   coque (barre du haut + menu latéral), éditeur (enveloppe CodeMirror),
+                        pages (accueil, éditeur, paramètres), dialogues, barre d'outils…
   modules/              fonctionnalités branchables, une par dossier (+ emplacements futurs :
                         simulation-2d, courses, machining-time)
 tests/unit/             tests Node (moteur, stockage, réglages, modules…)
@@ -117,6 +123,12 @@ lancer `npm run build`** : un test vérifie que `dist/` est à jour.
 Le contexte `ctx` fournit : `editor` (extensions, mises à jour, commandes), `workspace`
 (programme courant), `settings`, `bus`, `backup` (section de sauvegarde JSON), `ui` (barre
 d'outils, barre d'état, dialogues, notifications), `listen()` (écouteur DOM), `signal`.
+
+### Ajouter une page et son entrée de menu
+
+Dans `src/app.js` : `router.register('/ma-page', { title, mount: () => element })` puis
+`shell.addNavItem({ id, path: '/ma-page', label, icon })`. Retirer l'entrée « à venir »
+correspondante et mettre à jour la carte de la page d'accueil (`src/ui/pages/home-page.js`).
 
 ### Ajouter un réglage
 

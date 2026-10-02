@@ -64,15 +64,21 @@ async function typeAtEnd(page, text) {
   await page.keyboard.type(text);
 }
 
-async function gotoSettings(page) {
-  await page.locator('a[href="#/parametres"]').click();
-  await page.waitForSelector('.settings-page:not([hidden])');
+/** Navigue via le menu latéral (ouvert d'abord s'il est escamoté, sur mobile). */
+async function navTo(page, id, pageSelector) {
+  const item = page.locator(`.sidenav [data-nav="${id}"] > *`);
+  const box = await item.boundingBox();
+  if (!box || box.x < 0) {
+    await page.locator('button[aria-label="Menu"]').click();
+    await page.waitForFunction(() => document.querySelector('.app').classList.contains('nav-open'));
+    await page.waitForTimeout(250); // fin de l'animation d'ouverture
+  }
+  await item.click();
+  await page.waitForSelector(pageSelector);
 }
 
-async function gotoEditor(page) {
-  await page.locator('a[href="#/editeur"]').click();
-  await page.waitForSelector('.editor-page:not([hidden])');
-}
+const gotoSettings = (page) => navTo(page, 'parametres', '.settings-page:not([hidden])');
+const gotoEditor = (page) => navTo(page, 'editeur', '.editor-page:not([hidden])');
 
 const toggle = (page, key) => page.locator(`.setting[data-key="${key}"] input`).click();
 
@@ -83,6 +89,36 @@ console.log('Ordinateur');
 const desktop = await open(DESKTOP);
 {
   const { page } = desktop;
+
+  await step('page d’accueil par défaut, bouton « Commencer à programmer »', async () => {
+    assert.equal(await page.locator('.home-page').isVisible(), true);
+    assert.equal(await page.locator('.editor-page').isVisible(), false);
+    assert.match(await page.locator('.home-resume').textContent(), /Exemple — tournage Fanuc/);
+    assert.ok((await page.locator('.sidenav [data-nav]').count()) >= 8, 'menu latéral avec fonctions disponibles et à venir');
+    assert.equal(await page.locator('.sidenav [data-nav="accueil"] a').getAttribute('aria-current'), 'page');
+    await shot(page, 'pc-clair-accueil');
+    await page.locator('[data-action="start"]').click();
+    await page.waitForSelector('.editor-page:not([hidden])');
+    assert.equal(await page.locator('.sidenav [data-nav="editeur"] a').getAttribute('aria-current'), 'page');
+  });
+
+  await step('menu latéral repliable sur grand écran (mémorisé)', async () => {
+    await page.locator('button[aria-label="Menu"]').click();
+    assert.equal(await page.locator('.sidenav').isVisible(), false);
+    await page.reload();
+    await waitReady(page);
+    assert.equal(await page.locator('.sidenav').isVisible(), false);
+    await page.locator('button[aria-label="Menu"]').click();
+    assert.equal(await page.locator('.sidenav').isVisible(), true);
+  });
+
+  await step('menu « Mes programmes » : ouvre l’éditeur et la liste', async () => {
+    await navTo(page, 'accueil', '.home-page:not([hidden])');
+    await page.locator('.sidenav [data-nav="programmes"] button').click();
+    await page.waitForSelector('.drawer[open] .program-item');
+    assert.equal(await page.locator('.editor-page').isVisible(), true);
+    await page.keyboard.press('Escape');
+  });
 
   await step('démarrage : programme d’exemple, IndexedDB, aucune erreur', async () => {
     assert.match(await editorText(page), /O1000 \(EXEMPLE TOURNAGE FANUC\)/);
@@ -148,7 +184,7 @@ const desktop = await open(DESKTOP);
   });
 
   await step('nouveau programme, renommage, bascule entre programmes', async () => {
-    await page.locator('button[aria-label="Programmes"]').click();
+    await page.locator('[data-tool="programs"]').click();
     await page.locator('.drawer .btn', { hasText: 'Nouveau' }).click();
     await page.locator('.dialog input').fill('Arbre 25');
     await page.locator('.dialog button', { hasText: 'Créer' }).click();
@@ -160,7 +196,7 @@ const desktop = await open(DESKTOP);
     await page.locator('.dialog button', { hasText: 'Renommer' }).click();
     await page.waitForFunction(() => document.querySelector('.program-title-text').textContent === 'Arbre 25 — reprise');
 
-    await page.locator('button[aria-label="Programmes"]').click();
+    await page.locator('[data-tool="programs"]').click();
     await page.waitForSelector('.drawer[open] .program-item');
     assert.equal(await page.locator('.program-item').count(), 2);
     await shot(page, 'pc-sombre-tiroir');
@@ -284,6 +320,19 @@ const mobile = await open(MOBILE);
   const noHorizontalScroll = () =>
     page.evaluate(() => [...document.querySelectorAll('html, body, .page:not([hidden])')].every((el) => el.scrollWidth <= el.clientWidth));
 
+  await step('accueil lisible, puis menu latéral escamotable', async () => {
+    assert.equal(await page.locator('.home-page').isVisible(), true);
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-accueil');
+    await page.locator('button[aria-label="Menu"]').tap();
+    await page.waitForTimeout(250);
+    await shot(page, 'mobile-clair-menu');
+    await page.locator('.nav-backdrop').tap({ position: { x: 360, y: 400 } });
+    await page.waitForFunction(() => !document.querySelector('.app').classList.contains('nav-open'));
+    await page.locator('[data-action="start"]').tap();
+    await page.waitForSelector('.editor-page:not([hidden])');
+  });
+
   await step('éditeur lisible, sans défilement horizontal', async () => {
     assert.equal(await noHorizontalScroll(), true);
     assert.equal(await page.locator('.tool-label').first().isVisible(), false, 'libellés masqués, icônes seules');
@@ -298,7 +347,7 @@ const mobile = await open(MOBILE);
   });
 
   await step('tiroir des programmes et menu d’actions', async () => {
-    await page.locator('button[aria-label="Programmes"]').tap();
+    await page.locator('[data-tool="programs"]').tap();
     await page.waitForSelector('.drawer[open]');
     await shot(page, 'mobile-clair-tiroir');
     await page.locator('.program-item .icon-btn').first().tap();
