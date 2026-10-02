@@ -1472,3 +1472,201 @@ dialog::backdrop {
   font-size: 13px;
   white-space: pre-wrap;
 }
+
+/* ---- Paramètres : recherche, sections, fonctionnalités ---- */
+
+.settings-search {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.settings-search > .icon {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.settings-search-input {
+  padding-left: 36px;
+}
+
+.settings-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.settings-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: none;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.chip.is-dimmed {
+  opacity: 0.45;
+}
+
+.is-filtered {
+  display: none !important;
+}
+
+/* Pendant une recherche, les commandes globales n'ont plus de sens. */
+.settings-card.is-searching .bulk-actions,
+.settings-card.is-searching .module-summary {
+  display: none;
+}
+
+.settings-empty {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.module-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding-bottom: 8px;
+}
+
+.module-count {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.module-group-title .module-count {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.module-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding-top: 8px;
+}
+
+.bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.module-where {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 12.5px;
+}
+
+.module-where .icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+}
+
+.about-text {
+  display: grid;
+  gap: 6px;
+}
+
+.shortcuts {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.shortcut-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+}
+
+.shortcut-table td {
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.shortcut-table tr:first-child td {
+  border-top: 0;
+}
+
+.shortcut-keys {
+  width: 1%;
+  padding-right: 16px !important;
+  white-space: nowrap;
+}
+
+.shortcut-combo {
+  white-space: nowrap;
+}
+
+.shortcut-or {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.shortcut-table tr.is-off {
+  color: var(--text-muted);
+}
+
+.shortcut-table tr.is-off kbd {
+  opacity: 0.6;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .shortcut-keys {
+    white-space: normal;
+    width: 46%;
+  }
+
+  .settings-header .page-title {
+    font-size: 1.15rem;
+  }
+
+  .settings-search-input {
+    min-height: 38px;
+  }
+}

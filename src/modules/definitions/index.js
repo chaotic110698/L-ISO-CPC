@@ -134,6 +134,7 @@ export default {
   description:
     'Un clic (ou un tap) sur un code, une adresse ou une macro affiche sa définition, selon le profil machine actif : paramètres du bloc, codes redéfinis, exemples. Au clavier : F1 ou Ctrl+I sur l’élément sous le curseur.',
   group: 'editeur',
+  where: 'Clic / tap sur un élément du programme, F1 ou Ctrl+I',
   activate(ctx) {
     ctx.editor.addExtension(definitionsExtension(ctx.codes, ctx.ui.editCode, ctx.macros));
     // Dictionnaire modifié (changement de profil) : on referme une éventuelle infobulle périmée.

@@ -25,6 +25,7 @@ export default {
   label: 'Repliage des sous-programmes et des boucles',
   description: 'Replie un sous-programme (O… → M99), une boucle WHILE … END ou une opération (d’un outil T au suivant) pour mieux s’y retrouver.',
   group: 'editeur',
+  where: 'Flèches de la marge, menu Outils (tout replier / déplier)',
   activate(ctx) {
     ctx.editor.addExtension([
       codeFolding({

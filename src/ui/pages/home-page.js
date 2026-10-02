@@ -46,6 +46,12 @@ const FEATURES = [
     module: 'cycles',
   },
   {
+    icon: 'settings',
+    title: 'Tout est réglable',
+    text: 'Chaque fonctionnalité s’active ou se désactive séparément, thème clair ou sombre, sauvegarde et restauration de toutes vos données en un fichier.',
+    path: '/parametres',
+  },
+  {
     icon: 'book',
     title: 'Cours d’ISO',
     text: 'Leçons pour débutants et mode révision pour les confirmés.',

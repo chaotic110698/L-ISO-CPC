@@ -7,6 +7,7 @@ export default {
   label: 'Renumérotation des blocs N',
   description: 'Bouton « Renuméroter » : début et pas au choix, ajout des N manquants, sélection seule ; les références P/Q des cycles, GOTO et M99 P suivent.',
   group: 'outils',
+  where: 'Menu Outils de la barre d’outils',
   activate(ctx) {
     ctx.ui.toolbar.add({
       id: 'renumber',

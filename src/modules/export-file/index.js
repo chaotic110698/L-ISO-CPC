@@ -6,6 +6,7 @@ export default {
   label: 'Export en fichier .nc / .txt',
   description: 'Bouton « Télécharger » pour récupérer le programme sous forme de fichier, prêt pour la machine ou le logiciel de DNC.',
   group: 'fichiers',
+  where: 'Menu Outils de la barre d’outils',
   settings: [
     {
       key: 'exportFile.lineEnding',

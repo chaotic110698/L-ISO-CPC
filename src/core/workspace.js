@@ -62,6 +62,16 @@ export class Workspace {
     return { recovered: Boolean(recovered) };
   }
 
+  /**
+   * Détache le programme courant sans rien enregistrer (avant l'effacement complet des
+   * données) : les enregistrements et copies de secours suivants deviennent sans effet.
+   */
+  detach() {
+    this.#current = null;
+    this.#revision = 0;
+    this.#savedRevision = 0;
+  }
+
   /** Signale une modification du texte (appelé par l'éditeur à chaque frappe). */
   markDirty() {
     if (!this.#current) return;

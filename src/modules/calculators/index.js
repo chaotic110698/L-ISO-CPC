@@ -49,6 +49,7 @@ export default {
   label: 'Calculateurs',
   description: 'Page de calculs d’atelier : vitesse de coupe ↔ tr/min, avance, rectification (vitesses en mm/min et mm/s), conversions, rugosité théorique, rayon de bec.',
   group: 'calculateurs',
+  where: 'Page « Calculateurs » (menu latéral)',
   settings: CALCULATORS.map((spec) => ({ key: `calculators.${spec.id}`, type: 'boolean', label: spec.title, default: true })),
   activate(ctx) {
     ctx.ui.addPage({

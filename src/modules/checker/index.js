@@ -16,6 +16,7 @@ export default {
   description:
     'Signale parenthèses non fermées, codes incompatibles sur une même ligne, M30 manquant, G40 oublié, avance non définie, blocs P/Q introuvables, cotes sans point décimal…',
   group: 'analyse',
+  where: 'Soulignements, marge et barre d’état (clic : liste)',
   settings: CHECKER_RULES.map((rule) => ({ key: `checker.${rule.id}`, type: 'boolean', label: rule.label, default: true })),
   activate(ctx) {
     const status = ctx.ui.statusbar.add({ id: 'checker', order: 25 });

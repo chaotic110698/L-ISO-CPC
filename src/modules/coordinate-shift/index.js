@@ -8,6 +8,7 @@ export default {
   label: 'Décalage de coordonnées',
   description: 'Décale les cotes absolues X (au diamètre), Z ou Y d’une valeur, sur la sélection ou tout le programme. Les cotes relatives (U, W), G28/G50/G53, temporisations et paramètres de cycles ne sont pas modifiés.',
   group: 'outils',
+  where: 'Menu Outils de la barre d’outils',
   activate(ctx) {
     ctx.ui.toolbar.add({
       id: 'shift',

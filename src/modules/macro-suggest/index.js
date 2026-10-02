@@ -46,6 +46,7 @@ export default {
   description:
     'En tapant « # », propose la prochaine variable libre de la plage du profil machine, puis vos variables nommées et celles du programme.',
   group: 'editeur',
+  where: 'Liste de suggestions en tapant #',
   activate(ctx) {
     // Source créée une seule fois : CodeMirror identifie les sources par leur identité.
     const source = macroSource(ctx.macros);

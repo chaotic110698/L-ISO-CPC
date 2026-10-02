@@ -43,6 +43,7 @@ export default {
   label: 'Versions et comparaison',
   description: 'Enregistre des versions d’un programme (automatiquement à l’ouverture, ou à la demande), les compare ligne à ligne avec le texte actuel ou un autre programme, et permet de les restaurer.',
   group: 'outils',
+  where: 'Menu Outils de la barre d’outils',
   activate(ctx) {
     const { versions, workspace } = ctx;
 

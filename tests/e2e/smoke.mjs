@@ -329,8 +329,7 @@ const desktop = await open(DESKTOP);
   await step('calculateurs désactivables (page et menu retirés, puis rétablis)', async () => {
     await gotoSettings(page);
     await toggle(page, 'modules.calculators');
-    assert.equal(await page.locator('.sidenav [data-nav="calculateurs"] .is-upcoming').isVisible(), true);
-    assert.equal(await page.locator('.sidenav [data-nav="calculateurs"] a').count(), 0);
+    assert.equal(await page.locator('.sidenav [data-nav="calculateurs"]').count(), 0, 'entrée retirée du menu');
     assert.equal(await page.locator('.calc-page').count(), 0, 'page retirée');
     await toggle(page, 'modules.calculators');
     await page.locator('.setting[data-key="calculators.nose"] input').click();
@@ -405,9 +404,9 @@ const desktop = await open(DESKTOP);
 
     await navTo(page, 'profils', '.profiles-page:not([hidden])');
     await page.locator('.tabs button', { hasText: 'Codes actifs' }).click();
-    await page.locator('input[type="search"]').fill('mandrin');
+    await page.locator('.profiles-page input[type="search"]').fill('mandrin');
     assert.deepEqual(await page.locator('.code-row').evaluateAll((rows) => rows.map((r) => r.dataset.code)), ['M50']);
-    await page.locator('input[type="search"]').fill('');
+    await page.locator('.profiles-page input[type="search"]').fill('');
     await page.locator('.tabs button', { hasText: 'Profils' }).click();
     await gotoEditor(page);
   });
@@ -708,6 +707,73 @@ const desktop = await open(DESKTOP);
     const content = await readFile(await download.path(), 'utf8');
     assert.match(content, /^%\r\nO1000/);
   });
+
+  await step('paramètres : recherche, raccourcis vers les sections, emplacement des fonctionnalités', async () => {
+    await gotoSettings(page);
+    const search = page.locator('.settings-search-input');
+    await search.fill('repliage');
+    const visibleRows = () => page.locator('.settings-page [data-search]:not(.is-filtered)').evaluateAll((els) => els.filter((el) => el.offsetParent).map((el) => el.dataset.moduleRow ?? el.dataset.key ?? el.textContent.slice(0, 20)));
+    assert.deepEqual(await visibleRows(), ['folding']);
+    assert.equal(await page.locator('.settings-card[data-section="apparence"]').isVisible(), false, 'section sans rapport masquée');
+    assert.match(await page.locator('[data-module-row="folding"] .module-where').textContent(), /Outils|marge/);
+    await search.fill('theme'); // sans accent
+    assert.equal(await page.locator('.setting[data-key="theme"]').isVisible(), true);
+    await search.fill('xyzzy');
+    assert.equal(await page.locator('.settings-empty').isVisible(), true);
+    await search.press('Escape');
+    assert.equal(await search.inputValue(), '');
+    assert.equal(await page.locator('.settings-card.is-filtered').count(), 0);
+    await page.locator('.settings-chips .chip', { hasText: 'À propos' }).click();
+    await page.waitForTimeout(600);
+    const inView = await page.locator('#section-apropos').evaluate((el) => {
+      const header = document.querySelector('.settings-header').getBoundingClientRect();
+      const box = el.getBoundingClientRect();
+      return box.top >= header.bottom - 1 && box.top < innerHeight;
+    });
+    assert.equal(inView, true, 'section visible sous l’en-tête fixe');
+    assert.ok((await page.locator('.shortcut-table tr').count()) >= 10, 'raccourcis clavier listés');
+    await shot(page, 'ordinateur-parametres-apropos');
+  });
+
+  await step('tout désactiver : seul le socle reste, l’éditeur fonctionne', async () => {
+    await page.locator('.module-summary [data-bulk="off"]').click();
+    const total = await page.evaluate(() => window.isoApp.registry.list().length);
+    assert.equal(await page.evaluate(() => window.isoApp.registry.list().filter((m) => window.isoApp.registry.isActive(m.id)).length), 0);
+    assert.match(await page.locator('.module-summary .module-count').textContent(), new RegExp(`^0 fonctionnalité active sur ${total}$`));
+    assert.equal(await page.locator('.shortcut-table tr.is-off').count() > 0, true);
+    await shot(page, 'ordinateur-parametres-tout-desactive');
+    assert.equal(await page.locator('.sidenav [data-nav="calculateurs"]').count(), 0, 'page Calculateurs retirée du menu');
+    assert.deepEqual(await page.locator('.sidenav .is-upcoming .sidenav-label').allTextContents(), ['Cours d’ISO', 'Simulation 2D']);
+    await gotoEditor(page);
+    assert.equal(await page.locator('.cm-gutters').count(), 0, 'aucune marge');
+    assert.equal(await page.locator('.cm-content [class*="tok-"]').count(), 0, 'aucune coloration');
+    const tools = await page.locator('.toolbar [data-tool]:visible').evaluateAll((els) => els.map((el) => el.dataset.tool));
+    assert.deepEqual(tools.sort(), ['programs', 'save']);
+    const before = await editorText(page);
+    await typeAtEnd(page, '\nG0 X10');
+    assert.equal(await editorText(page), `${before}\nG0 X10`);
+    await page.keyboard.press('Control+s');
+    await page.waitForFunction(() => !window.isoApp.workspace.dirty);
+    await page.locator('.cm-content').click({ position: { x: 20, y: 10 } });
+    assert.equal(await page.locator('.cm-tooltip').count(), 0, 'pas d’infobulle de définition');
+    await shot(page, 'ordinateur-editeur-socle');
+    await setText(page, before);
+    await page.keyboard.press('Control+s');
+  });
+
+  await step('tout réactiver : toutes les fonctionnalités reviennent', async () => {
+    await gotoSettings(page);
+    await page.locator('.module-summary [data-bulk="on"]').click();
+    const inactive = await page.evaluate(() => window.isoApp.registry.list().filter((m) => !window.isoApp.registry.isActive(m.id)).map((m) => m.id));
+    assert.deepEqual(inactive, []);
+    await page.locator('.module-group[data-group="outils"] [data-bulk="off"]').click();
+    assert.equal(await page.evaluate(() => window.isoApp.registry.isActive('cycles') || window.isoApp.registry.isActive('renumber')), false);
+    assert.equal(await page.evaluate(() => window.isoApp.registry.isActive('lineNumbers')), true, 'autres groupes intacts');
+    await page.locator('.module-group[data-group="outils"] [data-bulk="on"]').click();
+    await gotoEditor(page);
+    assert.ok((await page.locator('.cm-gutters').count()) > 0);
+    assert.ok((await page.locator('.cm-content [class*="tok-"]').count()) > 0);
+  });
 }
 
 let backupPath;
@@ -745,6 +811,21 @@ await step('import de la sauvegarde dans un navigateur vierge (remplacement)', a
   assert.ok(await page.evaluate(() => window.isoApp.codes.lookup('M50')?.name === 'Ouverture du mandrin'), 'profil restauré');
   const names = await page.evaluate(async () => (await window.isoApp.workspace.list()).map((p) => p.name).sort());
   assert.deepEqual(names, ['Arbre 25 — reprise', 'Exemple — tournage Fanuc']);
+
+  // « Tout effacer » : confirmation forte, puis retour à l'état d'un premier lancement.
+  await page.locator('[data-action="wipe"]').click();
+  await page.locator('.dialog button', { hasText: 'Tout effacer' }).click();
+  assert.equal(await page.locator('.dialog').isVisible(), true, 'refusé sans le mot de confirmation');
+  await page.locator('.dialog input[name="confirm"]').fill('effacer');
+  await Promise.all([page.waitForEvent('load'), page.locator('.dialog button', { hasText: 'Tout effacer' }).click()]);
+  await waitReady(page);
+  const after = await page.evaluate(async () => ({
+    programs: (await window.isoApp.workspace.list()).map((p) => p.name),
+    custom: window.isoApp.profiles.list().filter((p) => !p.builtin).length,
+    theme: window.isoApp.settings.isExplicit('theme'),
+  }));
+  assert.deepEqual(after, { programs: ['Exemple — tournage Fanuc'], custom: 0, theme: false });
+  assert.equal(await page.locator('.home-page').isVisible(), true);
   assert.deepEqual(fresh.errors, []);
   await fresh.context.close();
 });
@@ -887,6 +968,18 @@ const mobile = await open(MOBILE);
     await gotoSettings(page);
     assert.equal(await noHorizontalScroll(), true);
     await shot(page, 'mobile-clair-parametres');
+    await page.locator('.settings-chips .chip', { hasText: 'Fonctionnalités' }).tap();
+    await page.waitForTimeout(600);
+    assert.equal(await page.locator('.settings-header').isVisible(), true, 'en-tête toujours visible');
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-parametres-fonctionnalites');
+    await page.locator('.settings-search-input').fill('raccourci');
+    assert.equal(await noHorizontalScroll(), true);
+    await page.locator('.settings-search-input').fill('');
+    await page.locator('.settings-chips .chip', { hasText: 'À propos' }).tap();
+    await page.waitForTimeout(600);
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-parametres-raccourcis');
   });
 
   await step('thème sombre', async () => {

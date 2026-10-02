@@ -34,6 +34,7 @@ export default {
   label: 'Bibliothèque de sous-programmes',
   description: 'Panneau « Bibliothèque » : vos sous-programmes et extraits réutilisables, à insérer en un clic dans n’importe quel programme.',
   group: 'outils',
+  where: 'Panneau « Bibliothèque » (barre d’outils, menu latéral)',
   activate(ctx) {
     const { library } = ctx;
 

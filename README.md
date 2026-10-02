@@ -27,46 +27,92 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | 6a | Autocomplétion G/M, vérificateur de syntaxe, état modal, renumérotation | ✅ |
 | 6b | Recherche / remplacement et décalage, repliage, comparaison de versions, cycles et bibliothèque | ✅ |
 | 7 | Calculateurs (Vc ↔ tr/min, avance, rectification en mm/min et mm/s, conversions, rugosité, rayon de bec) | ✅ (réalisée avant les étapes 4 à 6) |
-| 8 | Page Paramètres complète | à venir |
+| 8 | Page Paramètres complète (recherche, sections, activation groupée, raccourcis, effacement) | ✅ |
 
-À l'ouverture, une **page d'accueil** présente le site ; le bouton **« Commencer à
-programmer »** ouvre l'éditeur. Un **menu latéral** (☰) donne accès aux fonctions : Accueil,
-Éditeur, Mes programmes, Paramètres, et les fonctions à venir (grisées). Il reste affiché sur
-grand écran (repliable) et s'escamote sur smartphone.
+Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, cours d'ISO, autres types de
+machines, estimation du temps d'usinage.
 
-Déjà disponible : gestion de plusieurs programmes (créer, ouvrir un fichier `.nc`/`.txt`…,
-renommer, dupliquer, supprimer), numérotation des lignes, annuler/rétablir, enregistrement
-automatique (avec copie de secours à la fermeture), export `.nc`/`.txt`, thème clair/sombre,
-taille du texte, retour à la ligne, sauvegarde/restauration JSON, coloration syntaxique par
-catégorie (avec légende dans Paramètres), mise en évidence des occurrences d'une macro, d'un
-code ou d'une valeur sous le curseur, définition au clic / tap (ou F1, Ctrl+I) de chaque code,
-paramètre de cycle (selon le bloc : le U de `G71 U2. R0.5` n'est pas celui de `G71 P… Q… U0.4`),
-macro (plage, affectations), mot-clé de macro, avec décodage de T0101, G76 P020060, M98 P…
-et alerte sur les cotes sans point décimal ; page **Calculateurs** (menu latéral) : vitesse de
-coupe ↔ tr/min, avance (tournage / fraisage), rectification (meule, pièce, rapport q, avance de
-table), conversion mm/min ↔ mm/s ↔ m/min ↔ m/s, rugosité théorique, compensation de rayon de
-bec — chaque calculateur fonctionne dans les deux sens et peut être masqué dans Paramètres ;
-page **Profils machines** : profils intégrés (ISO générique, FANUC tournage) et personnels,
-activables et ordonnables, codes propriétaires ou redéfinis, codes retirés, plages de macros
-libres (une ou plusieurs portions), export / import d'un profil, onglet « Codes actifs »
-(documentation effective) ; depuis une infobulle, « Personnaliser pour ma machine » ou
-« Ajouter ce code à un profil » ; **macros** : panneau « Variables » (macros du programme avec
-nom et description personnels, utilisations, affectations ; valeurs X/Z/F… répétées,
-transformables en macro en un clic), prochaine macro libre proposée en tapant « # » ou via
-« Nouvelle variable », avertissements non bloquants (affectation hors des plages libres du
-profil, double utilisation entre programmes) ; **autocomplétion** des codes G/M du profil
-avec leur définition ; **vérificateur** (parenthèses, caractères invalides, codes inconnus ou
-incompatibles sur une ligne, adresses répétées, plusieurs M, cotes sans point décimal, avance
-non définie, broche sans S, G96 sans G50, G40 oublié, blocs P/Q/GOTO introuvables, N en double,
-M30 manquant — chaque règle désactivable) ; **état modal** à la ligne du curseur (barre d'état et
-panneau) ; **renumérotation** des N avec mise à jour des P/Q, GOTO et M99 P ; **recherche /
-remplacement** (Ctrl+F) ; **décalage de coordonnées** (cotes absolues X/Z/Y, sélection ou tout le
-programme) ; **repliage** des sous-programmes, boucles WHILE et opérations par outil ;
-**versions** (automatiques à l'ouverture ou nommées) avec **comparaison** ligne à ligne et
-restauration ; **formulaires de cycles** FANUC (G71/G70, G72, G76, G92, G90, G74, G75) avec aperçu
-et conversions mm → µm ; **bibliothèque** personnelle de sous-programmes. Les actions
-ponctuelles (renuméroter, décaler, versions, tout replier, télécharger) sont dans le menu
-« Outils » de la barre d'outils.
+## Pages
+
+- **Accueil** (page d'ouverture) : présentation du site et bouton **« Commencer à
+  programmer »** qui ouvre l'éditeur.
+- **Menu latéral** (☰) : Accueil, Éditeur, Mes programmes, Profils machines, Calculateurs,
+  Cycles et bibliothèque, Paramètres, et les fonctions à venir (grisées). Affiché sur grand
+  écran (repliable), escamoté sur smartphone. Une page dont la fonctionnalité est désactivée
+  disparaît du menu.
+- **Éditeur** : barre d'outils (Programmes, Enregistrer, puis les outils des fonctionnalités
+  actives ; les actions ponctuelles sont dans le menu **« Outils »**), éditeur, panneau latéral
+  (en volet bas sur smartphone) et barre d'état.
+- **Profils machines** : profils intégrés (ISO générique, FANUC tournage) et personnels,
+  activables et ordonnables ; codes propriétaires ou redéfinis, codes retirés, **plages de
+  macros libres** (une ou plusieurs portions), export / import d'un profil, onglet « Codes
+  actifs » (documentation effective). Depuis une infobulle : « Personnaliser pour ma machine »
+  ou « Ajouter ce code à un profil ».
+- **Calculateurs** : vitesse de coupe ↔ tr/min, avance (tournage / fraisage), rectification
+  (meule, pièce, rapport q, avance de table, en mm/min et mm/s), conversion mm/min ↔ mm/s ↔
+  m/min ↔ m/s, rugosité théorique, compensation de rayon de bec. Chaque calculateur fonctionne
+  dans les deux sens et peut être masqué.
+- **Paramètres** : en-tête fixe avec **recherche** dans tous les réglages (sans tenir compte
+  des accents) et raccourcis vers chaque section ; apparence, éditeur, profils, fonctionnalités,
+  données (sauvegarde / restauration JSON, réinitialisation des réglages, **« Tout effacer »**
+  pour un poste partagé, avec confirmation par saisie de EFFACER), à propos et **raccourcis
+  clavier**.
+
+## Fonctionnalités
+
+Chaque fonctionnalité est un module **désactivable individuellement** dans Paramètres ›
+Fonctionnalités (avec « Tout activer / Tout désactiver » par groupe ou pour l'ensemble, et un
+compteur des fonctionnalités actives). La désactivation est **réelle** : extensions de
+l'éditeur, boutons, panneaux, pages et raccourcis sont retirés, sans rechargement. Tout
+désactivé, il reste le socle : saisie, gestion des programmes, Ctrl+S.
+
+Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalité (champ
+`where` du module).
+
+| Groupe | Fonctionnalité | Où la trouver | Dossier |
+|---|---|---|---|
+| Édition | Numérotation des lignes | Marge gauche de l'éditeur | `line-numbers` |
+| Édition | Coloration syntaxique par catégorie | Texte de l'éditeur (légende dans Paramètres) | `highlighting` |
+| Édition | Mise en évidence des variables et valeurs (occurrences d'une macro, d'un code ou d'une valeur) | Texte de l'éditeur et barre d'état | `occurrences` |
+| Édition | Définitions au clic / tap : codes, paramètres de cycle selon le bloc (le U de `G71 U2. R0.5` n'est pas celui de `G71 P… Q… U0.4`), macros, décodage de T0101, G76 P020060, M98 P… | Clic / tap, F1 ou Ctrl+I | `definitions` |
+| Édition | Autocomplétion des codes G et M du profil, avec définition | En tapant G ou M, Ctrl+Espace | `autocomplete` |
+| Édition | Proposition de la prochaine macro libre | En tapant # | `macro-suggest` |
+| Édition | Repliage des sous-programmes, boucles WHILE et opérations par outil | Marge, Ctrl+Maj+[ / ], menu Outils | `folding` |
+| Édition | Annuler / rétablir | Barre d'outils, Ctrl+Z / Ctrl+Y | `history` |
+| Analyse | Vérificateur de syntaxe (parenthèses, caractères invalides, codes inconnus ou incompatibles, adresses répétées, plusieurs M, cotes sans point décimal, avance non définie, broche sans S, G96 sans G50, G40 oublié, P/Q/GOTO introuvables, N en double, M30 manquant — chaque règle désactivable) | Soulignements, marge, barre d'état, Ctrl+Maj+M | `checker` |
+| Analyse | État modal à la ligne du curseur | Barre d'état et panneau « État modal » | `modal-state` |
+| Analyse | Tableau des variables (nom et description personnels, utilisations, valeurs répétées transformables en macro) | Panneau « Variables » | `variables` |
+| Analyse | Avertissements de macros (hors des plages libres du profil, double utilisation entre programmes — non bloquants) | Soulignement orange, barre d'état | `macro-warnings` |
+| Outils | Recherche et remplacement (expressions régulières) | Loupe, Ctrl+F | `search` |
+| Outils | Formulaires de cycles FANUC (G71/G70, G72, G76, G92, G90, G74, G75) avec aperçu et conversions mm → µm | Panneau « Cycles » | `cycles` |
+| Outils | Bibliothèque personnelle de sous-programmes | Panneau « Bibliothèque » | `library` |
+| Outils | Renumérotation des N avec mise à jour des P/Q, GOTO, M99 P | Menu Outils | `renumber` |
+| Outils | Décalage de coordonnées (cotes absolues X/Z/Y, sélection ou tout le programme) | Menu Outils | `coordinate-shift` |
+| Outils | Versions (automatiques ou nommées), comparaison ligne à ligne, restauration | Menu Outils | `versions` |
+| Fichiers | Sauvegarde automatique (avec copie de secours à la fermeture) | Barre d'état | `autosave` |
+| Fichiers | Export en fichier `.nc` / `.txt` (fins de ligne au choix) | Menu Outils | `export-file` |
+| Calculateurs | Calculateurs d'atelier | Page « Calculateurs » | `calculators` |
+
+Toujours présents (socle) : gestion de plusieurs programmes (créer, ouvrir un fichier
+`.nc`/`.txt`, renommer, dupliquer, supprimer), enregistrement (Ctrl+S), thème clair/sombre,
+taille du texte, retour à la ligne, sauvegarde/restauration JSON, profils machines.
+
+### Raccourcis clavier
+
+Sur Mac, ⌘ Cmd remplace Ctrl. La liste figure aussi dans Paramètres › À propos (un
+raccourci dont la fonctionnalité est désactivée y est signalé).
+
+| Raccourci | Action |
+|---|---|
+| Ctrl+S | Enregistrer |
+| Ctrl+Z · Ctrl+Y (ou Ctrl+Maj+Z) | Annuler · rétablir |
+| Ctrl+F · F3 / Maj+F3 · Ctrl+Alt+G | Rechercher et remplacer · suivant / précédent · aller à la ligne |
+| F1 ou Ctrl+I | Définition de l'élément sous le curseur |
+| Ctrl+Espace | Suggestions |
+| Ctrl+Maj+M | Liste des erreurs et avertissements |
+| Ctrl+Maj+[ · Ctrl+Maj+] | Replier · déplier le bloc |
+| Ctrl+Alt+[ · Ctrl+Alt+] | Tout replier · tout déplier |
+| Échap | Fermer l'infobulle, la liste ou le panneau |
 
 ## Structure du projet
 
@@ -80,12 +126,12 @@ src/
   version.js            version de l'application (= package.json)
   core/                 bus d'événements, registre des modules, routeur, espace de travail,
                         profils machines, utilitaires
-  data/                 données pures : types de machines, exemples (codes et profils : étapes 2 et 4)
-  engine/               moteur d'analyse ISO, indépendant de l'interface (étape 2)
+  data/                 données pures : codes ISO / Fanuc, profils, cycles, langage macro, exemples
+  engine/               moteur d'analyse ISO, indépendant de l'interface (réutilisable par la simulation)
   storage/              localStorage (kv), IndexedDB + repli (database), programmes, sauvegarde JSON
   settings/             schéma déclaratif des réglages et magasin persistant
   ui/                   coque (barre du haut + menu latéral), éditeur (enveloppe CodeMirror),
-                        pages (accueil, éditeur, paramètres), dialogues, barre d'outils…
+                        pages (accueil, éditeur, paramètres, profils), dialogues, barre d'outils…
   modules/              fonctionnalités branchables, une par dossier (+ emplacements futurs :
                         simulation-2d, courses, machining-time)
 tests/unit/             tests Node (moteur, stockage, réglages, modules…)
@@ -134,6 +180,7 @@ lancer `npm run build`** : un test vérifie que `dist/` est à jour.
      label: 'Ma fonctionnalité',            // libellé dans Paramètres
      description: 'Ce qu’elle fait.',
      group: 'outils',                       // editeur | analyse | outils | fichiers | calculateurs
+     where: 'Menu Outils de la barre d’outils', // affiché sous l'interrupteur dans Paramètres
      defaultEnabled: true,
      requires: [],                          // ids d'autres modules nécessaires
      settings: [],                          // réglages propres (même format que settings/schema.js)

@@ -33,6 +33,7 @@ export default {
   description:
     'Panneau listant les macros du programme (nom et description personnels, utilisations, affectations, avertissements) et les valeurs répétées (X, Z, F…), transformables en macro en un clic.',
   group: 'analyse',
+  where: 'Panneau « Variables » (barre d’outils)',
   activate(ctx) {
     const { macros } = ctx;
 

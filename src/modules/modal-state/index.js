@@ -24,6 +24,7 @@ export default {
   label: 'État modal à la ligne du curseur',
   description: 'Résumé dans la barre d’état (G01 · G99 · G96 S220 · G42 · T0202…) et panneau détaillé : codes actifs, outil, broche, arrosage, avance et vitesse.',
   group: 'analyse',
+  where: 'Barre d’état et panneau « État modal »',
   settings: [{ key: 'modalState.statusbar', type: 'boolean', label: 'Résumé dans la barre d’état', default: true }],
   activate(ctx) {
     const { editor, codes } = ctx;

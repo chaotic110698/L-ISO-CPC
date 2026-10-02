@@ -231,7 +231,7 @@ export async function startApp(root) {
   });
   router.register('/parametres', {
     title: 'Paramètres',
-    mount: () => createSettingsPage({ settings, registry, backup, workspace, db, profiles, bus }),
+    mount: () => createSettingsPage({ settings, registry, backup, workspace, db, kv, profiles, bus }),
   });
   router.register('/profils', {
     title: 'Profils machines',
@@ -254,9 +254,9 @@ export async function startApp(root) {
   });
   shell.addNavItem({ id: 'profils', path: '/profils', label: 'Profils machines', icon: 'machine', order: 35 });
   shell.addNavItem({ id: 'parametres', path: '/parametres', label: 'Paramètres', icon: 'settings', order: 90 });
+  // Fonctions prévues (grisées). Les fonctionnalités existantes ajoutent leur propre entrée
+  // depuis leur module : désactivées, elles disparaissent du menu.
   for (const item of [
-    { id: 'calculateurs', label: 'Calculateurs', icon: 'calculator' },
-    { id: 'bibliotheque', label: 'Cycles et bibliothèque', icon: 'library' },
     { id: 'cours', label: 'Cours d’ISO', icon: 'book' },
     { id: 'simulation', label: 'Simulation 2D', icon: 'simulation' },
   ]) {

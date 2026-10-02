@@ -7,6 +7,7 @@ export default {
   label: 'Recherche et remplacement',
   description: 'Panneau de recherche (Ctrl+F) : suivant / précédent, remplacer, tout remplacer, casse, mot entier, expressions régulières.',
   group: 'outils',
+  where: 'Bouton loupe de la barre d’outils, Ctrl+F',
   activate(ctx) {
     ctx.editor.addExtension([search({ top: true }), keymap.of(searchKeymap)]);
     ctx.ui.toolbar.add({

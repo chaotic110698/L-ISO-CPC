@@ -7,6 +7,7 @@ export default {
   label: 'Sauvegarde automatique',
   description: 'Enregistre le programme quelques instants après chaque modification. Désactivée : enregistrez avec Ctrl+S ou le bouton « Enregistrer ».',
   group: 'fichiers',
+  where: 'Automatique ; état dans la barre d’état',
   activate(ctx) {
     const { workspace } = ctx;
     const save = debounce(() => workspace.save().catch(() => {}), DELAY_MS);

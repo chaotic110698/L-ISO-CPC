@@ -6,6 +6,7 @@ export default {
   label: 'Annuler / rétablir',
   description: 'Historique des modifications (Ctrl+Z, Ctrl+Y ou Ctrl+Maj+Z) et boutons dans la barre d’outils.',
   group: 'editeur',
+  where: 'Boutons de la barre d’outils, Ctrl+Z / Ctrl+Y',
   activate(ctx) {
     ctx.editor.addExtension([history(), keymap.of(historyKeymap)]);
 

@@ -71,6 +71,7 @@ export default {
   description:
     'Une couleur par catégorie de code : interpolations (G0–G3), cycles, modes, outils et corrections, fonctions M, structure, macros, adresses, commentaires.',
   group: 'editeur',
+  where: 'Texte de l’éditeur (légende ci-dessous)',
   /** Légende affichée sous l'interrupteur, dans Paramètres. */
   renderInfo() {
     return h(

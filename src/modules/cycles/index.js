@@ -104,6 +104,7 @@ export default {
   label: 'Formulaires de cycles',
   description: 'Panneau « Cycles » : formulaires qui génèrent les blocs des cycles FANUC (G71/G70, G72, G76, G92, G90, G74, G75) avec aperçu, conversions mm → µm et calcul de la hauteur de filet.',
   group: 'outils',
+  where: 'Panneau « Cycles » (barre d’outils, menu latéral)',
   activate(ctx) {
     ctx.ui.panels.add({
       id: 'cycles',

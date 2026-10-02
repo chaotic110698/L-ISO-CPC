@@ -54,6 +54,7 @@ export default {
   description:
     'Signale, sans jamais bloquer, une macro affectée hors des plages libres du profil machine ou déjà affectée dans un autre programme (double utilisation).',
   group: 'analyse',
+  where: 'Soulignement orange, barre d’état, panneau « Variables »',
   activate(ctx) {
     const { macros } = ctx;
     macros.warningsEnabled = true;

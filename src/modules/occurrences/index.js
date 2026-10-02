@@ -86,6 +86,7 @@ export default {
   description:
     'Place le curseur (ou touche) sur une macro #xxx, un code ou une valeur (X25.) : toutes ses occurrences sont surlignées et comptées dans la barre d’état.',
   group: 'editeur',
+  where: 'Texte de l’éditeur et barre d’état',
   activate(ctx) {
     const status = ctx.ui.statusbar.add({ id: 'occurrences', order: 20 });
     const show = (summary) => {

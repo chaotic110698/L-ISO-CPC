@@ -52,6 +52,7 @@ export default {
   label: 'Autocomplétion des codes G et M',
   description: 'En tapant G ou M, propose les codes du profil machine actif avec leur définition (Ctrl+Espace pour l’ouvrir à tout moment).',
   group: 'editeur',
+  where: 'Liste de suggestions en tapant G ou M (Ctrl+Espace)',
   settings: [
     {
       key: 'autocomplete.format',
