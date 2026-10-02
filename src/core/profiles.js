@@ -4,6 +4,7 @@ import { normalizeRanges } from '../engine/macro-ranges.js';
 import { BUILTIN_PROFILES } from '../data/profiles.js';
 import { CATEGORIES } from '../data/categories.js';
 import { DEFAULT_MACHINE_TYPE, isKnownMachineType } from '../data/machine-types.js';
+import { MODAL_GROUP_IDS, NON_MODAL } from '../data/modal-groups.js';
 
 export const PROFILE_STORE = 'profiles';
 
@@ -32,6 +33,7 @@ export function sanitizeCodeDefinition(raw) {
     if (text) definition[key] = text;
   }
   if (typeof raw.modal === 'boolean') definition.modal = raw.modal;
+  if (raw.group === NON_MODAL || MODAL_GROUP_IDS.has(raw.group)) definition.group = raw.group;
   if (raw.params && typeof raw.params === 'object') {
     const params = {};
     for (const [letter, text] of Object.entries(raw.params)) {

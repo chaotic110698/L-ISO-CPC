@@ -2,6 +2,7 @@ import { h, domId } from '../core/dom.js';
 import { openDialog, promptDialog } from './dialogs.js';
 import { toast } from './toast.js';
 import { CODE_CATEGORIES, parseCodeKey } from '../core/profiles.js';
+import { MODAL_GROUPS, NON_MODAL } from '../data/modal-groups.js';
 
 /** « X : signification » par ligne ↔ { X: 'signification' }. */
 const paramsToText = (params) =>
@@ -78,6 +79,14 @@ export async function openCodeEditor({ profiles, key = null, initial = null, pro
     h('option', { value: 'false' }, 'Non modal (ce bloc seulement)'),
   );
   modalSelect.value = base.modal === undefined ? '' : String(base.modal);
+  const groupSelect = h(
+    'select',
+    { class: 'input' },
+    h('option', { value: '' }, 'Non précisé'),
+    h('option', { value: NON_MODAL }, 'Aucun (code non modal, groupe 00)'),
+    MODAL_GROUPS.map((g) => h('option', { value: g.id }, g.label)),
+  );
+  groupSelect.value = base.group ?? '';
   const description = h('textarea', { class: 'input textarea', rows: 3 }, base.description ?? '');
   const syntax = h('input', { class: 'input mono', value: base.syntax ?? '', autocomplete: 'off', spellcheck: 'false' });
   const params = h('textarea', { class: 'input textarea mono', rows: 3, placeholder: 'X : Diamètre de serrage\nP : Temporisation (ms)' }, paramsToText(base.params));
@@ -90,6 +99,7 @@ export async function openCodeEditor({ profiles, key = null, initial = null, pro
     field('name', 'Nom', nameInput),
     field('category', 'Catégorie (couleur dans l’éditeur)', categorySelect),
     field('modal', 'Comportement', modalSelect),
+    field('group', 'Groupe modal', groupSelect, 'Deux codes du même groupe s’excluent dans un bloc ; sert au vérificateur et à l’état modal.'),
     field('description', 'Description', description),
     field('syntax', 'Syntaxe', syntax),
     base.forms
@@ -134,6 +144,7 @@ export async function openCodeEditor({ profiles, key = null, initial = null, pro
         name: nameInput.value,
         category: categorySelect.value,
         ...(modalSelect.value ? { modal: modalSelect.value === 'true' } : {}),
+        ...(groupSelect.value ? { group: groupSelect.value } : {}),
         description: description.value,
         syntax: syntax.value,
         params: base.forms ? undefined : textToParams(params.value),

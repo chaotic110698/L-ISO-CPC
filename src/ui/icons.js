@@ -35,6 +35,8 @@ const PATHS = {
   arrowDown: '<path d="M12 5v14M6 13l6 6 6-6"/>',
   offline: '<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
   variable: '<path d="M10 4L8 20M16 4l-2 16M5 9h15M4 15h15"/>',
+  layers: '<path d="M12 4l8 4-8 4-8-4z"/><path d="M4 12l8 4 8-4M4 16l8 4 8-4"/>',
+  renumber: '<path d="M11 6h9M11 12h9M11 18h9"/><path d="M4 4.5l1.5-1V9M3.5 9h3M3.5 14.5a1.5 1.5 0 0 1 3 .5c0 1-3 2.5-3 4h3"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   warning: '<path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.5"/>',
 };

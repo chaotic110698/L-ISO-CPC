@@ -1,5 +1,5 @@
 import { EditorState } from '@codemirror/state';
-import { autocompletion } from '@codemirror/autocomplete';
+import { completionExtension } from '../../ui/editor/completion.js';
 import { analyzeMacros } from '../../engine/macros.js';
 import { formatRanges } from '../../engine/macro-ranges.js';
 
@@ -50,7 +50,7 @@ export default {
     // Source créée une seule fois : CodeMirror identifie les sources par leur identité.
     const source = macroSource(ctx.macros);
     ctx.editor.addExtension([
-      autocompletion({ activateOnTyping: true, icons: false }),
+      completionExtension,
       EditorState.languageData.of(() => [{ autocomplete: source }]),
     ]);
   },

@@ -190,6 +190,8 @@
 .editor-page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Colonne limitée à la largeur de l'écran : la barre d'outils défile au lieu d'élargir la page. */
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
 
@@ -283,9 +285,24 @@
 
 .status-side {
   display: flex;
+  flex: 1;
   gap: 14px;
   min-width: 0;
   overflow: hidden;
+}
+
+/* Côté droit (état d'enregistrement) toujours visible ; le côté gauche se tronque. */
+.status-side.status-end {
+  flex: none;
+}
+
+.status-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-item:empty {
+  display: none;
 }
 
 .status-item[data-tone='warning'] {

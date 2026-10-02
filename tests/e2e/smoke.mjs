@@ -80,6 +80,13 @@ async function navTo(page, id, pageSelector) {
 const gotoSettings = (page) => navTo(page, 'parametres', '.settings-page:not([hidden])');
 const gotoEditor = (page) => navTo(page, 'editeur', '.editor-page:not([hidden])');
 
+/** Remplace tout le texte de l'éditeur (remise en état après un essai). */
+const setText = (page, text) =>
+  page.evaluate((t) => {
+    const view = window.isoApp.editor.view;
+    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: t } });
+  }, text);
+
 const toggle = (page, key) => page.locator(`.setting[data-key="${key}"] input`).click();
 
 console.log(`Test de bout en bout sur ${url}`);
@@ -477,6 +484,82 @@ const desktop = await open(DESKTOP);
     assert.equal(await page.locator('.side-panel').isVisible(), false);
   });
 
+  await step('vérificateur : erreurs soulignées, liste, règles désactivables', async () => {
+    const status = page.locator('[data-status="checker"]');
+    await page.waitForFunction(() => document.querySelector('[data-status="checker"]')?.textContent === '✓ Aucune erreur');
+    const before = await editorText(page);
+    await typeAtEnd(page, '\nG0 G1 X25 Z-3.');
+    await page.waitForFunction(() => document.querySelector('[data-status="checker"]').textContent.includes('1 erreur'));
+    assert.match(await status.textContent(), /1 erreur · 1 avertissement/);
+    assert.ok((await page.locator('.cm-lintRange-error').count()) > 0);
+    await status.click();
+    await page.locator('.cm-panel-lint').waitFor();
+    assert.match(await page.locator('.cm-panel-lint').textContent(), /G0 et G1 sont incompatibles/);
+    await shot(page, 'pc-sombre-verificateur');
+    await page.locator('.cm-panel-lint button[name="close"]').click();
+
+    await gotoSettings(page);
+    await page.locator('.setting[data-key="checker.decimalPoint"] input').click();
+    await gotoEditor(page);
+    await page.waitForFunction(() => document.querySelector('[data-status="checker"]').textContent === '✕ 1 erreur');
+    await gotoSettings(page);
+    await page.locator('.setting[data-key="checker.decimalPoint"] input').click();
+    await gotoEditor(page);
+    await setText(page, before);
+    await page.waitForFunction(() => document.querySelector('[data-status="checker"]').textContent === '✓ Aucune erreur');
+  });
+
+  await step('autocomplétion des codes G/M avec définition', async () => {
+    const before = await editorText(page);
+    await typeAtEnd(page, '\nG7');
+    const options = page.locator('.cm-tooltip-autocomplete li');
+    await options.first().waitFor();
+    assert.match(await options.first().textContent(), /^G7\.1Interpolation cylindrique/);
+    await page.keyboard.type('1');
+    await page.waitForFunction(() => document.querySelector('.cm-tooltip-autocomplete li')?.textContent.startsWith('G71'));
+    await page.keyboard.press('Enter');
+    assert.match(await editorText(page), /\nG71$/);
+    await typeAtEnd(page, ' M');
+    await options.first().waitFor();
+    assert.match(await options.first().textContent(), /^M00Arrêt programmé/, 'format G01 / M03 par défaut');
+    await page.keyboard.press('Escape');
+    await setText(page, before);
+  });
+
+  await step('état modal à la ligne du curseur (barre d’état et panneau)', async () => {
+    await page.locator('.cm-line').nth(20).click(); // N160 Z-55.
+    await page.waitForFunction(() => document.querySelector('[data-status="modal-state"]').textContent === 'G1 · G99 · G96 S220 · G40 · T0101 · M3');
+    await page.locator('[data-tool="panel-modal"]').click();
+    const panel = page.locator('.side-panel');
+    assert.match(await panel.textContent(), /Après la ligne 21/);
+    assert.match(await panel.textContent(), /Interpolation linéaire/);
+    assert.match(await panel.textContent(), /outil 01 · correcteur 01/);
+    assert.match(await panel.textContent(), /F0\.12mm\/tr/);
+    assert.match(await panel.textContent(), /S3000tr\/min/);
+    await page.locator('.cm-line').nth(33).click(); // N270 G76…
+    await page.waitForFunction(() => document.querySelector('.side-panel').textContent.includes('T0303'));
+    await shot(page, 'pc-sombre-etat-modal');
+    await page.locator('[data-tool="panel-modal"]').click();
+  });
+
+  await step('renumérotation des blocs avec mise à jour des références', async () => {
+    const before = await editorText(page);
+    await page.locator('[data-tool="renumber"]').click();
+    const dialog = page.locator('.dialog');
+    await dialog.getByLabel('Premier numéro').fill('100');
+    await dialog.getByLabel('Pas').fill('5');
+    await dialog.locator('button', { hasText: 'Renuméroter' }).click();
+    await page.waitForSelector('.dialog', { state: 'detached' });
+    const after = await editorText(page);
+    assert.match(after, /^N100 G21 G40 G97 G99$/m);
+    const [, p, q] = after.match(/G71 P(\d+) Q(\d+)/);
+    assert.match(after, new RegExp(`^N${p} G00 X16\\.$`, 'm'), 'P suit le bloc de début de profil');
+    assert.match(after, new RegExp(`^N${q} Z-55\\.$`, 'm'), 'Q suit le bloc de fin de profil');
+    assert.match(after, new RegExp(`G70 P${p} Q${q}`));
+    await page.locator('[data-tool="undo"]').click();
+    assert.equal(await editorText(page), before, 'une seule annulation');
+  });
+
   await step('sauvegarde automatique coupée : « Non enregistré » puis Ctrl+S', async () => {
     await gotoSettings(page);
     await toggle(page, 'modules.autosave');
@@ -559,8 +642,19 @@ console.log('Smartphone (375 px)');
 const mobile = await open(MOBILE);
 {
   const { page } = mobile;
-  const noHorizontalScroll = () =>
-    page.evaluate(() => [...document.querySelectorAll('html, body, .page:not([hidden])')].every((el) => el.scrollWidth <= el.clientWidth));
+  /** Vrai si rien ne déborde horizontalement ; sinon la liste des éléments fautifs (diagnostic). */
+  const noHorizontalScroll = async () => {
+    const offenders = await page.evaluate(() => {
+      const containers = [...document.querySelectorAll('html, body, .page:not([hidden])')].filter((el) => el.scrollWidth > el.clientWidth);
+      if (!containers.length) return [];
+      return [...document.querySelectorAll('.page:not([hidden]) *')]
+        .filter((el) => el.getBoundingClientRect().right > innerWidth + 1)
+        .slice(0, 5)
+        .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]} → ${Math.round(el.getBoundingClientRect().right)}px`)
+        .concat(containers.map((el) => `${el.tagName} ${el.scrollWidth}/${el.clientWidth}`));
+    });
+    return offenders.length ? offenders : true;
+  };
 
   await step('accueil lisible, puis menu latéral escamotable', async () => {
     assert.equal(await page.locator('.home-page').isVisible(), true);
@@ -628,6 +722,15 @@ const mobile = await open(MOBILE);
     await shot(page, 'mobile-clair-variables');
     await page.locator('.side-panel button[aria-label="Fermer le panneau"]').tap();
     assert.equal(await page.locator('.side-panel').isVisible(), false);
+  });
+
+  await step('état modal et vérificateur sur smartphone', async () => {
+    await page.locator('[data-tool="panel-modal"]').tap();
+    await page.locator('.side-panel .modal-row').first().waitFor();
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-etat-modal');
+    await page.locator('.side-panel button[aria-label="Fermer le panneau"]').tap();
+    assert.match(await page.locator('[data-status="checker"]').textContent(), /✓ Aucune erreur/);
   });
 
   await step('tiroir des programmes et menu d’actions', async () => {

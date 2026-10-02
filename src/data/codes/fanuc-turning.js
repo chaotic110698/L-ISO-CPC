@@ -39,21 +39,21 @@ export const FANUC_TURNING_CODES = {
   codes: {
     // --- Interpolations ----------------------------------------------------------------------
     'G7.1': {
-      category: 'motion',
+      category: 'motion', group: 'cylindrical',
       name: 'Interpolation cylindrique',
       description: 'Usinage sur la surface d’un cylindre avec l’axe C et un outil motorisé (rainures hélicoïdales, cames). G7.1 C… active (C = rayon du cylindre), G7.1 C0 annule.',
       syntax: 'G7.1 C(rayon)  …  G7.1 C0',
       modal: true,
     },
     'G12.1': {
-      category: 'motion',
+      category: 'motion', group: 'polar',
       name: 'Interpolation polaire',
       description: 'Usinage en face avec outil motorisé : on programme en coordonnées cartésiennes (X, C), la commande pilote X et la rotation de la broche (méplats, polygones).',
       modal: true,
     },
-    'G13.1': { category: 'motion', name: 'Annulation de l’interpolation polaire', description: 'Termine le mode G12.1.', modal: true },
+    'G13.1': { category: 'motion', group: 'polar', name: 'Annulation de l’interpolation polaire', description: 'Termine le mode G12.1.', modal: true },
     G32: {
-      category: 'motion',
+      category: 'motion', group: 'motion',
       name: 'Filetage (passe unique)',
       description: 'Une passe de filetage synchronisée avec la broche, du point actuel au point programmé. Les passes successives se programment une à une (sinon, utiliser G92 ou G76).',
       syntax: 'G32 Z… F(pas)',
@@ -62,7 +62,7 @@ export const FANUC_TURNING_CODES = {
       notes: ['Toujours en G97 (vitesse constante) : la synchronisation exige une vitesse de rotation fixe.'],
     },
     G34: {
-      category: 'motion',
+      category: 'motion', group: 'motion',
       name: 'Filetage à pas variable',
       description: 'Comme G32, avec un pas qui varie de K à chaque tour.',
       syntax: 'G34 Z… F(pas) K(variation)',
@@ -71,9 +71,9 @@ export const FANUC_TURNING_CODES = {
     },
 
     // --- Modes ----------------------------------------------------------------------------------
-    G17: { category: 'mode', name: 'Plan XY (outils motorisés)', description: 'Plan XY, pour les usinages en face avec outil motorisé sur les tours équipés d’un axe Y.', modal: true },
+    G17: { category: 'mode', group: 'plane', name: 'Plan XY (outils motorisés)', description: 'Plan XY, pour les usinages en face avec outil motorisé sur les tours équipés d’un axe Y.', modal: true },
     G50: {
-      category: 'mode',
+      category: 'mode', group: 'nonModal',
       name: 'Limitation de vitesse broche / décalage d’origine',
       description:
         'Avec S : vitesse de rotation maximale autorisée (tr/min), indispensable avant G96. Avec X et Z : définit l’origine pièce à partir de la position actuelle de l’outil (ancienne méthode, remplacée par les décalages G54…).',
@@ -86,12 +86,12 @@ export const FANUC_TURNING_CODES = {
       notes: ['À programmer avant G96 : sans limitation, la broche peut atteindre sa vitesse maximale près du centre.'],
       example: 'G50 S3000\nG96 S220 M3',
     },
-    G98: { category: 'mode', name: 'Avance en mm/min', description: 'L’avance F est exprimée en millimètres par minute (perçage avec outil motorisé, déplacements sans broche).', modal: true },
-    G99: { category: 'mode', name: 'Avance en mm/tr', description: 'L’avance F est exprimée en millimètres par tour de broche. Mode habituel en tournage.', modal: true },
+    G98: { category: 'mode', group: 'feedMode', name: 'Avance en mm/min', description: 'L’avance F est exprimée en millimètres par minute (perçage avec outil motorisé, déplacements sans broche).', modal: true },
+    G99: { category: 'mode', group: 'feedMode', name: 'Avance en mm/tr', description: 'L’avance F est exprimée en millimètres par tour de broche. Mode habituel en tournage.', modal: true },
 
     // --- Cycles multipasses ----------------------------------------------------------------------
     G70: {
-      category: 'cycle',
+      category: 'cycle', group: 'nonModal',
       name: 'Cycle de finition',
       description: 'Usine le profil compris entre les blocs P et Q en une passe, avec les avances, vitesses et outils programmés dans ces blocs. S’utilise après G71, G72 ou G73.',
       syntax: 'G70 P(ns) Q(nf)',
@@ -101,7 +101,7 @@ export const FANUC_TURNING_CODES = {
       example: 'G0 G42 X52. Z2.\nG70 P90 Q160\nG0 G40 X100. Z100.',
     },
     G71: {
-      category: 'cycle',
+      category: 'cycle', group: 'nonModal',
       name: 'Cycle d’ébauche longitudinale (chariotage)',
       description: 'Enlève la matière par passes parallèles à l’axe Z, en suivant le profil décrit entre les blocs P et Q, en laissant une surépaisseur pour la finition. Se programme sur deux blocs G71.',
       syntax: 'G71 U(Δd) R(e)\nG71 P(ns) Q(nf) U(Δu) W(Δw) F S T',
@@ -117,7 +117,7 @@ export const FANUC_TURNING_CODES = {
       example: 'G71 U2. R0.5\nG71 P100 Q200 U0.4 W0.1 F0.25',
     },
     G72: {
-      category: 'cycle',
+      category: 'cycle', group: 'nonModal',
       name: 'Cycle d’ébauche transversale (dressage)',
       description: 'Comme G71, mais les passes sont parallèles à l’axe X (dressage) : adapté aux pièces courtes de grand diamètre.',
       syntax: 'G72 W(Δd) R(e)\nG72 P(ns) Q(nf) U(Δu) W(Δw) F S T',
@@ -127,7 +127,7 @@ export const FANUC_TURNING_CODES = {
       example: 'G72 W2. R0.5\nG72 P100 Q200 U0.4 W0.1 F0.25',
     },
     G73: {
-      category: 'cycle',
+      category: 'cycle', group: 'nonModal',
       name: 'Cycle d’ébauche parallèle au profil',
       description: 'Répète le profil P–Q en le décalant à chaque passe : adapté aux bruts déjà proches de la forme finale (pièces forgées, moulées).',
       syntax: 'G73 U(Δi) W(Δk) R(d)\nG73 P(ns) Q(nf) U(Δu) W(Δw) F S T',
@@ -138,7 +138,7 @@ export const FANUC_TURNING_CODES = {
       ],
     },
     G74: {
-      category: 'cycle',
+      category: 'cycle', group: 'nonModal',
       name: 'Cycle de perçage / rainurage frontal',
       description: 'Perçage profond au centre avec débourrage (sans X), ou rainurage en face par plongées successives en Z.',
       syntax: 'G74 R(e)\nG74 X(U) Z(W) P(Δi) Q(Δk) R(Δd) F',
@@ -162,7 +162,7 @@ export const FANUC_TURNING_CODES = {
       example: 'G74 R1.\nG74 Z-40. Q5000 F0.1',
     },
     G75: {
-      category: 'cycle',
+      category: 'cycle', group: 'nonModal',
       name: 'Cycle de rainurage radial',
       description: 'Gorge radiale par plongées successives en X avec débourrage ; décale en Z entre les plongées pour une gorge plus large que l’outil.',
       syntax: 'G75 R(e)\nG75 X(U) Z(W) P(Δi) Q(Δk) R(Δd) F',
@@ -185,7 +185,7 @@ export const FANUC_TURNING_CODES = {
       ],
     },
     G76: {
-      category: 'cycle',
+      category: 'cycle', group: 'nonModal',
       name: 'Cycle de filetage multipasses',
       description: 'Filetage complet en plusieurs passes à pénétration oblique, calculées automatiquement. Se programme sur deux blocs G76.',
       syntax: 'G76 P(m)(r)(a) Q(Δdmin) R(d)\nG76 X(U) Z(W) R(i) P(k) Q(Δd) F(pas)',
@@ -218,7 +218,7 @@ export const FANUC_TURNING_CODES = {
 
     // --- Cycles simples (redéfinissent G90 / G92 / G94 de l'ISO) ------------------------------------
     G90: {
-      category: 'cycle',
+      category: 'cycle', group: 'motion',
       name: 'Cycle de chariotage simple',
       description:
         'Une passe complète de chariotage en un bloc : plongée en X, passe en Z, retrait, retour au point de départ. Modal : les blocs suivants ne contenant que X répètent le cycle à un nouveau diamètre.',
@@ -229,7 +229,7 @@ export const FANUC_TURNING_CODES = {
       example: 'G0 X52. Z2.\nG90 X46. Z-30. F0.25\nX42.\nX38.',
     },
     G92: {
-      category: 'cycle',
+      category: 'cycle', group: 'motion',
       name: 'Cycle de filetage simple',
       description: 'Une passe de filetage complète en un bloc (plongée, filetage, retrait, retour). Modal : les blocs suivants ne contenant que X enchaînent les passes.',
       syntax: 'G92 X(U) Z(W) R… F(pas)',
@@ -239,7 +239,7 @@ export const FANUC_TURNING_CODES = {
       example: 'G97 S1000 M3\nG0 X24. Z5.\nG92 X19.4 Z-22. F1.5\nX19.\nX18.7',
     },
     G94: {
-      category: 'cycle',
+      category: 'cycle', group: 'motion',
       name: 'Cycle de dressage simple',
       description: 'Une passe complète de dressage en un bloc : plongée en Z, passe en X, retrait, retour. Modal comme G90.',
       syntax: 'G94 X(U) Z(W) R… F…',
@@ -249,13 +249,13 @@ export const FANUC_TURNING_CODES = {
     },
 
     // --- Cycles de perçage (outils motorisés / au centre) -----------------------------------------
-    G80: { category: 'cycle', name: 'Annulation de cycle de perçage', description: 'Annule le cycle de perçage actif (G83 à G89).', modal: true },
-    G83: { category: 'cycle', name: 'Cycle de perçage frontal avec débourrage', description: 'Perçage en face (axe Z), par passes Q avec débourrage.', syntax: 'G83 X(C) Z R Q P F K M', modal: true, params: LATHE_DRILL_PARAMS },
-    G84: { category: 'cycle', name: 'Cycle de taraudage frontal', description: 'Taraudage en face (axe Z), avec inversion de la broche en fond de trou.', syntax: 'G84 X(C) Z R P F K M', modal: true, params: { ...LATHE_DRILL_PARAMS, F: 'Avance = pas du taraud (en G99)' } },
-    G85: { category: 'cycle', name: 'Cycle d’alésage frontal', description: 'Alésage en face : aller et retour à l’avance travail.', modal: true, params: LATHE_DRILL_PARAMS },
-    G87: { category: 'cycle', name: 'Cycle de perçage radial', description: 'Perçage radial (axe X) avec outil motorisé, par passes Q.', syntax: 'G87 Z(C) X R Q P F K M', modal: true, params: { ...LATHE_DRILL_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
-    G88: { category: 'cycle', name: 'Cycle de taraudage radial', description: 'Taraudage radial (axe X) avec outil motorisé.', modal: true, params: { ...LATHE_DRILL_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
-    G89: { category: 'cycle', name: 'Cycle d’alésage radial', description: 'Alésage radial (axe X) avec outil motorisé.', modal: true, params: { ...LATHE_DRILL_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
+    G80: { category: 'cycle', group: 'cycle', name: 'Annulation de cycle de perçage', description: 'Annule le cycle de perçage actif (G83 à G89).', modal: true },
+    G83: { category: 'cycle', group: 'cycle', name: 'Cycle de perçage frontal avec débourrage', description: 'Perçage en face (axe Z), par passes Q avec débourrage.', syntax: 'G83 X(C) Z R Q P F K M', modal: true, params: LATHE_DRILL_PARAMS },
+    G84: { category: 'cycle', group: 'cycle', name: 'Cycle de taraudage frontal', description: 'Taraudage en face (axe Z), avec inversion de la broche en fond de trou.', syntax: 'G84 X(C) Z R P F K M', modal: true, params: { ...LATHE_DRILL_PARAMS, F: 'Avance = pas du taraud (en G99)' } },
+    G85: { category: 'cycle', group: 'cycle', name: 'Cycle d’alésage frontal', description: 'Alésage en face : aller et retour à l’avance travail.', modal: true, params: LATHE_DRILL_PARAMS },
+    G87: { category: 'cycle', group: 'cycle', name: 'Cycle de perçage radial', description: 'Perçage radial (axe X) avec outil motorisé, par passes Q.', syntax: 'G87 Z(C) X R Q P F K M', modal: true, params: { ...LATHE_DRILL_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
+    G88: { category: 'cycle', group: 'cycle', name: 'Cycle de taraudage radial', description: 'Taraudage radial (axe X) avec outil motorisé.', modal: true, params: { ...LATHE_DRILL_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
+    G89: { category: 'cycle', group: 'cycle', name: 'Cycle d’alésage radial', description: 'Alésage radial (axe X) avec outil motorisé.', modal: true, params: { ...LATHE_DRILL_PARAMS, X: 'Fond du trou (diamètre)', Z: 'Position du trou en Z' } },
 
     // --- Codes de fraisage sans équivalent en tournage système A ------------------------------
     G43: null,

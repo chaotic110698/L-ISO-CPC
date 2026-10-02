@@ -43,6 +43,14 @@ export const editorTheme = EditorView.theme({
     color: 'var(--text)',
   },
   '.cm-specialChar': { color: 'var(--danger)' },
+  '.cm-panels': {
+    backgroundColor: 'var(--surface)',
+    color: 'var(--text)',
+  },
+  '.cm-panels.cm-panels-bottom': { borderTop: '1px solid var(--border)' },
+  '.cm-panel.cm-panel-lint ul [aria-selected]': { backgroundColor: 'var(--accent-soft)' },
+  '.cm-panel.cm-panel-lint ul:focus [aria-selected]': { backgroundColor: 'var(--accent)', color: 'var(--accent-contrast)' },
+  '.cm-diagnostic': { fontFamily: 'var(--font-ui)', fontSize: '13px' },
   '.cm-tooltip': {
     backgroundColor: 'var(--surface)',
     color: 'var(--text)',

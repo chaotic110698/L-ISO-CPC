@@ -24,7 +24,8 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | 3 | Infobulles de définition au clic / tap | ✅ |
 | 4 | Profils machines (ISO générique, Fanuc tournage, profils personnels) | ✅ |
 | 5 | Macros : plages libres, tableau des variables, avertissements | ✅ |
-| 6 | Autocomplétion, vérificateur, état modal, renumérotation, recherche / décalage, repliage, comparaison, snippets / cycles, bibliothèque | à venir |
+| 6a | Autocomplétion G/M, vérificateur de syntaxe, état modal, renumérotation | ✅ |
+| 6b | Recherche / remplacement et décalage, repliage, comparaison de versions, cycles et bibliothèque | à venir |
 | 7 | Calculateurs (Vc ↔ tr/min, avance, rectification en mm/min et mm/s, conversions, rugosité, rayon de bec) | ✅ (réalisée avant les étapes 4 à 6) |
 | 8 | Page Paramètres complète | à venir |
 
@@ -53,7 +54,12 @@ libres (une ou plusieurs portions), export / import d'un profil, onglet « Codes
 nom et description personnels, utilisations, affectations ; valeurs X/Z/F… répétées,
 transformables en macro en un clic), prochaine macro libre proposée en tapant « # » ou via
 « Nouvelle variable », avertissements non bloquants (affectation hors des plages libres du
-profil, double utilisation entre programmes).
+profil, double utilisation entre programmes) ; **autocomplétion** des codes G/M du profil
+avec leur définition ; **vérificateur** (parenthèses, caractères invalides, codes inconnus ou
+incompatibles sur une ligne, adresses répétées, plusieurs M, cotes sans point décimal, avance
+non définie, broche sans S, G96 sans G50, G40 oublié, blocs P/Q/GOTO introuvables, N en double,
+M30 manquant — chaque règle désactivable) ; **état modal** à la ligne du curseur (barre d'état et
+panneau) ; **renumérotation** des N avec mise à jour des P/Q, GOTO et M99 P.
 
 ## Structure du projet
 
@@ -188,6 +194,8 @@ codes: {
   (plages de macros : locales, communes, système…).
 - Un code redéfini par une couche supérieure (G90 en tournage FANUC) est signalé dans son
   infobulle avec son sens d'origine.
+- `group` : groupe modal (`src/data/modal-groups.js`) ; deux codes du même groupe s'excluent
+  dans un bloc (vérificateur) et le dernier reste actif (état modal). `nonModal` : groupe 00.
 
 Pour **votre** machine, inutile de toucher aux fichiers : créez un profil personnel dans la
 page Profils machines et ajoutez-y vos codes (ou « Personnaliser » un code depuis son
@@ -211,7 +219,8 @@ en vigueur sont celles du profil activé le plus spécifique qui en déclare.
 `src/engine/` ne dépend ni du DOM ni de CodeMirror (réutilisable par la future simulation) :
 `tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
 variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
-`cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
+`modalStateAt` (état modal), `checkProgram` (vérificateur, règles dans `CHECKER_RULES`),
+`renumber`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
 (variables, valeurs répétées, avertissements), plages de macros (`parseRanges`, `nextFreeVariable`…), `tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
 `occurrenceKey` (identité d'une macro, d'un code ou
 d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).
