@@ -1,5 +1,7 @@
 import { createCodeDictionary } from '../../engine/index.js';
 import { ISO_BASE_CODES } from '../../data/codes/iso-base.js';
+import { FANUC_TURNING_CODES } from '../../data/codes/fanuc-turning.js';
+import { FANUC_TURNING_BC_CODES } from '../../data/codes/fanuc-turning-bc.js';
 import { LESSONS, isAvailable } from '../../data/courses/index.js';
 import { createProgressStore } from './progress.js';
 import { createCoursesPage } from './page.js';
@@ -16,8 +18,14 @@ export default {
   where: 'Page « Cours d’ISO » (menu latéral)',
   activate(ctx) {
     const progress = createProgressStore(ctx.kv);
-    // Exemples écrits pour les systèmes B/C : définitions de l'ISO générique (G90/G91 absolu/incrémental).
-    const dictionaries = { default: ctx.codes, iso: createCodeDictionary([ISO_BASE_CODES]) };
+    // Dictionnaires des exemples : par défaut les profils actifs de l'utilisateur ; les passages
+    // propres à un système de codes Fanuc (A ou B/C) utilisent le leur, quel que soit le profil.
+    const dictionaries = {
+      default: ctx.codes,
+      iso: createCodeDictionary([ISO_BASE_CODES]),
+      a: createCodeDictionary([ISO_BASE_CODES, FANUC_TURNING_CODES]),
+      bc: createCodeDictionary([ISO_BASE_CODES, FANUC_TURNING_CODES, FANUC_TURNING_BC_CODES]),
+    };
 
     const openExample = async (name, content) => {
       await ctx.workspace.create({ name, content });

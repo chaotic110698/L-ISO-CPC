@@ -2,6 +2,10 @@ import programme from './lecon-01-programme.js';
 import repere from './lecon-02-repere.js';
 import deplacements from './lecon-03-deplacements.js';
 import absoluIncremental from './lecon-04-absolu-incremental.js';
+import brocheAvance from './lecon-05-broche-avance.js';
+import outils from './lecon-06-outils.js';
+import modaux from './lecon-07-modaux.js';
+import programmeType from './lecon-08-programme-type.js';
 
 /**
  * Catalogue des cours d'ISO. Une leçon rédigée est un fichier de ce dossier (format :
@@ -17,10 +21,10 @@ export const LESSONS = [
   repere,
   deplacements,
   absoluIncremental,
-  { id: 'broche-avance', level: 'debutant', number: 5, title: 'Broche et avance', summary: 'M03/M04/M05, vitesse de coupe constante G96 et limitation G50, avance par tour ou par minute.' },
-  { id: 'outils-corrections', level: 'debutant', number: 6, title: 'Outils et corrections', summary: 'T0101, correcteurs de géométrie et d’usure, compensation de rayon de bec G41/G42/G40.' },
-  { id: 'codes-modaux', level: 'debutant', number: 7, title: 'Codes modaux et groupes', summary: 'Ce qui reste actif d’un bloc à l’autre, et les codes incompatibles sur une même ligne.' },
-  { id: 'programme-type', level: 'debutant', number: 8, title: 'Un programme type commenté', summary: 'Bloc de sécurité, changements d’outil, retours, fin : un modèle réutilisable.' },
+  brocheAvance,
+  outils,
+  modaux,
+  programmeType,
   { id: 'ebauche-finition', level: 'confirme', number: 9, title: 'Ébauche et finition : G71, G70, G72, G73', summary: 'Cycles de chariotage et de dressage par passes, puis finition du contour.' },
   { id: 'cycles-simples', level: 'confirme', number: 10, title: 'Cycles simples : G90, G94', summary: 'Chariotage et dressage en une passe répétée, cônes.' },
   { id: 'filetage', level: 'confirme', number: 11, title: 'Filetage : G92 et G76', summary: 'Pas, hauteur de filet, passes, et paramètres P, Q, R du G76.' },

@@ -3,6 +3,7 @@ import { icon } from '../../ui/icons.js';
 import { LESSONS, LEVELS, isAvailable } from '../../data/courses/index.js';
 import { MACHINE_PREFS } from './progress.js';
 import { renderBlocks, renderInline, hideDefinition } from './render.js';
+import { createQuiz } from './quiz-view.js';
 
 const STATUS_LABELS = { new: 'À découvrir', opened: 'Commencée', read: 'Terminée' };
 
@@ -30,6 +31,8 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
   const inner = h('div', { class: 'courses-inner' });
   const page = h('section', { class: 'courses-page', 'aria-label': 'Cours d’ISO' }, inner);
   let currentId = '';
+  // replaceChildren écrirait « null » pour les parties absentes : on les retire.
+  const setContent = (...nodes) => inner.replaceChildren(...nodes.filter((node) => node != null));
 
   const ctx = () => ({ dictionary: dictionaries.default, dictionaries, prefs: progress.get().prefs, openExample });
 
@@ -66,7 +69,7 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
   function renderCatalog() {
     const available = LESSONS.filter(isAvailable);
     const read = available.filter((lesson) => progress.status(lesson.id) === 'read').length;
-    inner.replaceChildren(
+    setContent(
       h('h1', { class: 'page-title' }, 'Cours d’ISO'),
       h(
         'p',
@@ -98,6 +101,12 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
     );
   }
 
+  function quizLabel(lesson) {
+    if (!lesson.quiz?.length) return null;
+    const best = progress.get().lessons[lesson.id]?.quiz;
+    return h('span', { class: `lesson-quiz-label${best && best.best === best.total ? ' is-perfect' : ''}` }, best ? `Quiz : ${best.best}/${best.total}` : 'Quiz');
+  }
+
   function renderLessonCard(lesson) {
     const ready = isAvailable(lesson);
     const status = ready ? progress.status(lesson.id) : 'soon';
@@ -111,7 +120,13 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
         h(
           'span',
           { class: 'lesson-meta' },
-          ready ? [h('span', null, `${lesson.duration} min`), h('span', { class: `lesson-status is-${status}` }, STATUS_LABELS[status])] : h('span', { class: 'badge' }, 'en préparation'),
+          ready
+            ? [
+                h('span', null, `${lesson.duration} min`),
+                h('span', { class: `lesson-status is-${status}` }, STATUS_LABELS[status]),
+                quizLabel(lesson),
+              ]
+            : h('span', { class: 'badge' }, 'en préparation'),
         ),
       ),
     ];
@@ -133,8 +148,9 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
     const prefs = usesPrefs(lesson);
     const read = progress.status(lesson.id) === 'read';
     const sections = lesson.sections.map((section) => ({ section, id: `cours-${lesson.id}-${section.id}` }));
+    const quizId = `cours-${lesson.id}-quiz`;
 
-    inner.replaceChildren(
+    setContent(
       h('a', { class: 'course-back', href: '#/cours' }, icon('arrowLeft'), 'Tous les cours'),
       h(
         'header',
@@ -154,7 +170,7 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
         h(
           'ol',
           null,
-          sections.map(({ section, id }) =>
+          [...sections, ...(lesson.quiz?.length ? [{ section: { title: 'Quiz' }, id: quizId }] : [])].map(({ section, id }) =>
             h('li', null, h('button', { type: 'button', class: 'link-btn', onclick: () => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, section.title)),
           ),
         ),
@@ -162,6 +178,20 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
       ...sections.map(({ section, id }) =>
         h('section', { class: 'lesson-section', id, 'aria-labelledby': `${id}-title` }, h('h2', { id: `${id}-title` }, section.title), renderBlocks(section.blocks, ctx())),
       ),
+      lesson.quiz?.length
+        ? h(
+            'section',
+            { class: 'lesson-section lesson-quiz', id: quizId, 'aria-labelledby': `${quizId}-title` },
+            h('h2', { id: `${quizId}-title` }, 'Quiz'),
+            createQuiz({
+              lesson,
+              ctx: ctx(),
+              best: progress.get().lessons[lesson.id]?.quiz,
+              // Score enregistré sans redessiner la leçon (le résultat reste affiché).
+              onComplete: (score, total) => quietly(() => progress.setQuiz(lesson.id, score, total)),
+            }),
+          )
+        : null,
       h(
         'footer',
         { class: 'lesson-footer' },
@@ -190,7 +220,7 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
   }
 
   function renderNotFound() {
-    inner.replaceChildren(h('a', { class: 'course-back', href: '#/cours' }, icon('arrowLeft'), 'Tous les cours'), h('p', { class: 'card-description' }, 'Cette leçon n’existe pas ou n’est pas encore rédigée.'));
+    setContent(h('a', { class: 'course-back', href: '#/cours' }, icon('arrowLeft'), 'Tous les cours'), h('p', { class: 'card-description' }, 'Cette leçon n’existe pas ou n’est pas encore rédigée.'));
   }
 
   function render({ keepScroll = false } = {}) {
@@ -210,14 +240,18 @@ export function createCoursesPage({ progress, dictionaries, openExample, navigat
     if (id === currentId && inner.childElementCount) return;
     currentId = id;
     render();
-    if (id && LESSONS.some((l) => l.id === id && isAvailable(l))) {
-      quiet = true;
-      progress.markOpened(id);
-      quiet = false;
-    }
+    if (id && LESSONS.some((l) => l.id === id && isAvailable(l))) quietly(() => progress.markOpened(id));
   };
 
   let quiet = false;
+  const quietly = (fn) => {
+    quiet = true;
+    try {
+      fn();
+    } finally {
+      quiet = false;
+    }
+  };
   progress.onChange(() => {
     if (!quiet) render({ keepScroll: true });
   });

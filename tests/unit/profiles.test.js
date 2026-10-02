@@ -54,10 +54,23 @@ test('profils intégrés par défaut : ISO puis FANUC tournage, plage #500–#99
   assert.deepEqual(profiles.list().map((p) => [p.id, p.builtin, p.enabled]), [
     ['iso-base', true, true],
     ['fanuc-turning', true, true],
+    ['fanuc-turning-bc', true, false],
   ]);
   assert.equal(dictionary.lookup('G90').category, 'cycle');
   assert.deepEqual(profiles.macroRanges().ranges, [{ from: 500, to: 999 }]);
   assert.equal(profiles.macroRanges().profile.name, 'FANUC tournage');
+});
+
+test('profil FANUC systèmes B/C : à activer au-dessus du système A', async () => {
+  const { profiles, dictionary } = await setup();
+  await profiles.update('fanuc-turning-bc', { enabled: true });
+  assert.equal(dictionary.lookup('G90').name, 'Programmation absolue');
+  assert.equal(dictionary.lookup('G91').name, 'Programmation incrémentale');
+  assert.match(dictionary.lookup('G92').name, /Limitation de vitesse/);
+  assert.equal(dictionary.lookup('G95').name, 'Avance en mm/tr');
+  assert.equal(dictionary.lookup('G50'), undefined, 'G50 du système A retiré');
+  assert.equal(dictionary.lookup('G71').source, 'fanuc-turning', 'cycles multipasses inchangés');
+  assert.equal(profiles.macroRanges().profile.id, 'fanuc-turning', 'plages de macros du profil A conservées');
 });
 
 test('désactiver un profil change immédiatement le dictionnaire, état conservé', async () => {
@@ -94,7 +107,8 @@ test('ordre de la pile : le profil le plus haut l’emporte', async () => {
   await profiles.setCode(mine.id, 'G90', { category: 'mode', name: 'Absolu (perso)' });
   assert.equal(dictionary.lookup('G90').name, 'Absolu (perso)');
   await profiles.move(mine.id, -1);
-  assert.deepEqual(profiles.list().map((p) => p.id), ['iso-base', mine.id, 'fanuc-turning']);
+  await profiles.move(mine.id, -1);
+  assert.deepEqual(profiles.list().map((p) => p.id), ['iso-base', mine.id, 'fanuc-turning', 'fanuc-turning-bc']);
   assert.equal(dictionary.lookup('G90').name, 'Cycle de chariotage simple');
   await profiles.move('iso-base', -1); // déjà en tête : sans effet
   assert.equal(profiles.list()[0].id, 'iso-base');

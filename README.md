@@ -34,7 +34,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | Étape | Contenu | État |
 |---|---|---|
 | C1 | Page Cours, catalogue, lecteur de leçon (schémas, exemples interactifs, « Ouvrir dans l'éditeur »), préférences « Votre machine », progression et sauvegarde JSON, leçons 1 à 4 | ✅ |
-| C2 | Quiz de fin de leçon, leçons 5 à 8 (parcours débutant complet) | à venir |
+| C2 | Quiz de fin de leçon, leçons 5 à 8 (parcours débutant complet), profil FANUC systèmes B/C | ✅ |
 | C3 | Parcours confirmé, leçons 9 à 15 | à venir |
 | C4 | Mode révision (questions générées par le profil, répétition espacée) | à venir |
 
@@ -52,7 +52,8 @@ estimation du temps d'usinage.
 - **Éditeur** : barre d'outils (Programmes, Enregistrer, puis les outils des fonctionnalités
   actives ; les actions ponctuelles sont dans le menu **« Outils »**), éditeur, panneau latéral
   (en volet bas sur smartphone) et barre d'état.
-- **Profils machines** : profils intégrés (ISO générique, FANUC tournage) et personnels,
+- **Profils machines** : profils intégrés (ISO générique, FANUC tournage, et FANUC tournage
+  systèmes B/C, à activer si votre tour n'est pas en système A) et personnels,
   activables et ordonnables ; codes propriétaires ou redéfinis, codes retirés, **plages de
   macros libres** (une ou plusieurs portions), export / import d'un profil, onglet « Codes
   actifs » (documentation effective). Depuis une infobulle : « Personnaliser pour ma machine »
@@ -66,7 +67,9 @@ estimation du temps d'usinage.
   machine », exemples colorés dont chaque code s'explique au tap et qui s'ouvrent dans
   l'éditeur. **« Votre machine »** : outil (ou meule) derrière ou devant l'axe, système de
   codes Fanuc A ou B/C — les leçons n'affichent que votre cas, ou toutes les versions côte à
-  côte. Progression enregistrée (et incluse dans la sauvegarde JSON). Ajouter ou corriger une
+  côte. **Quiz** en fin de leçon : choix, bloc à écrire (vérifié par le parseur : ordre des
+  mots libre, point décimal exigé), calcul, ligne fausse à trouver. Progression et meilleurs
+  scores enregistrés (et inclus dans la sauvegarde JSON). Ajouter ou corriger une
   leçon : voir `src/data/courses/README.md`.
 - **Paramètres** : en-tête fixe avec **recherche** dans tous les réglages (sans tenir compte
   des accents) et raccourcis vers chaque section ; apparence, éditeur, profils, fonctionnalités,

@@ -171,4 +171,46 @@ export default {
       ],
     },
   ],
+  quiz: [
+    {
+      type: 'choice',
+      question: 'Quel déplacement utilise-t-on pour approcher la pièce, hors matière ?',
+      options: ['`G00`', '`G01`', '`G02`'],
+      answer: 0,
+      explain: '`G00` : déplacement rapide, sans usiner, jusqu’à un point de sécurité (par exemple 2 mm devant la face).',
+    },
+    {
+      type: 'block',
+      question: 'L’outil est en `X18. Z0.`. Écrivez le chanfrein 1 × 45° qui arrive sur le Ø20, à 0,1 mm/tr.',
+      expect: 'G01 X20. Z-1. F0.1',
+      explain: 'Le diamètre passe de 18 à 20 (1 mm au rayon) pendant que Z avance de 1 mm : chanfrein à 45°, en `G01` à l’avance `F0.1`.',
+    },
+    {
+      type: 'choice',
+      question: 'Profil extérieur usiné vers le mandrin : un congé concave (creux) au pied d’un épaulement se programme en…',
+      options: ['`G02`', '`G03`'],
+      answer: 0,
+      explain: 'En extérieur vers le mandrin : creux = `G02`, bosse (arrondi convexe) = `G03`. C’est vrai que l’outil soit devant ou derrière l’axe.',
+    },
+    {
+      type: 'block',
+      question: 'Depuis `X16. Z0.`, écrivez l’arrondi convexe de rayon 2 qui arrive en `X20. Z-2.` (avec R).',
+      expect: 'G03 X20. Z-2. R2.',
+      explain: 'Arrondi convexe en extérieur vers le mandrin : `G03`, point d’arrivée `X20. Z-2.`, rayon `R2.`.',
+    },
+    {
+      type: 'choice',
+      question: 'Après un alésage (usinage intérieur), dans quel ordre dégage-t-on l’outil ?',
+      options: ['D’abord X, puis Z', 'D’abord Z, puis X', 'Les deux ensemble en G00'],
+      answer: 1,
+      explain: 'Dans un trou, on sort d’abord en Z ; un mouvement en X ferait toucher la paroi. En extérieur, c’est l’inverse.',
+    },
+    {
+      type: 'error',
+      question: 'Ce profil extérieur (vers le mandrin) comporte un congé concave R3 au pied de l’épaulement. Quelle ligne est fausse ?',
+      lines: ['N40 G00 X16. Z2.', 'N50 G01 Z0. F0.1', 'N60 G03 X20. Z-2. R2.', 'N70 G01 Z-15.', 'N80 G03 X26. Z-18. R3.', 'N90 G01 X30.'],
+      answer: 4,
+      explain: 'Le congé au pied de l’épaulement est concave : il faut `G02`, pas `G03`. L’arrondi de la ligne N60 est convexe, en `G03` : il est juste.',
+    },
+  ],
 };

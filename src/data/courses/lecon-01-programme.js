@@ -172,4 +172,47 @@ export default {
       ],
     },
   ],
+  quiz: [
+    {
+      type: 'choice',
+      question: 'Combien de mots contient le bloc `N40 G01 X20. Z-5. F0.1` ?',
+      options: ['3', '4', '5', '6'],
+      answer: 2,
+      explain: '`N40`, `G01`, `X20.`, `Z-5.` et `F0.1` : cinq mots, chacun formé d’une adresse (lettre) et d’une valeur.',
+    },
+    {
+      type: 'choice',
+      question: 'Quel code arrête la broche ?',
+      options: ['`M03`', '`M05`', '`M08`', '`M30`'],
+      answer: 1,
+      explain: '`M05` arrête la broche. `M03` la démarre (sens horaire), `M08` lance l’arrosage, `M30` termine le programme.',
+    },
+    {
+      type: 'choice',
+      question: 'Sur un Fanuc réglé normalement (sans « mode calculatrice »), que vaut `X20` écrit sans point ?',
+      options: ['20 mm', '2 mm', '0,020 mm', 'La machine refuse le bloc'],
+      answer: 2,
+      explain: 'Sans point décimal, la valeur est lue dans la plus petite unité (le micron) : 0,020 mm. Écrivez toujours `X20.`.',
+    },
+    {
+      type: 'choice',
+      question: 'Que fait la machine du texte `(EBAUCHE)` ?',
+      options: ['Elle l’ignore : c’est un commentaire', 'Elle lance un cycle d’ébauche', 'Elle s’arrête en attendant l’opérateur', 'Elle signale une erreur'],
+      answer: 0,
+      explain: 'Tout ce qui est entre parenthèses est un commentaire : la CN l’affiche mais ne l’exécute pas. Il sert au régleur et au programmeur.',
+    },
+    {
+      type: 'block',
+      question: 'Écrivez le bloc qui démarre la broche à 800 tr/min dans le sens horaire.',
+      expect: ['S800 M03', 'G97 S800 M03'],
+      explain: '`S800` donne la vitesse, `M03` démarre la rotation dans le sens horaire. `G97` (tr/min) peut être ajouté par sécurité.',
+    },
+    {
+      type: 'error',
+      question: 'Quelle ligne contient une erreur ?',
+      lines: ['O0010 (ESSAI)', 'N10 G21 G40 G97 G99', 'N20 T0101', 'N30 S800 M03', 'N40 G00 X42. Z2. M08', 'N50 G01 Z-30 F0.2', 'N60 G00 X50.'],
+      answer: 5,
+      explain: '`Z-30` n’a pas de point décimal : sur beaucoup de Fanuc, l’outil ne bougerait que de 0,030 mm. Il faut `Z-30.`.',
+    },
+  ],
 };

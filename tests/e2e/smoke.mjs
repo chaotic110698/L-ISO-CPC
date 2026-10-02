@@ -342,7 +342,7 @@ const desktop = await open(DESKTOP);
 
   await step('profils : nouveau profil, plages de macros, code propriétaire', async () => {
     await navTo(page, 'profils', '.profiles-page:not([hidden])');
-    assert.deepEqual(await page.locator('.profile-card .profile-name').allTextContents(), ['ISO générique', 'FANUC tournage']);
+    assert.deepEqual(await page.locator('.profile-card .profile-name').allTextContents(), ['ISO générique', 'FANUC tournage', 'FANUC tournage — systèmes B/C']);
     await shot(page, 'pc-sombre-profils');
     await page.locator('button', { hasText: 'Nouveau profil' }).click();
     await page.locator('.dialog').getByLabel('Nom', { exact: true }).fill('Tour Okuma');
@@ -710,8 +710,8 @@ const desktop = await open(DESKTOP);
 
   await step('cours : catalogue, préférences machine, schémas doublés', async () => {
     await navTo(page, 'cours', '.courses-page:not([hidden])');
-    assert.equal(await page.locator('.lesson-card[href]').count(), 4, 'quatre leçons rédigées');
-    assert.ok((await page.locator('.lesson-card.is-upcoming').count()) >= 10, 'leçons en préparation annoncées');
+    assert.equal(await page.locator('.lesson-card[href]').count(), 8, 'huit leçons rédigées');
+    assert.ok((await page.locator('.lesson-card.is-upcoming').count()) >= 7, 'leçons en préparation annoncées');
     await shot(page, 'ordinateur-cours-catalogue');
     await page.locator('.lesson-card[href="#/cours/repere-du-tour"]').click();
     await page.waitForSelector('.lesson-section');
@@ -770,7 +770,57 @@ const desktop = await open(DESKTOP);
     await page.locator('.course-back').click();
     assert.equal(await page.locator('li[data-lesson="programme-iso"]').getAttribute('data-status'), 'read');
     assert.equal(await page.locator('li[data-lesson="repere-du-tour"]').getAttribute('data-status'), 'opened');
-    assert.match(await page.locator('.course-progress').textContent(), /1 leçon terminée sur 4/);
+    assert.match(await page.locator('.course-progress').textContent(), /1 leçon terminée sur 8/);
+  });
+
+  await step('cours : aucune leçon n’affiche de texte parasite', async () => {
+    const ids = await page.locator('.lesson-card[href]').evaluateAll((links) => links.map((a) => a.getAttribute('href')));
+    for (const href of ids) {
+      await page.goto(url.split('#')[0] + href);
+      await page.waitForSelector('.lesson-section');
+      const text = await page.locator('.courses-inner').innerText();
+      assert.doesNotMatch(text, /\bnull\b|undefined|NaN/, href);
+    }
+  });
+
+  await step('cours : quiz (choix, bloc vérifié, nombre, erreur), score enregistré', async () => {
+    await page.goto(url.split('#')[0] + '#/cours/deplacements');
+    await page.waitForSelector('.quiz');
+    const q = page.locator('.quiz-question');
+    // Validation sans réponse : simple rappel, la question reste ouverte.
+    await q.nth(0).locator('[data-action="quiz-check"]').click();
+    assert.equal(await q.nth(0).locator('.quiz-feedback.is-hint').isVisible(), true);
+    await q.nth(0).locator('.quiz-option').nth(0).click();
+    await q.nth(0).locator('[data-action="quiz-check"]').click();
+    assert.equal(await q.nth(0).locator('.quiz-feedback.is-ok').isVisible(), true);
+    // Bloc : ordre libre, zéros facultatifs… mais point décimal exigé.
+    await q.nth(1).locator('input').fill('g1 f.1 z-1. x20');
+    await q.nth(1).locator('[data-action="quiz-check"]').click();
+    assert.match(await q.nth(1).locator('.quiz-feedback.is-ko').textContent(), /Point décimal manquant : X20/);
+    await q.nth(2).locator('.quiz-option').nth(0).click();
+    await q.nth(2).locator('[data-action="quiz-check"]').click();
+    await q.nth(3).locator('input').fill('N60 G3 X20. Z-2. R2.');
+    await q.nth(3).locator('input').press('Enter');
+    assert.equal(await q.nth(3).locator('.quiz-feedback.is-ok').isVisible(), true, 'validation par Entrée');
+    await q.nth(4).locator('.quiz-option').nth(1).click();
+    await q.nth(4).locator('[data-action="quiz-check"]').click();
+    await q.nth(5).locator('.quiz-line').nth(4).click();
+    await q.nth(5).locator('[data-action="quiz-check"]').click();
+    assert.equal(await q.nth(5).locator('.quiz-line.is-answer').count(), 1);
+    assert.equal(await page.locator('.quiz-score').textContent(), 'Score : 5 / 6');
+    await shot(page, 'ordinateur-cours-quiz');
+    await page.locator('.course-back').click();
+    assert.equal(await page.locator('li[data-lesson="deplacements"] .lesson-quiz-label').textContent(), 'Quiz : 5/6');
+    // Recommencer : le meilleur score reste affiché.
+    await page.goto(url.split('#')[0] + '#/cours/deplacements');
+    await page.waitForSelector('.quiz');
+    assert.match(await page.locator('.quiz > .card-description').textContent(), /Meilleur score : 5\/6/);
+    // Leçon 5 : réponse numérique à la française.
+    await page.goto(url.split('#')[0] + '#/cours/broche-avance');
+    await page.waitForSelector('.quiz');
+    await page.locator('.quiz-question').nth(0).locator('input').fill('1 273');
+    await page.locator('.quiz-question').nth(0).locator('[data-action="quiz-check"]').click();
+    assert.equal(await page.locator('.quiz-question').nth(0).locator('.quiz-feedback.is-ok').isVisible(), true);
   });
 
   await step('cours désactivables (page et menu retirés, puis rétablis)', async () => {

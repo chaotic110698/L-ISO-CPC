@@ -158,4 +158,47 @@ export default {
       ],
     },
   ],
+  quiz: [
+    {
+      type: 'choice',
+      question: 'La pointe de l’outil est sur un diamètre de 36 mm. Que vaut X ?',
+      options: ['`X18.`', '`X36.`', '`X72.`'],
+      answer: 1,
+      explain: 'En tournage, X se programme au diamètre : `X36.` (l’outil est à 18 mm de l’axe).',
+    },
+    {
+      type: 'number',
+      question: 'La pièce mesure Ø40. Pour enlever 1,5 mm de matière au rayon, quelle valeur de X programmez-vous ?',
+      answer: 37,
+      unit: 'mm',
+      explain: '1,5 mm au rayon = 3 mm au diamètre : 40 − 3 = 37, soit `X37.`.',
+    },
+    {
+      type: 'choice',
+      question: 'L’origine pièce est sur la face avant. Que désigne `Z-25.` ?',
+      options: ['Une position à 25 mm de la face, vers le mandrin', 'Une position à 25 mm devant la face, hors matière', 'Un diamètre de 25 mm'],
+      answer: 0,
+      explain: 'Z négatif = vers le mandrin. Avec l’origine sur la face avant, toutes les cotes d’usinage en Z sont négatives.',
+    },
+    {
+      type: 'choice',
+      question: 'Pour une même pièce, comment change le programme si l’outil est devant l’axe (tourelle avant) au lieu de derrière ?',
+      options: ['X change de signe', 'Il est identique', 'Il faut remplacer G18 par G19'],
+      answer: 1,
+      explain: 'X+ éloigne toujours l’outil de l’axe : le programme est identique. Seul le dessin habituel est retourné.',
+    },
+    {
+      type: 'block',
+      question: 'Origine sur la face avant : écrivez le déplacement rapide vers le Ø30, 2 mm devant la face.',
+      expect: 'G00 X30. Z2.',
+      explain: '`G00` pour le rapide, `X30.` pour le diamètre, `Z2.` : 2 mm du côté opposé au mandrin (Z positif).',
+    },
+    {
+      type: 'choice',
+      question: 'Quel code fait travailler en millimètres ?',
+      options: ['`G20`', '`G21`', '`G18`'],
+      answer: 1,
+      explain: '`G21` : millimètres ; `G20` : pouces ; `G18` : plan ZX.',
+    },
+  ],
 };

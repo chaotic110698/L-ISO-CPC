@@ -1,5 +1,6 @@
 import { ISO_BASE_CODES } from './codes/iso-base.js';
 import { FANUC_TURNING_CODES } from './codes/fanuc-turning.js';
+import { FANUC_TURNING_BC_CODES } from './codes/fanuc-turning-bc.js';
 
 /**
  * Profils machines intégrés. Leurs définitions de codes sont des données en lecture seule ;
@@ -26,5 +27,13 @@ export const BUILTIN_PROFILES = [
     machineType: 'tournage',
     layer: FANUC_TURNING_CODES,
     defaults: { enabled: true, order: 1, macroRanges: [{ from: 500, to: 999 }] },
+  },
+  {
+    id: 'fanuc-turning-bc',
+    name: 'FANUC tournage — systèmes B/C',
+    description: 'À activer au-dessus de « FANUC tournage » si votre tour est en système de codes B ou C : G90/G91 absolu/incrémental, G92 S limite la broche, G94/G95 unité d’avance, G77/G78/G79 cycles simples.',
+    machineType: 'tournage',
+    layer: FANUC_TURNING_BC_CODES,
+    defaults: { enabled: false, order: 2, macroRanges: [] },
   },
 ];

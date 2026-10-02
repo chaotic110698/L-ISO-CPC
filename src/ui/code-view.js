@@ -91,3 +91,21 @@ export function createCodeView({ lines, dictionary, caption, actions = [] }) {
       : null,
   );
 }
+
+/** Ligne colorée sans interaction (dans un bouton, par exemple). */
+export function highlightCode(code, dictionary) {
+  const { tokens } = parseLine(code);
+  const parts = [];
+  let pos = 0;
+  for (const token of tokens) {
+    if (token.from > pos) parts.push(code.slice(pos, token.from));
+    const text = code.slice(token.from, token.to);
+    const category = tokenCategory(token, dictionary);
+    if (category === 'address' && token.valueKind === 'number') {
+      parts.push(h('span', { class: 'tok-address' }, token.letter), h('span', { class: 'tok-value' }, text.slice(token.letter.length)));
+    } else parts.push(category ? h('span', { class: `tok-${category}` }, text) : text);
+    pos = token.to;
+  }
+  if (pos < code.length) parts.push(code.slice(pos));
+  return h('code', { class: 'code-view-code' }, parts.length ? parts : ' ');
+}

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createCodeDictionary, checkProgram, modalStateAt, renumber } from '../../src/engine/index.js';
 import { ISO_BASE_CODES } from '../../src/data/codes/iso-base.js';
 import { FANUC_TURNING_CODES } from '../../src/data/codes/fanuc-turning.js';
+import { FANUC_TURNING_BC_CODES } from '../../src/data/codes/fanuc-turning-bc.js';
 import { MODAL_GROUP_IDS, NON_MODAL } from '../../src/data/modal-groups.js';
 import { FANUC_TURNING_DEMO } from '../../src/data/samples/fanuc-turning-demo.js';
 
@@ -13,7 +14,7 @@ const check = (text, dictionary = fanuc, options) => checkProgram(lines(text), d
 const rules = (diagnostics) => diagnostics.map((d) => `${d.line}:${d.rule}`);
 
 test('données : chaque groupe modal référencé existe', () => {
-  for (const layer of [ISO_BASE_CODES, FANUC_TURNING_CODES]) {
+  for (const layer of [ISO_BASE_CODES, FANUC_TURNING_CODES, FANUC_TURNING_BC_CODES]) {
     for (const [key, def] of Object.entries(layer.codes)) {
       if (def?.group) assert.ok(def.group === NON_MODAL || MODAL_GROUP_IDS.has(def.group), `${key} : ${def.group}`);
     }

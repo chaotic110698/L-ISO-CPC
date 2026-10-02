@@ -169,9 +169,14 @@ const BLOCKS = {
       block.parts.map((part) => h('div', { class: 'course-anatomy-part' }, inlineCode(part.text, ctx.dictionary), h('span', null, part.label))),
     ),
 
-  /** Explication qui dépend de la machine : { pref, cases: { valeur: [blocs] } }. */
+  /** Explication qui dépend de la machine : { pref, cases: { valeur: [blocs] }, dictionaries? }. */
   variants(block, ctx) {
     const values = shownValues(block.pref, ctx);
+    // `dictionaries` : { valeur: 'a' | 'bc' | 'iso' } — codes de chaque cas expliqués selon sa machine.
+    const caseCtx = (value) => {
+      const own = block.dictionaries?.[value] && ctx.dictionaries?.[block.dictionaries[value]];
+      return own ? { ...ctx, dictionary: own } : ctx;
+    };
     return h(
       'div',
       { class: `course-variants${values.length > 1 ? ' is-double' : ''}` },
@@ -180,7 +185,7 @@ const BLOCKS = {
           'section',
           { class: 'course-variant', dataset: { variant: value } },
           h('p', { class: 'course-variant-title' }, block.titles?.[value] ?? prefLabel(block.pref, value)),
-          renderBlocks(block.cases[value] ?? [], ctx),
+          renderBlocks(block.cases[value] ?? [], caseCtx(value)),
         ),
       ),
     );

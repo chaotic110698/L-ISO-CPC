@@ -118,6 +118,14 @@ export function createProgressStore(kv, { now = () => Date.now() } = {}) {
       else delete entry.readAt;
       commit();
     },
+    /** Résultat d'un quiz : le meilleur score est conservé. */
+    setQuiz(id, score, total) {
+      const entry = touch(id);
+      entry.openedAt ??= now();
+      const previous = entry.quiz;
+      if (!previous || score / total >= previous.best / previous.total) entry.quiz = { best: score, total, at: now() };
+      commit();
+    },
     replace(data) {
       progress = sanitizeProgress(data);
       commit();

@@ -43,6 +43,7 @@ export default {
           type: 'variants',
           pref: 'system',
           titles: { A: 'Système A', BC: 'Systèmes B et C' },
+          dictionaries: { A: 'a', BC: 'bc' },
           cases: {
             A: [
               {
@@ -71,7 +72,6 @@ export default {
             BC: [
               {
                 type: 'list',
-                dictionary: 'iso',
                 items: [
                   '`G90` : mode **absolu** ; `G91` : mode **incrémental** ;',
                   'ces codes sont **modaux** : ils restent actifs jusqu’au suivant ;',
@@ -80,8 +80,7 @@ export default {
               },
               {
                 type: 'code',
-                dictionary: 'iso',
-                caption: 'De A à D en incrémental. Définitions au tap : ISO générique (G90/G91 absolu/incrémental).',
+                caption: 'De A à D en incrémental. Définitions au tap : profil « FANUC tournage — systèmes B/C ».',
                 lines: [
                   ['G91 G01 Z-15. F0.2', 'Passage en incrémental, A → B'],
                   ['X10.', 'B → C : diamètre +10'],
@@ -92,7 +91,6 @@ export default {
               {
                 type: 'note',
                 tone: 'piege',
-                dictionary: 'iso',
                 text: 'Oublier de revenir en `G90` est une erreur classique : toutes les cotes suivantes sont lues comme des déplacements.',
               },
             ],
@@ -101,9 +99,9 @@ export default {
         {
           type: 'note',
           tone: 'machine',
-          dictionary: 'iso',
+          dictionary: 'bc',
           title: 'Comment connaître votre système ?',
-          text: 'Regardez un programme existant de la machine : des `U` et `W`, ou des `G90` en tête de cycle de chariotage, indiquent le système A ; des `G90` / `G91` isolés indiquent B ou C. Sinon, la notice ou le paramètre 3401 (bits 6 et 7). Sur Siemens, c’est `G90` / `G91`, ou X=AC(…) / X=IC(…) pour une seule cote.',
+          text: 'Regardez un programme existant de la machine : des `U` et `W`, ou des `G90` en tête de cycle de chariotage, indiquent le système A ; des `G90` / `G91` isolés indiquent B ou C. Sinon, la notice ou le paramètre 3401 (bits 6 et 7). Sur Siemens, c’est `G90` / `G91`, ou X=AC(…) / X=IC(…) pour une seule cote. Si votre tour est en système B ou C, activez le profil « FANUC tournage — systèmes B/C » (page Profils machines) : les définitions de l’éditeur suivront votre machine.',
         },
       ],
     },
@@ -159,6 +157,51 @@ export default {
           ],
         },
       ],
+    },
+  ],
+  quiz: [
+    {
+      type: 'choice',
+      question: 'En système A, quelles adresses donnent un déplacement incrémental ?',
+      options: ['X et Z', 'U et W', 'G90 et G91'],
+      answer: 1,
+      explain: 'En système A, `U` (au diamètre) et `W` sont toujours incrémentaux ; `X` et `Z` toujours absolus.',
+    },
+    {
+      type: 'block',
+      question: 'Système A, outil en `X20. Z-15.`, G01 actif : écrivez le déplacement qui augmente le diamètre de 10 mm, en incrémental.',
+      expect: ['U10.', 'G01 U10.'],
+      explain: '`U10.` : +10 mm au diamètre. `G01` est modal, on peut l’omettre s’il est déjà actif.',
+    },
+    {
+      type: 'choice',
+      question: 'En système A, que provoque un `G90` ?',
+      dictionary: 'a',
+      options: ['Le passage en absolu', 'Un cycle de chariotage', 'Le passage en incrémental'],
+      answer: 1,
+      explain: 'En système A, `G90` est un cycle de chariotage : un `G90` recopié d’un programme de fraisage ou d’un autre système provoque un usinage imprévu.',
+    },
+    {
+      type: 'choice',
+      question: 'Systèmes B/C : que se passe-t-il si l’on oublie `G90` après des déplacements en `G91` ?',
+      dictionary: 'bc',
+      options: ['Rien de particulier', 'Toutes les cotes suivantes sont lues comme des déplacements', 'La machine passe en pouces'],
+      answer: 1,
+      explain: '`G91` est modal : il reste actif jusqu’au `G90`. Sans lui, la suite du programme se décale.',
+    },
+    {
+      type: 'number',
+      question: 'Système A : de combien de millimètres (au rayon) `G00 U4.` éloigne-t-il l’outil de la surface ?',
+      answer: 2,
+      unit: 'mm',
+      explain: '`U` est au diamètre : 4 mm au diamètre = 2 mm au rayon.',
+    },
+    {
+      type: 'choice',
+      question: 'Pourquoi rester en absolu par défaut ?',
+      options: ['C’est plus rapide à exécuter', 'Une erreur de cote reste locale au lieu de décaler toute la suite', 'L’incrémental est interdit en finition'],
+      answer: 1,
+      explain: 'En absolu, chaque cote est indépendante. En incrémental, une erreur se reporte sur toutes les positions suivantes.',
     },
   ],
 };

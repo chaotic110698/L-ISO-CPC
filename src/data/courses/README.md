@@ -37,12 +37,32 @@ le vérifient) ; les mots d'autres commandes (Siemens…) s'écrivent en **gras*
 | `anatomy` | `parts` : `[{ text: 'G01', label: '…' }]` | bloc décomposé mot par mot |
 | `variants` | `pref` (`turret` ou `system`), `cases` : `{ valeur: [blocs] }`, `titles?` | explication propre à chaque machine, selon « Votre machine » (toutes par défaut) |
 
-Tout bloc accepte `dictionary: 'iso'` : ses codes (et ceux des blocs imbriqués) sont alors
-expliqués avec l'ISO générique au lieu du profil actif — pour les exemples en systèmes B/C,
-où `G90` / `G91` sont absolu / incrémental et non un cycle.
+### Dictionnaire des définitions
+
+Par défaut, les codes d'une leçon sont expliqués avec les **profils actifs** de l'utilisateur.
+Un passage propre à un système de codes Fanuc utilise le sien, quel que soit le profil :
+
+- `dictionary: 'a'` (système A), `'bc'` (systèmes B/C) ou `'iso'` (ISO générique) sur un
+  bloc : vaut pour lui et ses blocs imbriqués ;
+- `dictionaries: { A: 'a', BC: 'bc' }` sur un bloc `variants` : un dictionnaire par cas.
+
+## Quiz
+
+Champ `quiz` de la leçon : une liste de questions, corrigées une par une (bonne réponse et
+explication), puis score ; le meilleur score est enregistré.
+
+| type | champs | correction |
+|---|---|---|
+| `choice` | `options`, `answer` (index, ou liste d'index si plusieurs réponses) | toutes les bonnes cases, et elles seules |
+| `block` | `expect` (bloc, ou liste de variantes acceptées) | mots comparés sans tenir compte de l'ordre, des zéros (`G1` = `G01`) ni du N ; point décimal exigé sur X, Z, U, W, R, I, K |
+| `number` | `answer`, `tolerance?`, `unit?` | saisie « 1 273 » ou « 1273,0 » acceptée |
+| `error` | `lines`, `answer` (index de la ligne fautive) | l'utilisateur touche la ligne |
+
+Toutes les questions ont `question` et `explain` (texte enrichi), et acceptent `dictionary`.
 
 ## Vérifications automatiques (`npm test`)
 
 `tests/unit/courses.test.js` contrôle chaque leçon : types de blocs, tons, schémas,
-variantes complètes, **aucun code inconnu** dans les textes et extraits, et **aucune erreur
-du vérificateur** dans les programmes ouvrables dans l'éditeur.
+variantes complètes, **aucun code inconnu** dans les textes, extraits et quiz, **aucune erreur
+du vérificateur** dans les programmes ouvrables dans l'éditeur, et que la bonne réponse de
+chaque question est bien acceptée.
