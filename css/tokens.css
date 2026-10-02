@@ -64,6 +64,10 @@
   --c-unknown: #c4262e;
   --occurrence-bg: #ffe58a;
   --occurrence-current: #f2c200;
+  --diff-insert: #e3f6e8;
+  --diff-insert-text: #1d6b35;
+  --diff-delete: #fde8e7;
+  --diff-delete-text: #a32a24;
 }
 
 [data-theme='dark'] {
@@ -112,4 +116,8 @@
   --c-unknown: #ff7b72;
   --occurrence-bg: #5a4b12;
   --occurrence-current: #8a7316;
+  --diff-insert: #17321f;
+  --diff-insert-text: #8fd694;
+  --diff-delete: #3a1d1f;
+  --diff-delete-text: #ff9a92;
 }

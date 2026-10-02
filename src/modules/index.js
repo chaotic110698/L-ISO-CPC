@@ -11,9 +11,15 @@ import autocomplete from './autocomplete/index.js';
 import checker from './checker/index.js';
 import modalState from './modal-state/index.js';
 import renumberModule from './renumber/index.js';
+import search from './search/index.js';
+import coordinateShift from './coordinate-shift/index.js';
+import folding from './folding/index.js';
+import versions from './versions/index.js';
+import cycles from './cycles/index.js';
+import library from './library/index.js';
 import history from './history/index.js';
 import autosave from './autosave/index.js';
 import exportFile from './export-file/index.js';
 import calculators from './calculators/index.js';
 
-export const MODULES = [lineNumbers, highlighting, occurrences, definitions, autocomplete, macroSuggest, checker, modalState, variables, macroWarnings, renumberModule, history, autosave, exportFile, calculators];
+export const MODULES = [lineNumbers, highlighting, occurrences, definitions, autocomplete, macroSuggest, checker, modalState, variables, macroWarnings, folding, search, cycles, library, renumberModule, coordinateShift, versions, history, autosave, exportFile, calculators];

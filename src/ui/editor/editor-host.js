@@ -10,6 +10,37 @@ import {
 import { defaultKeymap } from '@codemirror/commands';
 import { editorTheme } from './editor-theme.js';
 
+/** Textes de l'interface de CodeMirror (recherche, repliage, diagnostics…) en français. */
+const FRENCH_PHRASES = EditorState.phrases.of({
+  Find: 'Rechercher',
+  Replace: 'Remplacer par',
+  next: 'suivant',
+  previous: 'précédent',
+  all: 'tout',
+  'match case': 'respecter la casse',
+  regexp: 'expression régulière',
+  'by word': 'mot entier',
+  replace: 'remplacer',
+  'replace all': 'tout remplacer',
+  close: 'fermer',
+  'current match': 'résultat courant',
+  'on line': 'ligne',
+  'replaced $ matches': '$ remplacements effectués',
+  'replaced match on line $': 'remplacement effectué ligne $',
+  'Go to line': 'Aller à la ligne',
+  go: 'aller',
+  'folded code': 'code replié',
+  unfold: 'déplier',
+  to: 'à',
+  'Folded lines': 'Lignes repliées',
+  'Unfolded lines': 'Lignes dépliées',
+  'Fold line': 'Replier',
+  'Unfold line': 'Déplier',
+  Completions: 'Suggestions',
+  Diagnostics: 'Diagnostics',
+  'No diagnostics': 'Aucun diagnostic',
+});
+
 /**
  * Enveloppe de CodeMirror 6. Le reste de l'application ne manipule l'éditeur qu'à travers
  * cette classe : on pourrait changer de composant d'édition sans toucher aux modules.
@@ -42,6 +73,7 @@ export class EditorHost {
         highlightActiveLine(),
         keymap.of(defaultKeymap),
         editorTheme,
+        FRENCH_PHRASES,
         this.#dark.of(EditorView.darkTheme.of(this.#options.dark)),
         this.#wrapping.of(this.#options.lineWrapping ? EditorView.lineWrapping : []),
         EditorView.contentAttributes.of({

@@ -25,7 +25,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | 4 | Profils machines (ISO générique, Fanuc tournage, profils personnels) | ✅ |
 | 5 | Macros : plages libres, tableau des variables, avertissements | ✅ |
 | 6a | Autocomplétion G/M, vérificateur de syntaxe, état modal, renumérotation | ✅ |
-| 6b | Recherche / remplacement et décalage, repliage, comparaison de versions, cycles et bibliothèque | à venir |
+| 6b | Recherche / remplacement et décalage, repliage, comparaison de versions, cycles et bibliothèque | ✅ |
 | 7 | Calculateurs (Vc ↔ tr/min, avance, rectification en mm/min et mm/s, conversions, rugosité, rayon de bec) | ✅ (réalisée avant les étapes 4 à 6) |
 | 8 | Page Paramètres complète | à venir |
 
@@ -59,7 +59,14 @@ avec leur définition ; **vérificateur** (parenthèses, caractères invalides, 
 incompatibles sur une ligne, adresses répétées, plusieurs M, cotes sans point décimal, avance
 non définie, broche sans S, G96 sans G50, G40 oublié, blocs P/Q/GOTO introuvables, N en double,
 M30 manquant — chaque règle désactivable) ; **état modal** à la ligne du curseur (barre d'état et
-panneau) ; **renumérotation** des N avec mise à jour des P/Q, GOTO et M99 P.
+panneau) ; **renumérotation** des N avec mise à jour des P/Q, GOTO et M99 P ; **recherche /
+remplacement** (Ctrl+F) ; **décalage de coordonnées** (cotes absolues X/Z/Y, sélection ou tout le
+programme) ; **repliage** des sous-programmes, boucles WHILE et opérations par outil ;
+**versions** (automatiques à l'ouverture ou nommées) avec **comparaison** ligne à ligne et
+restauration ; **formulaires de cycles** FANUC (G71/G70, G72, G76, G92, G90, G74, G75) avec aperçu
+et conversions mm → µm ; **bibliothèque** personnelle de sous-programmes. Les actions
+ponctuelles (renuméroter, décaler, versions, tout replier, télécharger) sont dans le menu
+« Outils » de la barre d'outils.
 
 ## Structure du projet
 
@@ -161,6 +168,22 @@ Une entrée de même `id` remplace l'entrée « à venir » du menu. Pour une pa
 `shell.addNavItem({ id, path: '/ma-page', label, icon })`. Retirer l'entrée « à venir »
 correspondante et mettre à jour la carte de la page d'accueil (`src/ui/pages/home-page.js`).
 
+### Ajouter un formulaire de cycle
+
+Dans `src/data/cycles/fanuc-turning.js` (ou un nouveau fichier pour une autre commande, déclaré
+dans `CYCLES_BY_PROFILE` de `src/modules/cycles/index.js`) :
+
+```js
+{
+  id: 'g83', title: 'Perçage frontal G83', codes: ['G83'], description: '…',
+  fields: [{ key: 'z', label: 'Profondeur', unit: 'mm', default: -20 }, …],
+  generate: (v) => ({ lines: [`G83 Z${mm(v.z)} …`], notes: ['…'] }),
+}
+```
+
+Un test vérifie que chaque formulaire génère, avec ses valeurs par défaut, un code accepté
+par le vérificateur.
+
 ### Ajouter un réglage
 
 Ajouter une entrée dans `CORE_SETTINGS` (`src/settings/schema.js`) ou dans le champ `settings`
@@ -220,7 +243,7 @@ en vigueur sont celles du profil activé le plus spécifique qui en déclare.
 `tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
 variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
 `modalStateAt` (état modal), `checkProgram` (vérificateur, règles dans `CHECKER_RULES`),
-`renumber`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
+`renumber`, `shiftCoordinates`, `foldRanges`, `diffLines` (comparaison), `formatIso`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
 (variables, valeurs répétées, avertissements), plages de macros (`parseRanges`, `nextFreeVariable`…), `tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
 `occurrenceKey` (identité d'une macro, d'un code ou
 d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).
@@ -233,7 +256,8 @@ d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut v
   "formatVersion": 1,
   "appVersion": "0.1.0",
   "exportedAt": "2026-10-01T12:00:00.000Z",
-  "sections": { "programmes": [ … ], "profils": [ … ], "macros": [ … ], "parametres": { … } }
+  "sections": { "programmes": [ … ], "profils": [ … ], "macros": [ … ],
+                "bibliotheque": [ … ], "versions": [ … ], "parametres": { … } }
 }
 ```
 

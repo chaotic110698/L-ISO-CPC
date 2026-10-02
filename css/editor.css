@@ -222,3 +222,80 @@
   padding: 8px 10px;
   font-size: 13px;
 }
+
+/* ---- Repliage ---- */
+
+.cm-foldGutter .cm-gutterElement {
+  padding: 0 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.cm-foldPlaceholder {
+  margin: 0 4px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ---- Panneau de recherche ---- */
+
+.cm-panel.cm-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 6px 8px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+
+.cm-panel.cm-search input[type='text'],
+.cm-panel.cm-search .cm-textfield {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.cm-panel.cm-search button,
+.cm-panel.cm-search .cm-button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  background-image: none;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+
+.cm-panel.cm-search label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cm-panel.cm-search button[name='close'] {
+  border: 0;
+  font-size: 18px;
+}
+
+.cm-searchMatch {
+  background: var(--occurrence-bg);
+  outline: 1px solid var(--occurrence-current);
+}
+
+.cm-searchMatch-selected {
+  background: var(--occurrence-current);
+}

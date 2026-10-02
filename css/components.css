@@ -106,7 +106,7 @@
   display: none;
 }
 
-@media (min-width: 720px) {
+@media (min-width: 1440px) {
   .tool-label {
     display: inline;
   }
@@ -474,6 +474,7 @@ dialog::backdrop {
 .dialog-inner {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr); /* jamais plus large que la fenêtre */
   max-height: inherit;
 }
 
@@ -486,6 +487,8 @@ dialog::backdrop {
 }
 
 .dialog-title {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   font-size: 1.05rem;
   text-overflow: ellipsis;
@@ -493,6 +496,8 @@ dialog::backdrop {
 }
 
 .dialog-body {
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 6px 18px 14px;
 }
@@ -1274,4 +1279,196 @@ dialog::backdrop {
 
 .status-item[data-tone='ok'] {
   color: var(--success);
+}
+
+/* ---- Comparaison de versions ---- */
+
+@media (min-width: 600px) {
+  .dialog.dialog-tall {
+    width: min(860px, calc(100vw - 2 * var(--gutter)));
+    height: calc(100dvh - 2 * var(--gutter));
+  }
+
+  .dialog.dialog-tall .dialog-inner {
+    height: 100%;
+  }
+}
+
+.diff-view {
+  display: grid;
+  gap: 10px;
+}
+
+.diff-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.diff-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.diff-badge.is-insert {
+  background: var(--diff-insert);
+  color: var(--diff-insert-text);
+}
+
+.diff-badge.is-delete {
+  background: var(--diff-delete);
+  color: var(--diff-delete-text);
+}
+
+.diff-list {
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--editor-bg);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  list-style: none;
+}
+
+.diff-line {
+  display: grid;
+  grid-template-columns: 3.5ch 3.5ch 2ch auto;
+  gap: 6px;
+  padding: 0 8px;
+  white-space: pre;
+}
+
+.diff-line code {
+  font-family: inherit;
+}
+
+.diff-line.is-insert {
+  background: var(--diff-insert);
+  color: var(--diff-insert-text);
+}
+
+.diff-line.is-delete {
+  background: var(--diff-delete);
+  color: var(--diff-delete-text);
+}
+
+.diff-num {
+  color: var(--text-muted);
+  text-align: right;
+  user-select: none;
+}
+
+.diff-sign {
+  font-weight: 700;
+}
+
+.diff-skip {
+  padding: 2px 8px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  text-align: center;
+}
+
+.version-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.version-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.version-item:first-child {
+  border-top: 0;
+}
+
+.version-text {
+  display: grid;
+  min-width: 0;
+}
+
+.version-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.version-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ---- Cycles ---- */
+
+.cycle-item {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.cycle-item:hover {
+  border-color: var(--accent);
+}
+
+.cycle-codes {
+  display: flex;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.cycle-title {
+  font-weight: 600;
+}
+
+.cycle-form {
+  display: grid;
+  gap: 10px;
+}
+
+.cycle-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  gap: 10px 14px;
+}
+
+.cycle-field label {
+  font-size: 13px;
+}
+
+.cycle-check {
+  align-self: end;
+}
+
+.cycle-preview {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--editor-bg);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: pre-wrap;
 }

@@ -21,6 +21,8 @@ import { MODULES } from './modules/index.js';
 import { createCodeDictionary } from './engine/index.js';
 import { createProfileService } from './core/profiles.js';
 import { createMacroService } from './core/macros.js';
+import { createVersionService } from './core/versions.js';
+import { createLibraryService } from './core/library.js';
 import { createProfilesPage } from './ui/pages/profiles-page.js';
 import { openCodeEditor } from './ui/code-editor.js';
 import { APP_VERSION } from './version.js';
@@ -50,6 +52,8 @@ export async function startApp(root) {
   await profiles.init();
   const macros = createMacroService({ db, profiles, workspace, bus });
   await macros.init();
+  const versions = createVersionService({ db });
+  const library = createLibraryService({ db, bus });
 
   const backup = createBackupService({ appVersion: APP_VERSION });
   backup.register('programmes', {
@@ -69,6 +73,18 @@ export async function startApp(root) {
     exportData: async () => macros.exportAll(),
     importData: (data, options) => macros.importAll(data, options),
     describe: (data) => `${Array.isArray(data) ? data.length : 0} variable(s) nommée(s)`,
+  });
+  backup.register('bibliotheque', {
+    label: 'Bibliothèque de sous-programmes',
+    exportData: () => library.exportAll(),
+    importData: (data, options) => library.importAll(data, options),
+    describe: (data) => `${Array.isArray(data) ? data.length : 0} élément(s)`,
+  });
+  backup.register('versions', {
+    label: 'Versions des programmes',
+    exportData: () => versions.exportAll(),
+    importData: (data, options) => versions.importAll(data, options),
+    describe: (data) => `${Array.isArray(data) ? data.length : 0} version(s)`,
   });
   backup.register('parametres', {
     label: 'Paramètres',
@@ -163,6 +179,8 @@ export async function startApp(root) {
       codes,
       profiles,
       macros,
+      versions,
+      library,
       workspace,
       backup: { register: (id, section) => scope.add(backup.register(id, section)) },
       ui: {
@@ -170,6 +188,13 @@ export async function startApp(root) {
         toolbar: editorPage.toolbar.scoped(scope),
         statusbar: editorPage.statusbar.scoped(scope),
         panels: editorPage.panels.scoped(scope),
+        /** Ouvre l'éditeur avec le panneau demandé (depuis le menu latéral, par ex.). */
+        showPanel(id) {
+          router.navigate('/editeur');
+          editorPage.panels.open(id);
+        },
+        /** Entrée du menu latéral (remplace l'entrée « à venir » de même identifiant). */
+        addNavItem: (item) => scope.add(shell.addNavItem(item)),
         /** Ajoute une page et son entrée de menu (retirées à la désactivation du module). */
         addPage({ id, path, label, icon, order, mount, onShow }) {
           const removeRoute = router.register(path, { title: label, mount, onShow });
@@ -246,7 +271,7 @@ export async function startApp(root) {
   if (!kv.available) toast('Stockage du navigateur indisponible : rien ne sera conservé après fermeture.', { type: 'error', timeout: 10000 });
 
   // Point d'accès pour le débogage et les tests de bout en bout.
-  return { settings, bus, workspace, editor, registry, router, backup, db, codes, profiles, macros };
+  return { settings, bus, workspace, editor, registry, router, backup, db, codes, profiles, macros, versions, library };
 }
 
 /** Fonctions du socle toujours présentes : enregistrement manuel, position du curseur, état. */

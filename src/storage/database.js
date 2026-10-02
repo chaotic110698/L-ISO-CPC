@@ -28,9 +28,14 @@ const MIGRATIONS = [
   (db) => {
     db.createObjectStore('macros', { keyPath: 'id' });
   },
+  // v4 : versions de programmes (comparaison) et bibliothèque de sous-programmes.
+  (db) => {
+    db.createObjectStore('versions', { keyPath: 'id' });
+    db.createObjectStore('library', { keyPath: 'id' });
+  },
 ];
 
-export const STORES = ['programs', 'meta', 'profiles', 'macros'];
+export const STORES = ['programs', 'meta', 'profiles', 'macros', 'versions', 'library'];
 
 const clone = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)));
 

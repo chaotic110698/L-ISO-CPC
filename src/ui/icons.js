@@ -37,6 +37,13 @@ const PATHS = {
   variable: '<path d="M10 4L8 20M16 4l-2 16M5 9h15M4 15h15"/>',
   layers: '<path d="M12 4l8 4-8 4-8-4z"/><path d="M4 12l8 4 8-4M4 16l8 4 8-4"/>',
   renumber: '<path d="M11 6h9M11 12h9M11 18h9"/><path d="M4 4.5l1.5-1V9M3.5 9h3M3.5 14.5a1.5 1.5 0 0 1 3 .5c0 1-3 2.5-3 4h3"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+  move: '<path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/>',
+  fold: '<path d="M4 6h16M4 18h16M9 10l3 3 3-3"/>',
+  unfold: '<path d="M4 6h16M4 18h16M9 13l3-3 3 3"/>',
+  history: '<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5M12 8v4l3 2"/>',
+  cycle: '<path d="M4 18h16M6 18V8l4-3h8v13"/><path d="M10 9h6M10 12h6M10 15h3"/>',
+  bookmark: '<path d="M6 4h12v17l-6-4-6 4z"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   warning: '<path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.5"/>',
 };

@@ -11,3 +11,7 @@ export { analyzeMacros, assignedVariables, referencedVariables, variableWarnings
 export { createModalState, applyBlock, modalStateAt } from './modal-state.js';
 export { checkProgram, CHECKER_RULES, blockRefLetters } from './checker.js';
 export { renumber, MAX_BLOCK_NUMBER } from './renumber.js';
+export { formatIso, formatInteger } from './format.js';
+export { diffLines, diffStats, diffHunks } from './diff.js';
+export { shiftCoordinates } from './shift.js';
+export { foldRanges } from './folding.js';

@@ -14,6 +14,7 @@ export default {
       label: 'Renuméroter',
       title: 'Renuméroter les blocs N',
       order: 70,
+      menu: true,
       onClick: async () => {
         const view = ctx.editor.view;
         const selection = view.state.selection.main;

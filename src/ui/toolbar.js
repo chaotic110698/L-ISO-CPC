@@ -1,14 +1,53 @@
 import { h } from '../core/dom.js';
 import { icon } from './icons.js';
+import { actionSheet } from './dialogs.js';
 
 /**
  * Barre d'outils de l'éditeur. Les modules y ajoutent leurs boutons ; `order` fixe la position
  * (petits nombres à gauche). Sur petit écran, seules les icônes sont affichées.
+ * `menu: true` range l'action dans le menu « Outils » (actions ponctuelles), qui n'apparaît
+ * que s'il contient au moins une action.
  */
 export function createToolbar(container) {
   const items = [];
+  const menuItems = [];
+  let menuHandle = null;
 
-  function add({ id, icon: iconName, label, title, onClick, order = 100 }) {
+  function addToMenu(item) {
+    menuItems.push(item);
+    menuItems.sort((a, b) => a.order - b.order);
+    if (!menuHandle) {
+      menuHandle = add({
+        id: 'menu',
+        icon: 'more',
+        label: 'Outils',
+        title: 'Autres outils',
+        order: 95,
+        onClick: async () => {
+          const choice = await actionSheet({
+            title: 'Outils',
+            actions: menuItems.map((m) => ({ label: m.label, value: m.id, icon: m.icon, description: m.title !== m.label ? m.title : undefined })),
+          });
+          menuItems.find((m) => m.id === choice)?.onClick();
+        },
+      });
+    }
+    return {
+      element: null,
+      setDisabled() {},
+      remove() {
+        const at = menuItems.indexOf(item);
+        if (at !== -1) menuItems.splice(at, 1);
+        if (!menuItems.length && menuHandle) {
+          menuHandle.remove();
+          menuHandle = null;
+        }
+      },
+    };
+  }
+
+  function add({ id, icon: iconName, label, title, onClick, order = 100, menu = false }) {
+    if (menu) return addToMenu({ id, icon: iconName, label, title: title ?? label, onClick, order });
     const button = h(
       'button',
       {

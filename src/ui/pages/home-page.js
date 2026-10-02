@@ -10,7 +10,7 @@ const FEATURES = [
   {
     icon: 'code',
     title: 'Éditeur de programmes',
-    text: 'Coloration par catégorie de code, mise en évidence des macros et des valeurs, numérotation, annuler / rétablir, sauvegarde automatique, export .nc / .txt.',
+    text: 'Coloration par catégorie, vérificateur de syntaxe, autocomplétion, état modal, renumérotation, recherche / remplacement, décalage de coordonnées, repliage, versions et comparaison, export .nc / .txt.',
     path: '/editeur',
   },
   {
@@ -42,6 +42,8 @@ const FEATURES = [
     icon: 'library',
     title: 'Cycles et bibliothèque',
     text: 'Formulaires qui génèrent les cycles Fanuc (G71, G76, perçage…) et bibliothèque de sous-programmes personnels.',
+    path: '/editeur',
+    module: 'cycles',
   },
   {
     icon: 'book',

@@ -544,7 +544,8 @@ const desktop = await open(DESKTOP);
 
   await step('renumérotation des blocs avec mise à jour des références', async () => {
     const before = await editorText(page);
-    await page.locator('[data-tool="renumber"]').click();
+    await page.locator('[data-tool="menu"]').click();
+    await page.locator('.action-item', { hasText: 'Renuméroter' }).click();
     const dialog = page.locator('.dialog');
     await dialog.getByLabel('Premier numéro').fill('100');
     await dialog.getByLabel('Pas').fill('5');
@@ -558,6 +559,121 @@ const desktop = await open(DESKTOP);
     assert.match(after, new RegExp(`G70 P${p} Q${q}`));
     await page.locator('[data-tool="undo"]').click();
     assert.equal(await editorText(page), before, 'une seule annulation');
+  });
+
+  await step('recherche et remplacement (Ctrl+F)', async () => {
+    const before = await editorText(page);
+    await page.locator('[data-tool="search"]').click();
+    const panel = page.locator('.cm-search');
+    await panel.waitFor();
+    assert.match(await panel.textContent(), /tout remplacer/);
+    await panel.locator('input[name="search"]').fill('M08');
+    await panel.locator('input[name="replace"]').fill('M07');
+    await panel.locator('button[name="replaceAll"]').click();
+    assert.equal((await editorText(page)).includes('M08'), false);
+    assert.ok((await editorText(page)).includes('M07'));
+    await shot(page, 'pc-sombre-recherche');
+    await panel.locator('button[name="close"]').click();
+    await setText(page, before);
+  });
+
+  await step('décalage de coordonnées sur une sélection (cotes absolues seulement)', async () => {
+    const before = await editorText(page);
+    // Sélection des lignes 14 à 21 (profil N90 à N160).
+    await page.evaluate(() => {
+      const view = window.isoApp.editor.view;
+      view.dispatch({ selection: { anchor: view.state.doc.line(14).from, head: view.state.doc.line(21).to } });
+    });
+    await page.locator('[data-tool="menu"]').click();
+    await page.locator('.action-item', { hasText: 'Décaler les coordonnées' }).click();
+    const dialog = page.locator('.dialog');
+    await dialog.getByLabel('Décalage en Z').fill('-2');
+    await dialog.locator('button', { hasText: 'Décaler' }).click();
+    await page.waitForSelector('.dialog', { state: 'detached' });
+    const after = await editorText(page);
+    assert.match(after, /^N100 G01 Z-2\. F0\.12$/m);
+    assert.match(after, /^N160 Z-57\.$/m);
+    assert.match(after, /^N60 G00 X52\. Z2\. M08$/m, 'hors sélection : inchangé');
+    assert.match(after, /^N20 G28 U0\. W0\.$/m);
+    await page.locator('[data-tool="undo"]').click();
+    assert.equal(await editorText(page), before);
+  });
+
+  await step('repliage d’une opération (changement d’outil)', async () => {
+    const lines = await page.locator('.cm-line').count();
+    await page.locator('.cm-foldGutter .cm-gutterElement span[title="Replier"]').first().click();
+    await page.waitForSelector('.cm-foldPlaceholder');
+    assert.match(await page.locator('.cm-foldPlaceholder').first().textContent(), /lignes · (opération|sous-programme)/);
+    assert.ok((await page.locator('.cm-line').count()) < lines);
+    await page.locator('.cm-foldPlaceholder').first().click();
+    await page.waitForFunction(() => !document.querySelector('.cm-foldPlaceholder'));
+  });
+
+  await step('formulaire de cycle G76 : aperçu, conversions, insertion', async () => {
+    const before = await editorText(page);
+    await page.locator('[data-tool="panel-cycles"]').click();
+    await page.locator('.cycle-item[data-cycle="g76"]').click();
+    const preview = page.locator('.cycle-preview');
+    assert.match(await preview.textContent(), /G76 X18\.16 Z-22\. P920 Q300 F1\.5/);
+    await page.locator('.dialog input[data-field="pitch"]').fill('2');
+    assert.match(await preview.textContent(), /G76 X17\.546 Z-22\. P1227 Q300 F2\./, 'recalcul en direct');
+    await shot(page, 'pc-sombre-cycle-g76');
+    await page.locator('.dialog button', { hasText: 'Insérer' }).click();
+    await page.waitForSelector('.dialog', { state: 'detached' });
+    assert.ok((await editorText(page)).includes('G76 X17.546 Z-22. P1227 Q300 F2.'));
+    await setText(page, before);
+    await page.locator('[data-tool="panel-cycles"]').click();
+  });
+
+  await step('bibliothèque : ajouter une sélection, insérer', async () => {
+    await page.evaluate(() => {
+      const view = window.isoApp.editor.view;
+      view.dispatch({ selection: { anchor: view.state.doc.line(36).from, head: view.state.doc.line(37).to } });
+    });
+    await page.locator('[data-tool="panel-library"]').click();
+    await page.locator('.side-panel button', { hasText: 'Ajouter à la bibliothèque' }).click();
+    const dialog = page.locator('.dialog');
+    assert.match(await dialog.locator('textarea.mono').inputValue(), /^N290 M05\nN300 M30$/);
+    await dialog.getByLabel('Nom', { exact: true }).fill('Fin de programme');
+    await dialog.locator('button', { hasText: 'Enregistrer' }).click();
+    const item = page.locator('.side-panel .var-row[data-item="Fin de programme"]');
+    await item.waitFor();
+    const before = await editorText(page);
+    await page.evaluate(() => window.isoApp.editor.view.dispatch({ selection: { anchor: 0 } }));
+    await item.locator('button', { hasText: 'Insérer' }).click();
+    assert.equal((await editorText(page)).split('\n').slice(1, 3).join('|'), 'N290 M05|N300 M30');
+    await setText(page, before);
+    await page.locator('[data-tool="panel-library"]').click();
+  });
+
+  await step('versions : enregistrer, comparer, restaurer', async () => {
+    const openVersions = async () => {
+      await page.locator('[data-tool="menu"]').click();
+      await page.locator('.action-item', { hasText: 'Versions' }).click();
+      await page.locator('.version-item').first().waitFor();
+    };
+    await openVersions();
+    await page.locator('.dialog button', { hasText: 'Enregistrer une version' }).click();
+    await page.locator('.dialog input').last().fill('Avant essai');
+    await page.locator('.dialog button', { hasText: 'Enregistrer' }).last().click();
+    await page.locator('.version-item', { hasText: 'Avant essai' }).waitFor();
+    await page.locator('.dialog button', { hasText: 'Fermer' }).click();
+    await page.waitForSelector('.dialog', { state: 'detached' });
+
+    await typeAtEnd(page, '\n(VERSION B)');
+    await openVersions();
+    const version = page.locator('.version-item', { hasText: 'Avant essai' });
+    assert.match(await version.textContent(), /\+1 \/ −0 lignes/);
+    await version.locator('button', { hasText: 'Comparer' }).click();
+    await page.waitForSelector('.diff-list');
+    assert.match(await page.locator('.diff-line.is-insert').textContent(), /\+\(VERSION B\)$/);
+    assert.match(await page.locator('.diff-legend').textContent(), /0 supprimée.*1 ajoutée/);
+    await shot(page, 'pc-sombre-comparaison');
+    await page.locator('.dialog button', { hasText: 'Fermer' }).last().click();
+    await version.locator('button', { hasText: 'Restaurer' }).click();
+    await page.locator('.dialog button', { hasText: 'Restaurer' }).last().click();
+    await page.waitForFunction(() => !window.isoApp.editor.getText().includes('(VERSION B)'));
+    await page.waitForSelector('.dialog', { state: 'detached' });
   });
 
   await step('sauvegarde automatique coupée : « Non enregistré » puis Ctrl+S', async () => {
@@ -582,7 +698,8 @@ const desktop = await open(DESKTOP);
   });
 
   await step('export du programme en .nc (fins de ligne CRLF)', async () => {
-    await page.locator('[data-tool="download"]').click();
+    await page.locator('[data-tool="menu"]').click();
+    await page.locator('.action-item', { hasText: 'Télécharger' }).click();
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       page.locator('.action-item', { hasText: '.nc' }).click(),
@@ -731,6 +848,23 @@ const mobile = await open(MOBILE);
     await shot(page, 'mobile-clair-etat-modal');
     await page.locator('.side-panel button[aria-label="Fermer le panneau"]').tap();
     assert.match(await page.locator('[data-status="checker"]').textContent(), /✓ Aucune erreur/);
+  });
+
+  await step('cycles et menu Outils sur smartphone', async () => {
+    await page.locator('[data-tool="panel-cycles"]').tap();
+    await page.locator('.cycle-item').first().waitFor();
+    assert.equal(await noHorizontalScroll(), true);
+    await page.locator('.cycle-item[data-cycle="g71"]').tap();
+    await page.waitForSelector('.cycle-preview');
+    const overflow = await page.locator('dialog.dialog').evaluate((el) => [el.scrollWidth, el.clientWidth, el.scrollLeft]);
+    assert.ok(overflow[0] <= overflow[1] && overflow[2] === 0, `formulaire sans défilement horizontal (${overflow})`);
+    await shot(page, 'mobile-clair-cycle-g71');
+    await page.locator('.dialog button', { hasText: 'Annuler' }).tap();
+    await page.locator('.side-panel button[aria-label="Fermer le panneau"]').tap();
+    await page.locator('[data-tool="menu"]').tap();
+    await page.waitForSelector('.dialog.sheet[open]');
+    await shot(page, 'mobile-clair-outils');
+    await page.keyboard.press('Escape');
   });
 
   await step('tiroir des programmes et menu d’actions', async () => {

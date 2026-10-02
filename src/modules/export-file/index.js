@@ -26,6 +26,7 @@ export default {
       label: 'Télécharger',
       title: 'Télécharger le programme (.nc / .txt)',
       order: 90,
+      menu: true,
       onClick: async () => {
         const extension = await ctx.ui.actionSheet({
           title: 'Télécharger le programme',
