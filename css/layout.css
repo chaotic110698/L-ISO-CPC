@@ -262,7 +262,8 @@
 
 /* ---- Page Paramètres ---- */
 
-.settings-page {
+.settings-page,
+.profiles-page {
   height: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;

@@ -13,16 +13,20 @@ export const DB_NAME = 'l-iso-cpc';
 /**
  * Migrations du schéma IndexedDB : la migration d'indice i fait passer la base de la version i
  * à la version i + 1. Ne jamais modifier une migration déjà publiée : en ajouter une nouvelle.
- * Prévu pour les étapes suivantes : profils machines, bibliothèque de sous-programmes, versions.
+ * Prévu pour les étapes suivantes : bibliothèque de sous-programmes, versions de programmes.
  */
 const MIGRATIONS = [
   (db) => {
     db.createObjectStore('programs', { keyPath: 'id' });
     db.createObjectStore('meta', { keyPath: 'id' });
   },
+  // v2 : profils machines (profils personnels et état des profils intégrés).
+  (db) => {
+    db.createObjectStore('profiles', { keyPath: 'id' });
+  },
 ];
 
-export const STORES = ['programs', 'meta'];
+export const STORES = ['programs', 'meta', 'profiles'];
 
 const clone = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)));
 

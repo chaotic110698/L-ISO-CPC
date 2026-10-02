@@ -334,6 +334,77 @@ const desktop = await open(DESKTOP);
     await gotoEditor(page);
   });
 
+  await step('profils : nouveau profil, plages de macros, code propriétaire', async () => {
+    await navTo(page, 'profils', '.profiles-page:not([hidden])');
+    assert.deepEqual(await page.locator('.profile-card .profile-name').allTextContents(), ['ISO générique', 'FANUC tournage']);
+    await shot(page, 'pc-sombre-profils');
+    await page.locator('button', { hasText: 'Nouveau profil' }).click();
+    await page.locator('.dialog').getByLabel('Nom', { exact: true }).fill('Tour Okuma');
+    await page.locator('.dialog button', { hasText: 'Créer' }).click();
+    await page.waitForSelector('.profile-detail');
+
+    await page.locator('.range-form input').fill('900-949, 960-999');
+    await page.locator('.range-form button').click();
+    await page.waitForFunction(() => document.querySelectorAll('.range-chips li').length === 2);
+
+    await page.locator('button', { hasText: 'Ajouter un code' }).click();
+    const dialog = page.locator('.dialog');
+    await dialog.getByLabel('Code', { exact: true }).fill('m50');
+    await dialog.getByLabel('Nom', { exact: true }).fill('Ouverture du mandrin');
+    await dialog.getByLabel('Catégorie (couleur dans l’éditeur)').selectOption('mcode');
+    await dialog.getByLabel('Description').fill('Ouvre le mandrin hydraulique.');
+    await dialog.locator('button', { hasText: 'Enregistrer' }).click();
+    await page.waitForSelector('.code-row[data-code="M50"]');
+    assert.match(await page.locator('.code-row[data-code="M50"]').textContent(), /code propriétaire/);
+    await shot(page, 'pc-sombre-profil-detail');
+  });
+
+  await step('profils : code reconnu dans l’éditeur, code standard personnalisé depuis l’infobulle', async () => {
+    await gotoEditor(page);
+    await typeAtEnd(page, '\nM50');
+    const m50 = page.locator('.cm-line').last().locator('.tok-mcode');
+    assert.equal(await m50.textContent(), 'M50');
+    await m50.click();
+    const tip = page.locator('.def-tip');
+    await tip.waitFor();
+    assert.match(await tip.textContent(), /Ouverture du mandrin/);
+    assert.match(await tip.textContent(), /Tour Okuma/);
+    await page.keyboard.press('Escape');
+
+    await page.locator('.cm-content .tok-mcode', { hasText: 'M08' }).first().click();
+    await tip.waitFor();
+    await tip.locator('.def-edit').click();
+    const dialog = page.locator('.dialog');
+    assert.equal(await dialog.getByLabel('Nom', { exact: true }).inputValue(), 'Arrosage');
+    await dialog.getByLabel('Nom', { exact: true }).fill('Arrosage haute pression');
+    await dialog.locator('button', { hasText: 'Enregistrer' }).click();
+    await page.waitForSelector('.dialog', { state: 'detached' });
+    await page.locator('.cm-content .tok-mcode', { hasText: 'M08' }).first().click();
+    await tip.waitFor();
+    assert.match(await tip.locator('.def-name').textContent(), /Arrosage haute pression/);
+    assert.match(await tip.locator('.def-redefined').textContent(), /En ISO générique : « Arrosage »/);
+    await page.keyboard.press('Escape');
+  });
+
+  await step('profils : désactivation immédiate (Paramètres), codes actifs', async () => {
+    await gotoSettings(page);
+    await page.locator('.setting[data-profile="fanuc-turning"] input').click();
+    await gotoEditor(page);
+    assert.ok((await page.locator('.cm-content .tok-unknown', { hasText: 'G71' }).count()) > 0, 'G71 inconnu sans le profil FANUC');
+    await gotoSettings(page);
+    await page.locator('.setting[data-profile="fanuc-turning"] input').click();
+    await gotoEditor(page);
+    assert.equal(await page.locator('.cm-content .tok-unknown').count(), 0);
+
+    await navTo(page, 'profils', '.profiles-page:not([hidden])');
+    await page.locator('.tabs button', { hasText: 'Codes actifs' }).click();
+    await page.locator('input[type="search"]').fill('mandrin');
+    assert.deepEqual(await page.locator('.code-row').evaluateAll((rows) => rows.map((r) => r.dataset.code)), ['M50']);
+    await page.locator('input[type="search"]').fill('');
+    await page.locator('.tabs button', { hasText: 'Profils' }).click();
+    await gotoEditor(page);
+  });
+
   await step('sauvegarde automatique coupée : « Non enregistré » puis Ctrl+S', async () => {
     await gotoSettings(page);
     await toggle(page, 'modules.autosave');
@@ -382,6 +453,7 @@ await step('export d’une sauvegarde JSON globale', async () => {
   assert.equal(data.format, 'l-iso-cpc/sauvegarde');
   assert.equal(data.sections.programmes.length, 2);
   assert.equal(data.sections.parametres.theme, 'dark');
+  assert.ok(data.sections.profils.some((p) => p.name === 'Tour Okuma' && p.codes.M50), 'profil personnel sauvegardé');
 });
 
 await step('import de la sauvegarde dans un navigateur vierge (remplacement)', async () => {
@@ -398,6 +470,7 @@ await step('import de la sauvegarde dans un navigateur vierge (remplacement)', a
   await page.locator('.dialog button', { hasText: 'Remplacer' }).click();
   await page.waitForSelector('.toast-success');
   assert.equal(await page.getAttribute('html', 'data-theme'), 'dark');
+  assert.ok(await page.evaluate(() => window.isoApp.codes.lookup('M50')?.name === 'Ouverture du mandrin'), 'profil restauré');
   const names = await page.evaluate(async () => (await window.isoApp.workspace.list()).map((p) => p.name).sort());
   assert.deepEqual(names, ['Arbre 25 — reprise', 'Exemple — tournage Fanuc']);
   assert.deepEqual(fresh.errors, []);
@@ -460,6 +533,17 @@ const mobile = await open(MOBILE);
     await shot(page, 'mobile-clair-calculateurs');
     await page.locator('[data-calc="grinding"]').scrollIntoViewIfNeeded();
     await shot(page, 'mobile-clair-rectification');
+    await gotoEditor(page);
+  });
+
+  await step('profils lisibles en largeur smartphone', async () => {
+    await navTo(page, 'profils', '.profiles-page:not([hidden])');
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-profils');
+    await page.locator('.profile-card[data-profile="fanuc-turning"] .profile-name').tap();
+    await page.waitForSelector('.profile-detail');
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-profil-fanuc');
     await gotoEditor(page);
   });
 

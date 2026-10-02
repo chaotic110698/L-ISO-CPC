@@ -5,7 +5,7 @@ import { CATEGORIES } from '../../data/categories.js';
 const categoryLabel = (id) => CATEGORIES.find((category) => category.id === id)?.label ?? '';
 
 /** Contenu de l'infobulle de définition (objet produit par explainToken du moteur). */
-export function renderExplanation(explanation, { onClose } = {}) {
+export function renderExplanation(explanation, { onClose, onEditCode } = {}) {
   const e = explanation;
   const meta = [e.source, e.modal === true ? 'modal' : e.modal === false ? 'non modal (ce bloc seulement)' : null].filter(Boolean).join(' · ');
 
@@ -45,6 +45,18 @@ export function renderExplanation(explanation, { onClose } = {}) {
         : null,
       e.notes?.length ? h('ul', { class: 'def-notes' }, e.notes.map((n) => h('li', null, n))) : null,
       e.example ? h('div', { class: 'def-example' }, h('span', null, 'Exemple'), h('pre', null, e.example)) : null,
+      onEditCode && (e.kind === 'code' || e.kind === 'unknownCode')
+        ? h(
+            'div',
+            { class: 'button-row' },
+            h(
+              'button',
+              { type: 'button', class: 'btn btn-small def-edit', onclick: () => onEditCode(e.title) },
+              icon(e.kind === 'unknownCode' ? 'plus' : 'edit'),
+              e.kind === 'unknownCode' ? 'Ajouter ce code à un profil' : 'Personnaliser pour ma machine',
+            ),
+          )
+        : null,
     ),
   );
 }

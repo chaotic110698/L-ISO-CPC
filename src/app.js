@@ -19,8 +19,9 @@ import { openDialog, actionSheet, confirmDialog, promptDialog } from './ui/dialo
 import { toast } from './ui/toast.js';
 import { MODULES } from './modules/index.js';
 import { createCodeDictionary } from './engine/index.js';
-import { ISO_BASE_CODES } from './data/codes/iso-base.js';
-import { FANUC_TURNING_CODES } from './data/codes/fanuc-turning.js';
+import { createProfileService } from './core/profiles.js';
+import { createProfilesPage } from './ui/pages/profiles-page.js';
+import { openCodeEditor } from './ui/code-editor.js';
 import { APP_VERSION } from './version.js';
 
 /**
@@ -42,8 +43,10 @@ export async function startApp(root) {
   });
   const programs = createProgramRepository(db);
   const workspace = new Workspace({ repo: programs, kv, bus });
-  // Dictionnaire des codes ; à l'étape 4, ses couches viendront des profils machines actifs.
-  const codes = createCodeDictionary([ISO_BASE_CODES, FANUC_TURNING_CODES]);
+  // Dictionnaire des codes : ses couches sont les profils machines activés, dans l'ordre.
+  const codes = createCodeDictionary();
+  const profiles = createProfileService({ db, dictionary: codes, bus });
+  await profiles.init();
 
   const backup = createBackupService({ appVersion: APP_VERSION });
   backup.register('programmes', {
@@ -51,6 +54,12 @@ export async function startApp(root) {
     exportData: () => programs.list(),
     importData: (data, options) => programs.importMany(data, options),
     describe: (data) => `${Array.isArray(data) ? data.length : 0} programme(s)`,
+  });
+  backup.register('profils', {
+    label: 'Profils machines',
+    exportData: async () => profiles.exportAll(),
+    importData: (data, options) => profiles.importAll(data, options),
+    describe: (data) => `${Array.isArray(data) ? data.filter((p) => !p.builtin).length : 0} profil(s) personnel(s)`,
   });
   backup.register('parametres', {
     label: 'Paramètres',
@@ -110,6 +119,12 @@ export async function startApp(root) {
 
   // --- Modules -----------------------------------------------------------------------------
   const ui = {
+    /** Ouvre l'édition d'un code dans un profil personnel (depuis une infobulle, par ex.). */
+    editCode: (key) => {
+      const current = codes.lookup(key);
+      const { key: _k, source: _s, sourceLabel: _l, previous: _p, ...definition } = current ?? {};
+      return openCodeEditor({ profiles, key, initial: current ? structuredClone(definition) : { name: '', category: key.startsWith('M') ? 'mcode' : 'mode' } });
+    },
     toast,
     openDialog,
     actionSheet,
@@ -137,6 +152,7 @@ export async function startApp(root) {
       },
       editor: editor.scoped(scope),
       codes,
+      profiles,
       workspace,
       backup: { register: (id, section) => scope.add(backup.register(id, section)) },
       ui: {
@@ -179,7 +195,11 @@ export async function startApp(root) {
   });
   router.register('/parametres', {
     title: 'Paramètres',
-    mount: () => createSettingsPage({ settings, registry, backup, workspace, db }),
+    mount: () => createSettingsPage({ settings, registry, backup, workspace, db, profiles, bus }),
+  });
+  router.register('/profils', {
+    title: 'Profils machines',
+    mount: () => createProfilesPage({ profiles, codes, bus }),
   });
 
   // Menu latéral. Les fonctions à venir y figurent grisées ; chaque module les remplacera
@@ -196,9 +216,9 @@ export async function startApp(root) {
       openPrograms();
     },
   });
+  shell.addNavItem({ id: 'profils', path: '/profils', label: 'Profils machines', icon: 'machine', order: 35 });
   shell.addNavItem({ id: 'parametres', path: '/parametres', label: 'Paramètres', icon: 'settings', order: 90 });
   for (const item of [
-    { id: 'profils', label: 'Profils machines', icon: 'machine' },
     { id: 'calculateurs', label: 'Calculateurs', icon: 'calculator' },
     { id: 'bibliotheque', label: 'Cycles et bibliothèque', icon: 'library' },
     { id: 'cours', label: 'Cours d’ISO', icon: 'book' },
@@ -215,7 +235,7 @@ export async function startApp(root) {
   if (!kv.available) toast('Stockage du navigateur indisponible : rien ne sera conservé après fermeture.', { type: 'error', timeout: 10000 });
 
   // Point d'accès pour le débogage et les tests de bout en bout.
-  return { settings, bus, workspace, editor, registry, router, backup, db, codes };
+  return { settings, bus, workspace, editor, registry, router, backup, db, codes, profiles };
 }
 
 /** Fonctions du socle toujours présentes : enregistrement manuel, position du curseur, état. */

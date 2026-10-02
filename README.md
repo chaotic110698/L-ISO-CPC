@@ -22,7 +22,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | 1 | Socle, thème clair/sombre, stockage, sauvegarde automatique, export/import JSON | ✅ |
 | 2 | Moteur d'analyse (tokenizer, parseur) et coloration syntaxique par catégorie | ✅ |
 | 3 | Infobulles de définition au clic / tap | ✅ |
-| 4 | Profils machines (ISO générique, Fanuc tournage, profils personnels) | à venir |
+| 4 | Profils machines (ISO générique, Fanuc tournage, profils personnels) | ✅ |
 | 5 | Macros : plages libres, tableau des variables, avertissements | à venir |
 | 6 | Autocomplétion, vérificateur, état modal, renumérotation, recherche / décalage, repliage, comparaison, snippets / cycles, bibliothèque | à venir |
 | 7 | Calculateurs (Vc ↔ tr/min, avance, rectification en mm/min et mm/s, conversions, rugosité, rayon de bec) | ✅ (réalisée avant les étapes 4 à 6) |
@@ -44,7 +44,12 @@ macro (plage, affectations), mot-clé de macro, avec décodage de T0101, G76 P02
 et alerte sur les cotes sans point décimal ; page **Calculateurs** (menu latéral) : vitesse de
 coupe ↔ tr/min, avance (tournage / fraisage), rectification (meule, pièce, rapport q, avance de
 table), conversion mm/min ↔ mm/s ↔ m/min ↔ m/s, rugosité théorique, compensation de rayon de
-bec — chaque calculateur fonctionne dans les deux sens et peut être masqué dans Paramètres.
+bec — chaque calculateur fonctionne dans les deux sens et peut être masqué dans Paramètres ;
+page **Profils machines** : profils intégrés (ISO générique, FANUC tournage) et personnels,
+activables et ordonnables, codes propriétaires ou redéfinis, codes retirés, plages de macros
+libres (une ou plusieurs portions), export / import d'un profil, onglet « Codes actifs »
+(documentation effective) ; depuis une infobulle, « Personnaliser pour ma machine » ou
+« Ajouter ce code à un profil ».
 
 ## Structure du projet
 
@@ -56,7 +61,8 @@ dist/                   GÉNÉRÉ par « npm run build » (versionné pour que l
 src/
   main.js, app.js       démarrage et assemblage des services
   version.js            version de l'application (= package.json)
-  core/                 bus d'événements, registre des modules, routeur, espace de travail, utilitaires
+  core/                 bus d'événements, registre des modules, routeur, espace de travail,
+                        profils machines, utilitaires
   data/                 données pures : types de machines, exemples (codes et profils : étapes 2 et 4)
   engine/               moteur d'analyse ISO, indépendant de l'interface (étape 2)
   storage/              localStorage (kv), IndexedDB + repli (database), programmes, sauvegarde JSON
@@ -177,8 +183,22 @@ codes: {
 - Un code redéfini par une couche supérieure (G90 en tournage FANUC) est signalé dans son
   infobulle avec son sens d'origine.
 
-Les profils machines (étape 4) permettront d'ajouter ou de redéfinir des codes depuis
-l'interface, sans toucher aux fichiers.
+Pour **votre** machine, inutile de toucher aux fichiers : créez un profil personnel dans la
+page Profils machines et ajoutez-y vos codes (ou « Personnaliser » un code depuis son
+infobulle).
+
+### Ajouter un profil machine
+
+- **Profil personnel** : depuis l'interface (page Profils machines). Il est enregistré dans le
+  navigateur, inclus dans la sauvegarde JSON, et exportable seul pour être partagé.
+- **Profil intégré** (nouvelle commande : Siemens, Heidenhain…) : créer sa couche de codes
+  dans `src/data/codes/` (même format que `fanuc-turning.js`), puis l'ajouter à
+  `BUILTIN_PROFILES` dans `src/data/profiles.js` avec son état par défaut (activé, ordre,
+  plages de macros).
+
+Les profils activés s'empilent dans l'ordre de la liste : chacun complète ou remplace les
+codes des précédents ; le dernier (le plus spécifique) l'emporte. Les plages de macros libres
+en vigueur sont celles du profil activé le plus spécifique qui en déclare.
 
 ### Moteur d'analyse
 
@@ -197,7 +217,7 @@ d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut v
   "formatVersion": 1,
   "appVersion": "0.1.0",
   "exportedAt": "2026-10-01T12:00:00.000Z",
-  "sections": { "programmes": [ … ], "parametres": { … } }
+  "sections": { "programmes": [ … ], "profils": [ … ], "parametres": { … } }
 }
 ```
 

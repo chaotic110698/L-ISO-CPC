@@ -17,6 +17,11 @@ export const SETTINGS_SECTIONS = [
   { id: 'apparence', title: 'Apparence' },
   { id: 'editeur', title: 'Éditeur' },
   {
+    id: 'profils',
+    title: 'Profils machines',
+    description: 'Profils activés, du plus général au plus spécifique. La gestion complète (codes, plages de macros, ordre) se fait dans la page Profils machines.',
+  },
+  {
     id: 'modules',
     title: 'Fonctionnalités',
     description:

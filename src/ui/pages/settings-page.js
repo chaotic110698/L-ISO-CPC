@@ -11,12 +11,13 @@ import { toast } from '../toast.js';
  * toute nouvelle entrée de schéma ou tout nouveau module y apparaît sans code supplémentaire.
  * Les changements sont appliqués immédiatement.
  */
-export function createSettingsPage({ settings, registry, backup, workspace, db }) {
+export function createSettingsPage({ settings, registry, backup, workspace, db, profiles, bus }) {
   const page = h('section', { class: 'settings-page', 'aria-label': 'Paramètres' });
   const inner = h('div', { class: 'settings-inner' }, h('h1', { class: 'page-title' }, 'Paramètres'));
   page.append(inner);
 
   const renderers = {
+    profils: renderProfiles,
     modules: renderModules,
     donnees: renderData,
     apropos: renderAbout,
@@ -118,6 +119,45 @@ export function createSettingsPage({ settings, registry, backup, workspace, db }
       show(value);
     });
     return h('div', { class: 'range' }, input, output);
+  }
+
+  // ---- Profils machines ---------------------------------------------------------------
+
+  function renderProfiles() {
+    const list = h('div', { class: 'setting-list' });
+    const fill = () => {
+      list.replaceChildren(
+        ...profiles.list().map((profile) => {
+          const id = domId('profile');
+          const input = h('input', {
+            id,
+            type: 'checkbox',
+            role: 'switch',
+            checked: profile.enabled,
+            onchange: (e) => profiles.update(profile.id, { enabled: e.target.checked }).catch((error) => toast(error.message, { type: 'error' })),
+          });
+          return h(
+            'div',
+            { class: 'setting', dataset: { profile: profile.id } },
+            h(
+              'div',
+              { class: 'setting-text' },
+              h('label', { class: 'setting-label', for: id }, profile.name),
+              h('p', { class: 'setting-description' }, profile.builtin ? 'Profil intégré' : 'Profil personnel'),
+            ),
+            h('span', { class: 'switch' }, input, h('span', { class: 'switch-track', 'aria-hidden': 'true' })),
+          );
+        }),
+      );
+    };
+    bus.on('profiles:changed', fill);
+    fill();
+    return h(
+      'div',
+      { class: 'data-section' },
+      list,
+      h('div', { class: 'button-row' }, h('a', { class: 'btn', href: '#/profils' }, icon('machine'), 'Gérer les profils machines')),
+    );
   }
 
   // ---- Fonctionnalités (modules) ------------------------------------------------------
@@ -334,6 +374,7 @@ export function createSettingsPage({ settings, registry, backup, workspace, db }
     const parts = [];
     const programs = results.programmes;
     if (programs) parts.push(`${programs.added} programme(s) ajouté(s), ${programs.updated} mis à jour`);
+    if (results.profils) parts.push(`${results.profils.added} profil(s) ajouté(s), ${results.profils.updated} mis à jour`);
     if (results.parametres) parts.push(`${results.parametres.applied} réglage(s) appliqué(s)`);
     return parts.length ? `Import terminé : ${parts.join(' ; ')}.` : 'Import terminé.';
   }

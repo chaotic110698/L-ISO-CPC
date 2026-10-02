@@ -23,6 +23,7 @@ const FEATURES = [
     icon: 'machine',
     title: 'Profils machines',
     text: 'ISO générique, FANUC tournage, et vos propres profils : codes propriétaires, codes détournés, plages de macros.',
+    path: '/profils',
   },
   {
     icon: 'calculator',
