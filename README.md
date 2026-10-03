@@ -9,6 +9,13 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 - **Le plus simple :** double-cliquer sur `index.html` (Chrome, Edge, Firefox, Safari).
 - **En ligne :** déposer le dossier tel quel sur n'importe quel hébergement statique
   (GitHub Pages, serveur web d'atelier…). Aucune compilation n'est nécessaire pour l'utiliser.
+  Avec GitHub Pages : dépôt › Settings › Pages › « Deploy from a branch », branche `main`,
+  dossier `/ (root)`.
+- **Comme une application** (icône sur l'écran d'accueil, plein écran, sans connexion) : une
+  fois le site en ligne en https, ouvrir l'adresse sur le téléphone puis menu Outils ›
+  **Installer l'application** (ou, sur iPhone, Partager › « Sur l'écran d'accueil »).
+  En ouvrant `index.html` par double-clic, l'installation n'est pas possible : c'est une
+  limite des navigateurs, pas du site.
 
 > Les données (programmes, réglages) sont enregistrées **dans le navigateur**, et séparément
 > pour chaque façon d'ouvrir le site : la version ouverte par double-clic et une version en ligne
@@ -53,6 +60,8 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | E9 | Modèles d'insertion (système A ou B/C) | ✅ |
 | E10 | Corbeille (30 jours) | ✅ |
 | E11 | Liste de programmes : recherche, tri, épinglés | ✅ |
+| E12 | Fiche à imprimer / PDF | ✅ |
+| E13 | Installation comme application (PWA, site hébergé) | ✅ |
 
 Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, autres types de machines,
 estimation du temps d'usinage.
@@ -137,6 +146,8 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Outils | Versions (automatiques ou nommées), comparaison ligne à ligne, restauration | Menu Outils | `versions` |
 | Fichiers | Sauvegarde automatique (avec copie de secours à la fermeture) | Barre d'état | `autosave` |
 | Fichiers | Export en fichier `.nc` / `.txt` (fins de ligne au choix) | Menu Outils | `export-file` |
+| Fichiers | Fiche à imprimer ou en PDF : en-tête, outils avec leur opération, variables nommées, plan, cadre de notes, programme complet (noir et blanc ou couleurs) | Menu Outils › Fiche à imprimer / PDF | `print-sheet` |
+| Fichiers | Installation comme application : manifeste, icônes, fonctionnement hors ligne (service worker `sw.js`, réseau d'abord puis cache) ; seulement si le site est hébergé en http(s) | Menu Outils › Installer l'application | `install` |
 | Fichiers | Recherche des programmes par nom ou par contenu (O1234, T0303…), tri par date ou par nom, programmes épinglés en tête | Tiroir « Programmes » | `program-list` |
 | Fichiers | Corbeille : un programme supprimé reste récupérable 30 jours (« Annuler » dans la notification, ou Corbeille › Restaurer) ; désactivée, la suppression est définitive | Tiroir « Programmes » › Corbeille | `trash` |
 | Calculateurs | Calculateurs d'atelier | Page « Calculateurs » | `calculators` |
@@ -170,7 +181,9 @@ raccourci dont la fonctionnalité est désactivée y est signalé).
 ```
 index.html              page unique ; charge css/ et dist/app.js
 css/                    tokens.css (couleurs des 2 thèmes), base, layout, components
-assets/                 icône
+assets/                 icônes (SVG ; PNG de l'application installable, générés par tools/make-icons.mjs)
+manifest.webmanifest    manifeste de l'application installable
+sw.js                   service worker (hors ligne quand le site est hébergé)
 dist/                   GÉNÉRÉ par « npm run build » (versionné pour que le site marche sans outil)
 src/
   main.js, app.js       démarrage et assemblage des services
@@ -188,7 +201,7 @@ src/
                         simulation-2d, machining-time)
 tests/unit/             tests Node (moteur, stockage, réglages, modules…)
 tests/e2e/              test de bout en bout dans Chromium (PC et smartphone)
-tools/                  build (esbuild)
+tools/                  build (esbuild), génération des icônes PNG
 ```
 
 ### Principes d'architecture

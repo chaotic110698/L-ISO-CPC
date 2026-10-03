@@ -3067,6 +3067,151 @@ a.lesson-card:hover {
   white-space: normal;
 }
 
+/* ---- Fiche à imprimer (module print-sheet) ---- */
+
+.print-sheet {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  html.is-printing body > *:not(.print-sheet) {
+    display: none !important;
+  }
+
+  html.is-printing,
+  html.is-printing body {
+    height: auto;
+    overflow: visible;
+    background: #fff;
+    color: #000;
+  }
+
+  .print-sheet {
+    display: block;
+    color: #000;
+    font-family: var(--font-ui);
+    font-size: 10.5pt;
+    line-height: 1.35;
+  }
+
+  .sheet-header {
+    margin-bottom: 4mm;
+    padding-bottom: 2mm;
+    border-bottom: 1.5pt solid #000;
+  }
+
+  .sheet-header h1 {
+    font-size: 16pt;
+  }
+
+  .sheet-section {
+    margin-top: 5mm;
+    break-inside: avoid-page;
+  }
+
+  .sheet-section:has(.sheet-program) {
+    break-inside: auto;
+  }
+
+  .sheet-section h2 {
+    margin-bottom: 1.5mm;
+    font-size: 11.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .sheet-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .sheet-table th,
+  .sheet-table td {
+    padding: 1mm 2mm;
+    border: 0.5pt solid #888;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .sheet-table th {
+    background: #eee;
+  }
+
+  .sheet-table td:first-child {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .sheet-plan {
+    margin: 0;
+    padding-left: 6mm;
+  }
+
+  .sheet-notes,
+  .sheet-table th {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sheet-notes {
+    height: 32mm;
+    border: 0.5pt solid #888;
+    background: repeating-linear-gradient(transparent 0 7.5mm, #ccc 7.5mm 7.8mm);
+  }
+
+  .sheet-program {
+    margin: 0;
+    padding-left: 10mm;
+    font-family: var(--font-mono);
+    font-size: 9.5pt;
+  }
+
+  .sheet-program li::marker {
+    color: #777;
+    font-size: 7.5pt;
+  }
+
+  .sheet-program.no-numbers {
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .sheet-program .code-view-code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .print-sheet:not(.is-color) [class*='tok-'] {
+    color: #000 !important;
+    background: none !important;
+  }
+
+  .print-sheet .tok-comment {
+    font-style: italic;
+  }
+
+  .sheet-footer {
+    margin-top: 6mm;
+    color: #555;
+    font-size: 8.5pt;
+  }
+}
+
+.install-help {
+  display: grid;
+  gap: 10px;
+}
+
+.sheet-options {
+  display: grid;
+  gap: 8px;
+}
+
 /* ---- Interface agrandie (Paramètres › Apparence › Taille de l'interface) ----
    Zones tactiles et texte de l'interface agrandis ; le texte du programme a son propre réglage. */
 

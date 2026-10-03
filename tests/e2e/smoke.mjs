@@ -888,6 +888,36 @@ const desktop = await open(DESKTOP);
     assert.equal(await page.getAttribute('html', 'data-ui-size'), 'normal');
   });
 
+  await step('fiche à imprimer / PDF : outils, variables, programme', async () => {
+    await page.evaluate(() => {
+      window.__print = window.print;
+      window.print = () => (window.__printed = true);
+    });
+    await page.locator('[data-tool="menu"]').click();
+    await page.locator('.action-item', { hasText: 'Fiche à imprimer' }).click();
+    await page.locator('.dialog button', { hasText: 'Imprimer' }).click();
+    await page.waitForSelector('.print-sheet', { state: 'attached' });
+    assert.equal(await page.evaluate(() => window.__printed), true);
+    const sheet = await page.locator('.print-sheet').evaluate((el) => el.textContent);
+    assert.match(sheet, /T0202/);
+    assert.match(sheet, /#901/);
+    assert.match(sheet, /N300 M30/);
+    await page.evaluate(() => {
+      window.print = window.__print;
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    assert.equal(await page.locator('.print-sheet').count(), 0, 'fiche retirée après impression');
+  });
+
+  await step('installation comme application : explication en ouvrant le fichier directement', async () => {
+    assert.equal(await page.locator('link[rel="manifest"]').count(), 0, 'pas de manifeste en file://');
+    await page.locator('[data-tool="menu"]').click();
+    await page.locator('.action-item', { hasText: 'Installer l’application' }).click();
+    await page.waitForSelector('.install-help');
+    assert.match(await page.locator('.install-help').textContent(), /GitHub Pages/);
+    await page.locator('.dialog button', { hasText: 'Fermer' }).last().click();
+  });
+
   await step('export du programme en .nc (fins de ligne CRLF)', async () => {
     await page.locator('[data-tool="menu"]').click();
     await page.locator('.action-item', { hasText: 'Télécharger' }).click();
