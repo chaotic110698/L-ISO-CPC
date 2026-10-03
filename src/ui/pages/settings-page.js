@@ -15,7 +15,7 @@ const SHORTCUTS = [
   { keys: ['Ctrl+Y', 'Ctrl+Maj+Z'], action: 'Rétablir', module: 'history' },
   { keys: ['Ctrl+F'], action: 'Rechercher et remplacer', module: 'search' },
   { keys: ['F3', 'Maj+F3'], action: 'Occurrence suivante / précédente', module: 'search' },
-  { keys: ['Ctrl+Alt+G'], action: 'Aller à la ligne', module: 'search' },
+  { keys: ['Ctrl+G', 'Ctrl+Alt+G'], action: 'Aller à… (ligne, bloc N, programme O, outil T)', module: 'goto' },
   { keys: ['F1', 'Ctrl+I'], action: 'Définition de l’élément sous le curseur', module: 'definitions' },
   { keys: ['Ctrl+Espace'], action: 'Ouvrir les suggestions', module: 'autocomplete' },
   { keys: ['Ctrl+Maj+M'], action: 'Liste des erreurs et avertissements', module: 'checker' },

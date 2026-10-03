@@ -624,6 +624,40 @@ const desktop = await open(DESKTOP);
     await page.locator('.side-panel button[aria-label="Fermer le panneau"]').click();
   });
 
+  await step('aller à… : ligne, bloc N, outil (Ctrl+G et barre d’état)', async () => {
+    const line = () => page.evaluate(() => {
+      const { state } = window.isoApp.editor.view;
+      return state.doc.lineAt(state.selection.main.head).number;
+    });
+    await page.locator('.cm-content').click();
+    await page.keyboard.press('Control+g');
+    await page.locator('dialog input[name="target"]').fill('N180');
+    assert.match(await page.locator('.goto-preview').textContent(), /ligne 24/);
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('dialog', { state: 'detached' });
+    assert.equal(await line(), 24);
+    await page.locator('[data-status="cursor"]').click();
+    await page.locator('dialog input[name="target"]').fill('T99');
+    assert.match(await page.locator('.goto-preview').textContent(), /Aucun outil T99/);
+    await page.locator('dialog input[name="target"]').fill('3');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('dialog', { state: 'detached' });
+    assert.equal(await line(), 3);
+  });
+
+  await step('définition épinglée : le panneau suit le curseur, sans infobulle', async () => {
+    await page.locator('[data-tool="panel-definition"]').click();
+    await page.locator('.cm-content .tok-cycle', { hasText: 'G71' }).last().click();
+    await page.waitForFunction(() => document.querySelector('.side-panel .def-code')?.textContent === 'G71');
+    assert.equal(await page.locator('.cm-editor .def-tip').count(), 0, 'pas d’infobulle quand le panneau est ouvert');
+    await page.keyboard.press('End');
+    await page.waitForFunction(() => /^F/.test(document.querySelector('.side-panel .def-code')?.textContent));
+    await page.locator('.side-panel button[aria-label="Fermer le panneau"]').click();
+    await page.locator('.cm-content .tok-cycle', { hasText: 'G71' }).last().click();
+    await page.locator('.cm-editor .def-tip').waitFor();
+    await page.keyboard.press('Escape');
+  });
+
   await step('zéro barré dans l’éditeur, désactivable', async () => {
     assert.ok((await page.locator('.cm-content .cm-zero').count()) > 10, 'zéros barrés');
     await gotoSettings(page);
@@ -667,6 +701,25 @@ const desktop = await open(DESKTOP);
     assert.ok((await editorText(page)).includes('G76 X17.546 Z-22. P1227 Q300 F2.'));
     await setText(page, before);
     await page.locator('[data-tool="panel-cycles"]').click();
+  });
+
+  await step('modèles d’insertion : séquence d’outil adaptée au système A puis B/C', async () => {
+    const before = await editorText(page);
+    await page.locator('[data-tool="panel-templates"]').click();
+    await page.locator('.cycle-item[data-template="tool"]').click();
+    await page.locator('dialog input[data-field="tool"]').fill('5');
+    await page.locator('dialog input[data-field="offset"]').fill('5');
+    assert.match(await page.locator('.cycle-preview').textContent(), /T0505\nG50 S3000\nG96 S220 M03/);
+    await shot(page, 'pc-sombre-modele-outil');
+    await page.locator('.dialog button', { hasText: 'Insérer' }).click();
+    assert.match(await editorText(page), /T0505\nG50 S3000/);
+    await setText(page, before);
+    await page.evaluate(() => window.isoApp.profiles.update('fanuc-turning-bc', { enabled: true }));
+    await page.locator('.cycle-item[data-template="tool"]').click();
+    assert.match(await page.locator('.cycle-preview').textContent(), /G92 S3000/);
+    await page.locator('.dialog button', { hasText: 'Annuler' }).click();
+    await page.evaluate(() => window.isoApp.profiles.update('fanuc-turning-bc', { enabled: false }));
+    await page.locator('.side-panel button[aria-label="Fermer le panneau"]').click();
   });
 
   await step('bibliothèque : ajouter une sélection, insérer', async () => {

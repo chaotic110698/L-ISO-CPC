@@ -25,8 +25,36 @@ export function createStatusbar(container) {
     };
   }
 
+  /** Rend cliquable un élément existant (même celui d'un autre propriétaire) → retrait. */
+  function onClick(id, handler, title) {
+    const element = container.querySelector(`[data-status="${id}"]`);
+    if (!element) return () => {};
+    const previous = element.title;
+    const keydown = (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handler();
+      }
+    };
+    element.classList.add('is-clickable');
+    element.setAttribute('role', 'button');
+    element.tabIndex = 0;
+    if (title) element.title = title;
+    element.addEventListener('click', handler);
+    element.addEventListener('keydown', keydown);
+    return () => {
+      element.classList.remove('is-clickable');
+      element.removeAttribute('role');
+      element.removeAttribute('tabindex');
+      element.title = previous;
+      element.removeEventListener('click', handler);
+      element.removeEventListener('keydown', keydown);
+    };
+  }
+
   return {
     add,
+    onClick,
     scoped(scope) {
       return {
         add(options) {
@@ -34,6 +62,7 @@ export function createStatusbar(container) {
           scope.add(handle.remove);
           return handle;
         },
+        onClick: (id, handler, title) => scope.add(onClick(id, handler, title)),
       };
     },
   };

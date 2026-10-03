@@ -4,7 +4,7 @@ import { CATEGORIES } from '../../data/categories.js';
 
 const categoryLabel = (id) => CATEGORIES.find((category) => category.id === id)?.label ?? '';
 
-/** Contenu de l'infobulle de définition (objet produit par explainToken du moteur). */
+/** Contenu de l'infobulle de définition (objet produit par explainToken du moteur). Sans onClose : pas de bouton de fermeture. */
 export function renderExplanation(explanation, { onClose, onEditCode } = {}) {
   const e = explanation;
   const meta = [e.source, e.modal === true ? 'modal' : e.modal === false ? 'non modal (ce bloc seulement)' : null].filter(Boolean).join(' · ');
@@ -17,7 +17,7 @@ export function renderExplanation(explanation, { onClose, onEditCode } = {}) {
       { class: 'def-header' },
       h('span', { class: `def-code tok-${e.category}` }, e.title),
       h('span', { class: 'def-category' }, categoryLabel(e.category)),
-      h('button', { type: 'button', class: 'icon-btn def-close', 'aria-label': 'Fermer la définition', onclick: onClose }, icon('close')),
+      onClose ? h('button', { type: 'button', class: 'icon-btn def-close', 'aria-label': 'Fermer la définition', onclick: onClose }, icon('close')) : null,
     ),
     h('div', { class: 'def-body' },
       e.subtitle ? h('p', { class: 'def-name' }, e.subtitle) : null,

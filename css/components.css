@@ -2731,6 +2731,44 @@ a.lesson-card:hover {
   font-family: inherit;
 }
 
+/* ---- Aller à… ---- */
+
+.goto-preview {
+  min-height: 1.5em;
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.goto-preview code {
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.goto-error {
+  color: var(--warning);
+}
+
+/* ---- Définition épinglée (panneau) ---- */
+
+.def-pinned .def-tip {
+  width: auto;
+  max-height: none;
+  border: 0;
+  box-shadow: none;
+  background: none;
+}
+
+.def-pinned .def-header {
+  padding: 0 0 8px;
+}
+
+.def-pinned .def-body {
+  padding-right: 0;
+  padding-left: 0;
+}
+
 /* ---- Interface agrandie (Paramètres › Apparence › Taille de l'interface) ----
    Zones tactiles et texte de l'interface agrandis ; le texte du programme a son propre réglage. */
 

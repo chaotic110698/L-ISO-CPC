@@ -1,4 +1,6 @@
 import { EditorView, showTooltip, keymap } from '@codemirror/view';
+import { h } from '../../core/dom.js';
+import { debounce } from '../../core/util.js';
 import { StateField, StateEffect } from '@codemirror/state';
 import { parseLine, tokenAt, explainToken } from '../../engine/index.js';
 import { analyzeMacros, variableWarnings } from '../../engine/macros.js';
@@ -43,7 +45,15 @@ function explainAt(state, pos, dictionary, macros) {
   return explanation && { pos: line.from + token.from, end: line.from + token.to, explanation };
 }
 
-function definitionsExtension(dictionary, editCode, macros) {
+/** Explication à la position du curseur, ou de l'élément juste avant (curseur en fin de mot). */
+function explainAtCursor(state, dictionary, macros) {
+  const head = state.selection.main.head;
+  const line = state.doc.lineAt(head);
+  return explainAt(state, head, dictionary, macros) ?? (head > line.from ? explainAt(state, head - 1, dictionary, macros) : null);
+}
+
+/** isPinned() : panneau « Définition » ouvert — l'infobulle laisse alors la place au panneau. */
+function definitionsExtension(dictionary, editCode, macros, isPinned) {
   const field = StateField.define({
     create: () => null,
     update(value, tr) {
@@ -85,6 +95,7 @@ function definitionsExtension(dictionary, editCode, macros) {
 
   let pressed = null;
   const open = (view, pos) => {
+    if (isPinned()) return true;
     const found = pos == null ? null : explainAt(view.state, pos, dictionary, macros);
     view.dispatch({ effects: setDefinition.of(found) });
     return Boolean(found);
@@ -132,11 +143,51 @@ export default {
   id: 'definitions',
   label: 'Définitions au clic / tap',
   description:
-    'Un clic (ou un tap) sur un code, une adresse ou une macro affiche sa définition, selon le profil machine actif : paramètres du bloc, codes redéfinis, exemples. Au clavier : F1 ou Ctrl+I sur l’élément sous le curseur.',
+    'Un clic (ou un tap) sur un code, une adresse ou une macro affiche sa définition, selon le profil machine actif : paramètres du bloc, codes redéfinis, exemples. Au clavier : F1 ou Ctrl+I sur l’élément sous le curseur. Le panneau « Définition » garde l’explication affichée et la met à jour quand le curseur bouge.',
   group: 'editeur',
-  where: 'Clic / tap sur un élément du programme, F1 ou Ctrl+I',
+  where: 'Clic / tap sur un élément du programme, F1 ou Ctrl+I ; panneau « Définition » (épinglée, suit le curseur)',
   activate(ctx) {
-    ctx.editor.addExtension(definitionsExtension(ctx.codes, ctx.ui.editCode, ctx.macros));
+    let pinned = false;
+    ctx.editor.addExtension(definitionsExtension(ctx.codes, ctx.ui.editCode, ctx.macros, () => pinned));
+
+    // Définition épinglée : panneau qui suit le curseur (la dernière définition reste affichée
+    // tant que le curseur n'est pas sur un autre élément explicable).
+    ctx.ui.panels.add({
+      id: 'definition',
+      title: 'Définition',
+      icon: 'info',
+      order: 58,
+      render(container) {
+        pinned = true;
+        ctx.editor.view.dispatch({ effects: setDefinition.of(null) });
+        const empty = h('p', { class: 'var-empty' }, 'Placez le curseur sur un code, une adresse ou une macro : sa définition s’affiche ici et suit le curseur.');
+        let shown = null;
+        const update = () => {
+          const found = explainAtCursor(ctx.editor.state, ctx.codes, ctx.macros);
+          if (!found) {
+            if (!shown) container.replaceChildren(empty);
+            return;
+          }
+          shown = found.explanation;
+          container.replaceChildren(h('div', { class: 'def-pinned' }, renderExplanation(shown, { onEditCode: ctx.ui.editCode })));
+        };
+        const refresh = debounce(update, 80);
+        const offs = [
+          ctx.editor.onUpdate((u) => (u.selectionSet || u.docChanged) && refresh()),
+          ctx.editor.onDocReplaced(update),
+          ctx.codes.onChange(update),
+        ];
+        update();
+        return {
+          dispose() {
+            pinned = false;
+            refresh.cancel();
+            offs.forEach((off) => off());
+          },
+        };
+      },
+    });
+
     // Dictionnaire modifié (changement de profil) : on referme une éventuelle infobulle périmée.
     ctx.onDispose(ctx.codes.onChange(() => ctx.editor.view.dispatch({ effects: setDefinition.of(null) })));
   },

@@ -46,6 +46,9 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | E3 | Interface agrandie (usage au doigt ou avec des gants) | ✅ |
 | E4 | Zéro barré dans l'éditeur | ✅ |
 | E5 | Plan du programme | ✅ |
+| E6 | « Aller à… » (ligne, bloc N, programme O, outil T) | ✅ |
+| E8 | Définition épinglée (panneau qui suit le curseur) | ✅ |
+| E9 | Modèles d'insertion (système A ou B/C) | ✅ |
 
 Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, autres types de machines,
 estimation du temps d'usinage.
@@ -107,7 +110,7 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Édition | Coloration syntaxique par catégorie | Texte de l'éditeur (légende dans Paramètres) | `highlighting` |
 | Édition | Zéro barré (0 distinct de la lettre O, quelle que soit la police) | Texte de l'éditeur | `slashed-zero` |
 | Édition | Mise en évidence des variables et valeurs (occurrences d'une macro, d'un code ou d'une valeur) | Texte de l'éditeur et barre d'état | `occurrences` |
-| Édition | Définitions au clic / tap : codes, paramètres de cycle selon le bloc (le U de `G71 U2. R0.5` n'est pas celui de `G71 P… Q… U0.4`), macros, décodage de T0101, G76 P020060, M98 P… | Clic / tap, F1 ou Ctrl+I | `definitions` |
+| Édition | Définitions au clic / tap (ou épinglées dans le panneau « Définition », qui suit le curseur) : codes, paramètres de cycle selon le bloc (le U de `G71 U2. R0.5` n'est pas celui de `G71 P… Q… U0.4`), macros, décodage de T0101, G76 P020060, M98 P… | Clic / tap, F1 ou Ctrl+I ; panneau « Définition » | `definitions` |
 | Édition | Autocomplétion des codes G et M du profil, avec définition | En tapant G ou M, Ctrl+Espace | `autocomplete` |
 | Édition | Barre de touches ISO : adresses (G, M, X, Z, U, W, F, S, T, N…), chiffres et signes (# . - = [ ] ( )), flèches ; le clavier du téléphone reste ouvert. Sur écran tactile pendant la saisie, ou toujours | Sous l'éditeur | `iso-keys` |
 | Édition | Proposition de la prochaine macro libre | En tapant # | `macro-suggest` |
@@ -120,6 +123,8 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Analyse | Avertissements de macros (hors des plages libres du profil, double utilisation entre programmes — non bloquants) | Soulignement orange, barre d'état | `macro-warnings` |
 | Outils | Recherche et remplacement (expressions régulières) | Loupe, Ctrl+F | `search` |
 | Outils | Formulaires de cycles FANUC (G71/G70, G72, G76, G92, G90, G74, G75) avec aperçu et conversions mm → µm | Panneau « Cycles » | `cycles` |
+| Outils | Modèles d'insertion : en-tête, bloc de sécurité, séquence d'outil, dégagement, fin de programme — écrits pour le système A ou B/C selon les profils | Panneau « Modèles » | `templates` |
+| Outils | Aller à… une ligne, un bloc N, un programme O ou un changement d'outil T (occurrence suivante si on répète) | Position du curseur (barre d'état), menu Outils, Ctrl+G | `goto` |
 | Outils | Bibliothèque personnelle de sous-programmes | Panneau « Bibliothèque » | `library` |
 | Outils | Renumérotation des N avec mise à jour des P/Q, GOTO, M99 P | Menu Outils | `renumber` |
 | Outils | Décalage de coordonnées (cotes absolues X/Z/Y, sélection ou tout le programme) | Menu Outils | `coordinate-shift` |
@@ -142,7 +147,8 @@ raccourci dont la fonctionnalité est désactivée y est signalé).
 |---|---|
 | Ctrl+S | Enregistrer |
 | Ctrl+Z · Ctrl+Y (ou Ctrl+Maj+Z) | Annuler · rétablir |
-| Ctrl+F · F3 / Maj+F3 · Ctrl+Alt+G | Rechercher et remplacer · suivant / précédent · aller à la ligne |
+| Ctrl+F · F3 / Maj+F3 | Rechercher et remplacer · suivant / précédent |
+| Ctrl+G (ou Ctrl+Alt+G) | Aller à… (ligne, bloc N, programme O, outil T) |
 | F1 ou Ctrl+I | Définition de l'élément sous le curseur |
 | Ctrl+Espace | Suggestions |
 | Ctrl+Maj+M | Liste des erreurs et avertissements |
@@ -268,6 +274,10 @@ dans `CYCLES_BY_PROFILE` de `src/modules/cycles/index.js`) :
 Un test vérifie que chaque formulaire génère, avec ses valeurs par défaut, un code accepté
 par le vérificateur.
 
+Les **modèles d'insertion** (`src/data/templates/turning.js`) suivent le même format, avec
+en plus le type de champ `text` ; `generate(valeurs, { system })` reçoit le système de codes
+(`'a'` ou `'bc'`) déduit des profils activés. Le formulaire commun est `src/ui/generator-form.js`.
+
 ### Ajouter un réglage
 
 Ajouter une entrée dans `CORE_SETTINGS` (`src/settings/schema.js`) ou dans le champ `settings`
@@ -330,7 +340,7 @@ en vigueur sont celles du profil activé le plus spécifique qui en déclare.
 `tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
 variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
 `modalStateAt` (état modal), `checkProgram` (vérificateur, règles dans `CHECKER_RULES`),
-`renumber`, `shiftCoordinates`, `foldRanges`, `programOutline` (plan du programme), `diffLines` (comparaison), `formatIso`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
+`renumber`, `shiftCoordinates`, `foldRanges`, `programOutline` (plan du programme), `resolveGoTo` (« Aller à… »), `diffLines` (comparaison), `formatIso`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
 (variables, valeurs répétées, avertissements), plages de macros (`parseRanges`, `nextFreeVariable`…), `tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
 `occurrenceKey` (identité d'une macro, d'un code ou
 d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).

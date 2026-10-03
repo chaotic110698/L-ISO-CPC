@@ -16,3 +16,4 @@ export { diffLines, diffStats, diffHunks } from './diff.js';
 export { shiftCoordinates } from './shift.js';
 export { foldRanges } from './folding.js';
 export { programOutline, outlineSectionAt } from './outline.js';
+export { resolveGoTo } from './goto.js';
