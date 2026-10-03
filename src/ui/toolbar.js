@@ -63,7 +63,7 @@ export function createToolbar(container) {
       iconName ? icon(iconName) : null,
       h('span', { class: 'tool-label' }, label),
     );
-    const item = { order, button };
+    const item = { id, label, title: title ?? label, icon: iconName, onClick, order, button };
     const index = items.findIndex((other) => other.order > order);
     if (index === -1) {
       items.push(item);
@@ -87,8 +87,13 @@ export function createToolbar(container) {
     };
   }
 
+  /** Actions disponibles (boutons et menu « Outils »), pour la palette de commandes. */
+  const list = () =>
+    [...items.filter((item) => item.id !== 'menu'), ...menuItems].map(({ id, label, title, icon: iconName, onClick }) => ({ id, label, title, icon: iconName, onClick }));
+
   return {
     add,
+    list,
     /** API rattachée à la portée d'un module (boutons retirés à sa désactivation). */
     scoped(scope) {
       return {
@@ -97,6 +102,7 @@ export function createToolbar(container) {
           scope.add(handle.remove);
           return handle;
         },
+        list,
       };
     },
   };

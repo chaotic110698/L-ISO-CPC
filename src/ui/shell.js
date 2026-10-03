@@ -133,7 +133,7 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
 
       const replaced = items.get(id);
       if (replaced) replaced.li.hidden = true;
-      const item = { path, element, li, replaced };
+      const item = { id, path, label, icon: iconName, onSelect, upcoming, element, li, replaced };
       items.set(id, item);
       refreshUpcoming();
 
@@ -148,6 +148,11 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
         }
         refreshUpcoming();
       };
+    },
+
+    /** Entrées utilisables du menu (palette de commandes). */
+    listNavItems() {
+      return [...items.values()].filter((item) => !item.upcoming).map(({ id, path, label, icon: iconName, onSelect }) => ({ id, path, label, icon: iconName, onSelect }));
     },
 
     setRoute(path) {

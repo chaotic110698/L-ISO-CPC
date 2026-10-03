@@ -44,3 +44,17 @@ export function resolveGoTo(lineTexts, query, from = 0) {
   const index = Math.max(0, matches.findIndex((line) => line > from));
   return { line: matches[index], matches, index };
 }
+
+/**
+ * Lignes qui forment un bloc exécuté par la commande (ni vides, ni « % », ni commentaire seul),
+ * pour avancer bloc par bloc (mode pupitre). Numéros de ligne à partir de 1.
+ */
+export function executableLines(lineTexts) {
+  const lines = [];
+  let number = 0;
+  for (const text of lineTexts) {
+    number++;
+    if (!parseLine(text).block.isEmpty) lines.push(number);
+  }
+  return lines;
+}

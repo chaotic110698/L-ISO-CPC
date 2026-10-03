@@ -32,3 +32,8 @@ test('aller à un outil : T3 = outil 3 quel que soit le correcteur, T0303 exact'
   assert.deepEqual(resolveGoTo(program, 'T1').matches, [4]);
   assert.match(resolveGoTo(program, 'T5').error, /Aucun outil T5/);
 });
+
+test('lignes exécutables : ni vides, ni %, ni commentaire seul', async () => {
+  const { executableLines } = await import('../../src/engine/index.js');
+  assert.deepEqual(executableLines(['%', 'O1000 (TEST)', '(--- EBAUCHE ---)', '', 'N10 G0 X10.', '/N20 M1', 'M30', '%']), [2, 5, 6, 7]);
+});

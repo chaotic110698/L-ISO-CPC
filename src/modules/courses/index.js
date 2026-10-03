@@ -61,6 +61,22 @@ export default {
       onShow: (path) => page?.show(path ?? ''),
     });
 
+    // Palette de commandes : leçons et révision.
+    ctx.ui.palette.add({
+      id: 'lessons',
+      label: 'Cours d’ISO',
+      order: 35,
+      entries: () => [
+        ...LESSONS.filter(isAvailable).map((lesson) => ({
+          label: `Leçon ${lesson.number} · ${lesson.title}`,
+          detail: lesson.summary ?? '',
+          icon: 'book',
+          run: () => ctx.ui.navigate(`/cours/${lesson.id}`),
+        })),
+        ...(ctx.settings.get('courses.revision') ? [{ label: 'Révision', detail: 'Questions des leçons et des codes de vos profils', icon: 'book', run: () => ctx.ui.navigate('/cours/revision') }] : []),
+      ],
+    });
+
     ctx.backup.register('cours', {
       label: 'Progression des cours',
       exportData: async () => progress.get(),

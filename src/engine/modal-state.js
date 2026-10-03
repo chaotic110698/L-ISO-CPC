@@ -52,3 +52,13 @@ export function modalStateAt(lineTexts, upToLine, dictionary) {
   }
   return state;
 }
+
+/** Valeur écrite comme dans un programme ISO (S1200, F0.15), pas à la française. */
+export const formatModalValue = (n) => (n == null ? '—' : String(Number(n.toFixed(4))));
+
+/** Résumé court de l'état modal : « G01 · G99 · G96 S220 · G42 · T0202 · M03 ». */
+export function summarizeModalState(state) {
+  const g = state.groups;
+  const speed = g.spindleMode ? `${g.spindleMode}${state.speed != null ? ` S${formatModalValue(state.speed)}` : ''}` : null;
+  return [g.motion, g.distance, g.feedMode, speed, g.cutterComp, state.tool?.word, state.spindle].filter(Boolean).join(' · ');
+}

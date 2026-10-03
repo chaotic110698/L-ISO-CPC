@@ -2837,6 +2837,236 @@ a.lesson-card:hover {
   padding-left: 0;
 }
 
+/* ---- Palette de commandes ---- */
+
+.dialog.palette {
+  width: min(600px, calc(100vw - 2 * var(--gutter)));
+  margin-top: min(12vh, 96px);
+}
+
+.palette-inner {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(70dvh, 560px);
+}
+
+.palette-input {
+  margin: 10px;
+  width: auto;
+  font-size: 16px;
+}
+
+.palette-list {
+  margin: 0;
+  padding: 0 6px 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.palette-group {
+  padding: 10px 10px 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.palette-item .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.palette-item[aria-selected='true'] {
+  background: var(--accent-soft);
+}
+
+.palette-label {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-empty {
+  padding: 16px 10px;
+  color: var(--text-muted);
+}
+
+.palette-hint {
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (pointer: coarse) {
+  .palette-hint {
+    display: none;
+  }
+}
+
+/* ---- Mode pupitre ---- */
+
+.console-page {
+  --console-size: 22px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100%;
+  background: var(--bg);
+  outline: none;
+}
+
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px max(16px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.console-heading {
+  min-width: 0;
+}
+
+.console-title {
+  overflow: hidden;
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.console-counter {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.console-body {
+  overflow-y: auto;
+  padding: 12px 0 40vh;
+}
+
+.console-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: var(--console-size);
+  line-height: 1.5;
+}
+
+.console-line {
+  display: grid;
+  grid-template-columns: 3.2ch minmax(0, 1fr);
+  gap: 14px;
+  padding: 4px 16px;
+  border-left: 5px solid transparent;
+  cursor: pointer;
+}
+
+.console-line .code-view-code {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.console-line.is-passive {
+  opacity: 0.6;
+}
+
+.console-line.is-current {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  opacity: 1;
+}
+
+.console-number {
+  color: var(--text-muted);
+  font-size: 0.6em;
+  text-align: right;
+  align-self: center;
+}
+
+.console-info {
+  display: grid;
+  gap: 4px;
+  max-height: 30vh;
+  overflow-y: auto;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 15px;
+}
+
+.console-modal {
+  font-weight: 600;
+}
+
+.console-codes {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.console-codes code {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.console-comment {
+  color: var(--c-comment);
+  font-style: italic;
+}
+
+.console-wake {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.console-footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.console-step {
+  justify-content: center;
+  min-height: 64px;
+  padding: 0 8px;
+  font-size: 17px;
+  white-space: normal;
+}
+
 /* ---- Interface agrandie (Paramètres › Apparence › Taille de l'interface) ----
    Zones tactiles et texte de l'interface agrandis ; le texte du programme a son propre réglage. */
 
@@ -2939,4 +3169,9 @@ a.lesson-card:hover {
   min-width: 40px;
   height: 50px;
   font-size: 19px;
+}
+
+:root[data-ui-size='large'] .palette-item {
+  min-height: 52px;
+  font-size: 16px;
 }

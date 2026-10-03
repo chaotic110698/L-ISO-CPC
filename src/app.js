@@ -148,6 +148,13 @@ export async function startApp(root) {
   });
 
   // --- Modules -----------------------------------------------------------------------------
+  // Sources de la palette de commandes : chaque module peut y proposer ses entrées
+  // (source : { id, label, order, entries() → [{ label, detail?, keywords?, icon?, suggested?, run }] }).
+  const paletteSources = new Set();
+  const addPaletteSource = (source) => {
+    paletteSources.add(source);
+    return () => paletteSources.delete(source);
+  };
   const ui = {
     /** Ouvre l'édition d'un code dans un profil personnel (depuis une infobulle, par ex.). */
     editCode: (key) => {
@@ -196,6 +203,13 @@ export async function startApp(root) {
         panels: editorPage.panels.scoped(scope),
         /** Élément sous la zone d'édition (barre de touches…). */
         accessories: editorPage.accessories.scoped(scope),
+        /** Palette de commandes : ajout d'une source d'entrées, liste des sources. */
+        palette: {
+          add: (source) => scope.add(addPaletteSource(source)),
+          sources: () => [...paletteSources].sort((a, b) => (a.order ?? 50) - (b.order ?? 50)),
+        },
+        /** Entrées du menu latéral (pages et actions). */
+        navItems: () => shell.listNavItems(),
         /** Affiche une page (« /editeur », « /cours/repere-du-tour »…). */
         navigate: (path) => router.navigate(path),
         /** Ouvre l'éditeur avec le panneau demandé (depuis le menu latéral, par ex.). */

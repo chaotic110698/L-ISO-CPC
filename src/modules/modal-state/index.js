@@ -1,19 +1,12 @@
 import { h } from '../../core/dom.js';
 import { debounce } from '../../core/util.js';
-import { modalStateAt } from '../../engine/index.js';
+import { modalStateAt, summarizeModalState, formatModalValue } from '../../engine/index.js';
 import { MODAL_GROUPS, M_STATES } from '../../data/modal-groups.js';
 
 const FEED_UNITS = { G99: 'mm/tr', G95: 'mm/tr', G98: 'mm/min', G94: 'mm/min' };
 const SPEED_UNITS = { G96: 'm/min', G97: 'tr/min' };
-// Valeurs écrites comme dans un programme ISO (S1200, F0.15), pas à la française.
-const format = (n) => (n == null ? '—' : String(Number(n.toFixed(4))));
-
-/** Résumé court : « G01 · G99 · G96 S220 · G42 · T0202 · M03 ». */
-function summary(state) {
-  const g = state.groups;
-  const parts = [g.motion, g.distance, g.feedMode, g.spindleMode ? `${g.spindleMode}${state.speed != null ? ` S${format(state.speed)}` : ''}` : null, g.cutterComp, state.tool?.word, state.spindle];
-  return parts.filter(Boolean).join(' · ');
-}
+const format = formatModalValue;
+const summary = summarizeModalState;
 
 /**
  * État modal à la ligne du curseur : codes actifs de chaque groupe (déplacement, cotation,

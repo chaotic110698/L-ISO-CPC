@@ -43,10 +43,12 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | Étape | Contenu | État |
 |---|---|---|
 | E1 | Barre de touches ISO (smartphone) | ✅ |
+| E2 | Mode pupitre (bloc par bloc, écran allumé) | ✅ |
 | E3 | Interface agrandie (usage au doigt ou avec des gants) | ✅ |
 | E4 | Zéro barré dans l'éditeur | ✅ |
 | E5 | Plan du programme | ✅ |
 | E6 | « Aller à… » (ligne, bloc N, programme O, outil T) | ✅ |
+| E7 | Palette de commandes (Ctrl+K) | ✅ |
 | E8 | Définition épinglée (panneau qui suit le curseur) | ✅ |
 | E9 | Modèles d'insertion (système A ou B/C) | ✅ |
 | E10 | Corbeille (30 jours) | ✅ |
@@ -59,7 +61,7 @@ estimation du temps d'usinage.
 
 - **Accueil** (page d'ouverture) : présentation du site et bouton **« Commencer à
   programmer »** qui ouvre l'éditeur.
-- **Menu latéral** (☰) : Accueil, Éditeur, Mes programmes, Profils machines, Cours d'ISO,
+- **Menu latéral** (☰) : Accueil, Éditeur, Mode pupitre, Mes programmes, Profils machines, Cours d'ISO,
   Calculateurs, Cycles, Ma bibliothèque, Paramètres, et les fonctions à venir (grisées). Affiché sur grand
   écran (repliable), escamoté sur smartphone. Une page dont la fonctionnalité est désactivée
   disparaît du menu.
@@ -117,6 +119,7 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Édition | Barre de touches ISO : adresses (G, M, X, Z, U, W, F, S, T, N…), chiffres et signes (# . - = [ ] ( )), flèches ; le clavier du téléphone reste ouvert. Sur écran tactile pendant la saisie, ou toujours | Sous l'éditeur | `iso-keys` |
 | Édition | Proposition de la prochaine macro libre | En tapant # | `macro-suggest` |
 | Édition | Repliage des sous-programmes, boucles WHILE et opérations par outil | Marge, Ctrl+Maj+[ / ], menu Outils | `folding` |
+| Édition | Mode pupitre : programme en grand et en lecture seule, bloc courant surligné, gros boutons « bloc précédent / suivant » (ou flèches, espace), état modal et sens des codes du bloc, écran maintenu allumé ; en quittant, le curseur de l'éditeur est sur le bloc | Menu latéral « Mode pupitre », menu Outils | `console-mode` |
 | Édition | Annuler / rétablir | Barre d'outils, Ctrl+Z / Ctrl+Y | `history` |
 | Analyse | Vérificateur de syntaxe (parenthèses, caractères invalides, codes inconnus ou incompatibles, adresses répétées, plusieurs M, cotes sans point décimal, avance non définie, broche sans S, G96 sans G50, G40 oublié, P/Q/GOTO introuvables, N en double, M30 manquant — chaque règle désactivable) | Soulignements, marge, barre d'état, Ctrl+Maj+M | `checker` |
 | Analyse | État modal à la ligne du curseur | Barre d'état et panneau « État modal » | `modal-state` |
@@ -127,6 +130,7 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Outils | Formulaires de cycles FANUC (G71/G70, G72, G76, G92, G90, G74, G75) avec aperçu et conversions mm → µm | Panneau « Cycles » | `cycles` |
 | Outils | Modèles d'insertion : en-tête, bloc de sécurité, séquence d'outil, dégagement, fin de programme — écrits pour le système A ou B/C selon les profils | Panneau « Modèles » | `templates` |
 | Outils | Aller à… une ligne, un bloc N, un programme O ou un changement d'outil T (occurrence suivante si on répète) | Position du curseur (barre d'état), menu Outils, Ctrl+G | `goto` |
+| Outils | Palette de commandes : un seul champ pour retrouver une action, une page, un programme, la définition d'un code G/M ou une leçon | Ctrl+K, menu Outils | `palette` |
 | Outils | Bibliothèque personnelle de sous-programmes | Panneau « Bibliothèque » | `library` |
 | Outils | Renumérotation des N avec mise à jour des P/Q, GOTO, M99 P | Menu Outils | `renumber` |
 | Outils | Décalage de coordonnées (cotes absolues X/Z/Y, sélection ou tout le programme) | Menu Outils | `coordinate-shift` |
@@ -150,6 +154,7 @@ raccourci dont la fonctionnalité est désactivée y est signalé).
 | Raccourci | Action |
 |---|---|
 | Ctrl+S | Enregistrer |
+| Ctrl+K | Palette de commandes |
 | Ctrl+Z · Ctrl+Y (ou Ctrl+Maj+Z) | Annuler · rétablir |
 | Ctrl+F · F3 / Maj+F3 | Rechercher et remplacer · suivant / précédent |
 | Ctrl+G (ou Ctrl+Alt+G) | Aller à… (ligne, bloc N, programme O, outil T) |
@@ -246,8 +251,10 @@ lancer `npm run build`** : un test vérifie que `dist/` est à jour.
 Le contexte `ctx` fournit : `editor` (extensions, mises à jour, commandes), `workspace`
 (programme courant), `codes` (dictionnaire), `profiles`, `macros`, `settings`, `bus`, `backup`
 (section de sauvegarde JSON), `ui` (barre d'outils, barre d'état, panneaux latéraux
-`ui.panels.add`, pages `ui.addPage`, dialogues, notifications), `kv`, `listen()` (écouteur
-DOM), `signal`.
+`ui.panels.add`, pages `ui.addPage`, zone sous l'éditeur `ui.accessories.add`, clic sur un
+élément de la barre d'état `ui.statusbar.onClick`, entrées de la palette de commandes
+`ui.palette.add({ id, label, order, entries: () => [{ label, detail, icon, run }] })`,
+dialogues, notifications), `kv`, `listen()` (écouteur DOM), `signal`.
 
 ### Ajouter une page et son entrée de menu
 

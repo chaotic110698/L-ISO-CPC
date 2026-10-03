@@ -706,6 +706,42 @@ const desktop = await open(DESKTOP);
     await page.keyboard.press('Escape');
   });
 
+  await step('palette de commandes (Ctrl+K) : code, leçon, page', async () => {
+    await page.locator('.cm-content').click();
+    await page.keyboard.press('Control+k');
+    await page.locator('.palette-input').fill('filetage');
+    const labels = await page.locator('.palette-item .palette-label').allTextContents();
+    assert.ok(labels.some((l) => /^Leçon \d+ · Filetage/.test(l)) && labels.includes('G76'), labels.join(', '));
+    await shot(page, 'pc-sombre-palette');
+    await page.locator('.palette-input').fill('g76');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('.dialog .def-code');
+    assert.equal(await page.locator('.dialog .def-code').textContent(), 'G76');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Control+k');
+    await page.locator('.palette-input').fill('calculateurs');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('.calc-page:not([hidden])');
+    await gotoEditor(page);
+  });
+
+  await step('mode pupitre : bloc par bloc au clavier, retour à l’éditeur sur le bloc', async () => {
+    await page.evaluate(() => {
+      const view = window.isoApp.editor.view;
+      view.dispatch({ selection: { anchor: view.state.doc.line(7).from } });
+    });
+    await navTo(page, 'pupitre', '.console-page:not([hidden])');
+    assert.equal(await page.locator('.console-line.is-current').getAttribute('data-line'), '8', 'commentaire seul sauté');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    assert.match(await page.locator('.console-counter').textContent(), /ligne 10$/);
+    assert.match(await page.locator('.console-modal').textContent(), /G96 S220/);
+    await page.keyboard.press('ArrowUp');
+    await page.locator('[data-action="console-leave"]').click();
+    await page.waitForSelector('.editor-page:not([hidden])');
+    assert.equal(await page.evaluate(() => window.isoApp.editor.cursor.line), 9);
+  });
+
   await step('zéro barré dans l’éditeur, désactivable', async () => {
     assert.ok((await page.locator('.cm-content .cm-zero').count()) > 10, 'zéros barrés');
     await gotoSettings(page);
@@ -1236,6 +1272,19 @@ const mobile = await open(MOBILE);
     assert.equal(await noHorizontalScroll(), true);
     await shot(page, 'mobile-clair-plan');
     await page.locator('.side-panel button[aria-label="Fermer le panneau"]').tap();
+  });
+
+  await step('mode pupitre sur smartphone : gros boutons, sans défilement horizontal', async () => {
+    await navTo(page, 'pupitre', '.console-page:not([hidden])');
+    const before = await page.locator('.console-counter').textContent();
+    await page.locator('[data-action="console-next"]').tap();
+    assert.notEqual(await page.locator('.console-counter').textContent(), before);
+    assert.equal(await noHorizontalScroll(), true);
+    const box = await page.locator('[data-action="console-next"]').boundingBox();
+    assert.ok(box.height >= 60 && box.x + box.width <= 375, 'gros bouton dans l’écran');
+    await shot(page, 'mobile-clair-pupitre');
+    await page.locator('[data-action="console-leave"]').tap();
+    await page.waitForSelector('.editor-page:not([hidden])');
   });
 
   await step('définition au tap, lisible en largeur smartphone', async () => {
