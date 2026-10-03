@@ -1,5 +1,5 @@
 import { h, domId, downloadText, pickFile, readTextFile } from '../../core/dom.js';
-import { isoDate } from '../../core/util.js';
+import { isoDate, foldText } from '../../core/util.js';
 import { STORES } from '../../storage/database.js';
 import { SETTINGS_SECTIONS, MODULE_GROUPS } from '../../settings/schema.js';
 import { APP_VERSION } from '../../version.js';
@@ -25,13 +25,7 @@ const SHORTCUTS = [
   { keys: ['Échap'], action: 'Fermer l’infobulle, la liste ou le panneau ouvert' },
 ];
 
-/** Texte sans accents ni majuscules, pour une recherche tolérante. */
-const normalize = (text) =>
-  String(text ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[’‘]/g, "'")
-    .toLowerCase();
+const normalize = foldText;
 
 /**
  * Page « Paramètres », générée à partir du schéma des réglages et de la liste des modules :

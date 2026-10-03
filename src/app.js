@@ -59,9 +59,9 @@ export async function startApp(root) {
   const backup = createBackupService({ appVersion: APP_VERSION });
   backup.register('programmes', {
     label: 'Programmes',
-    exportData: () => programs.list(),
+    exportData: () => programs.listAll(),
     importData: (data, options) => programs.importMany(data, options),
-    describe: (data) => `${Array.isArray(data) ? data.length : 0} programme(s)`,
+    describe: (data) => `${Array.isArray(data) ? data.filter((p) => !p.deletedAt).length : 0} programme(s)`,
   });
   backup.register('profils', {
     label: 'Profils machines',
@@ -95,7 +95,7 @@ export async function startApp(root) {
   });
 
   // --- Interface ---------------------------------------------------------------------------
-  const openPrograms = () => openProgramsDrawer({ workspace, bus });
+  const openPrograms = () => openProgramsDrawer({ workspace, bus, kv });
   const shell = createShell(root, {
     collapsed: kv.get('navCollapsed', false) === true,
     onCollapsedChange: (collapsed) => kv.set('navCollapsed', collapsed),

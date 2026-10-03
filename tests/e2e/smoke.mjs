@@ -238,6 +238,54 @@ const desktop = await open(DESKTOP);
     assert.match(await editorText(page), /O1000/);
   });
 
+  await step('programmes : recherche (nom, contenu), tri, épingler, corbeille', async () => {
+    const names = () => page.locator('.drawer .program-item .program-name').allTextContents();
+    await page.locator('[data-tool="programs"]').click();
+    await page.waitForSelector('.drawer[open] .program-item');
+    await page.locator('.drawer .segment', { hasText: 'Nom' }).click();
+    assert.deepEqual(await names(), ['Arbre 25 — reprise', 'Exemple — tournage Fanuc']);
+    await page.locator('.program-search').fill('t0303');
+    assert.deepEqual(await names(), ['Exemple — tournage Fanuc']);
+    assert.match(await page.locator('.drawer .program-meta').first().textContent(), /contient « t0303 »/);
+    await page.locator('.program-search').fill('');
+    await page.locator('.drawer .program-item', { hasText: 'Exemple' }).locator('.icon-btn').click();
+    await page.locator('.action-item', { hasText: 'Épingler' }).click();
+    await page.waitForSelector('.drawer .program-item.is-pinned');
+    assert.equal((await names())[0], 'Exemple — tournage Fanuc');
+    await page.locator('.drawer .segment', { hasText: 'Récents' }).click();
+
+    // Corbeille : suppression annulable, restauration, effacement définitif.
+    await page.locator('.drawer .btn', { hasText: 'Nouveau' }).click();
+    await page.locator('.dialog input').fill('Brouillon');
+    await page.locator('.dialog button', { hasText: 'Créer' }).click();
+    await page.waitForFunction(() => document.querySelector('.program-title-text').textContent === 'Brouillon');
+    await page.locator('[data-tool="programs"]').click();
+    await page.locator('.drawer .program-item', { hasText: 'Brouillon' }).locator('.icon-btn').click();
+    await page.locator('.action-item', { hasText: 'Mettre à la corbeille' }).click();
+    await page.waitForFunction(() => ![...document.querySelectorAll('.drawer .program-name')].some((n) => n.textContent === 'Brouillon'));
+    await page.locator('.toast-action', { hasText: 'Annuler' }).click();
+    await page.waitForFunction(() => [...document.querySelectorAll('.drawer .program-name')].some((n) => n.textContent === 'Brouillon'));
+    await page.locator('.drawer .program-item', { hasText: 'Brouillon' }).locator('.icon-btn').click();
+    await page.locator('.action-item', { hasText: 'Mettre à la corbeille' }).click();
+    await page.locator('[data-action="show-trash"]', { hasText: 'Corbeille (1)' }).click();
+    await page.waitForSelector('.drawer .program-item.is-trashed');
+    await shot(page, 'pc-sombre-corbeille');
+    await page.locator('[data-action="restore"]').click();
+    await page.waitForSelector('.drawer .program-empty');
+    await page.locator('[data-action="trash-back"]').click();
+    await page.locator('.drawer .program-item', { hasText: 'Brouillon' }).locator('.icon-btn').click();
+    await page.locator('.action-item', { hasText: 'Mettre à la corbeille' }).click();
+    await page.locator('[data-action="show-trash"]').click();
+    await page.locator('[data-action="empty-trash"]').click();
+    await page.locator('.dialog button', { hasText: 'Vider la corbeille' }).click();
+    await page.waitForSelector('.drawer .program-empty');
+    assert.equal(await page.evaluate(async () => (await window.isoApp.workspace.listTrash()).length), 0);
+    await page.keyboard.press('Escape');
+    await page.locator('[data-tool="programs"]').click();
+    await page.locator('.drawer .program-open', { hasText: 'Exemple' }).click();
+    await page.waitForFunction(() => document.querySelector('.program-title-text').textContent.startsWith('Exemple'));
+  });
+
   await step('désactivation réelle d’un module (numéros de ligne, historique) puis réactivation', async () => {
     await gotoSettings(page);
     await shot(page, 'pc-sombre-parametres');
@@ -862,6 +910,7 @@ const desktop = await open(DESKTOP);
       const created = window.isoApp.workspace.current.id;
       await window.isoApp.workspace.open(id);
       await window.isoApp.workspace.remove(created);
+      await window.isoApp.workspace.purge(created); // hors corbeille : la sauvegarde testée plus loin compte les programmes
     }, previous);
   });
 
@@ -1070,7 +1119,7 @@ await step('export d’une sauvegarde JSON globale', async () => {
   backupPath = await download.path();
   const data = JSON.parse(await readFile(backupPath, 'utf8'));
   assert.equal(data.format, 'l-iso-cpc/sauvegarde');
-  assert.equal(data.sections.programmes.length, 2);
+  assert.equal(data.sections.programmes.length, 2, JSON.stringify(data.sections.programmes.map((p) => [p.name, p.deletedAt])));
   assert.equal(data.sections.parametres.theme, 'dark');
   assert.ok(data.sections.profils.some((p) => p.name === 'Tour Okuma' && p.codes.M50), 'profil personnel sauvegardé');
   assert.ok(data.sections.cours.lessons['programme-iso'].readAt, 'progression des cours sauvegardée');

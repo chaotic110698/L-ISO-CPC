@@ -588,8 +588,8 @@ dialog::backdrop {
 }
 
 .drawer-inner {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
@@ -614,6 +614,8 @@ dialog::backdrop {
 }
 
 .program-list {
+  flex: 1;
+  min-height: 0;
   margin: 0;
   padding: 6px;
   overflow-y: auto;
@@ -647,6 +649,9 @@ dialog::backdrop {
 }
 
 .program-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   overflow: hidden;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -662,6 +667,57 @@ dialog::backdrop {
   font-size: 12px;
 }
 
+.program-name .icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  color: var(--accent);
+}
+
+.program-tools {
+  display: grid;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.program-tools .segmented {
+  justify-self: start;
+}
+
+.program-empty {
+  padding: 16px 10px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.program-item.is-trashed {
+  gap: 6px;
+  padding-right: 4px;
+}
+
+.program-item.is-trashed .program-open {
+  cursor: default;
+}
+
+.program-trash-head {
+  border-bottom: 1px solid var(--border);
+}
+
+.program-trash-head .drawer-note {
+  border-top: 0;
+  padding-bottom: 8px;
+}
+
+.program-trash-head .button-row {
+  padding: 0 16px 12px;
+}
+
+.program-trash-link {
+  align-self: flex-start;
+  margin: 6px 16px 10px;
+}
+
 .drawer-note {
   padding: 12px 16px 16px;
   border-top: 1px solid var(--border);
@@ -670,6 +726,18 @@ dialog::backdrop {
 }
 
 /* ---- Notifications ---- */
+
+.toast-action {
+  margin-left: 4px;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
 
 .toasts {
   position: fixed;

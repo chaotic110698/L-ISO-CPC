@@ -49,6 +49,8 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | E6 | « Aller à… » (ligne, bloc N, programme O, outil T) | ✅ |
 | E8 | Définition épinglée (panneau qui suit le curseur) | ✅ |
 | E9 | Modèles d'insertion (système A ou B/C) | ✅ |
+| E10 | Corbeille (30 jours) | ✅ |
+| E11 | Liste de programmes : recherche, tri, épinglés | ✅ |
 
 Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, autres types de machines,
 estimation du temps d'usinage.
@@ -131,6 +133,8 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Outils | Versions (automatiques ou nommées), comparaison ligne à ligne, restauration | Menu Outils | `versions` |
 | Fichiers | Sauvegarde automatique (avec copie de secours à la fermeture) | Barre d'état | `autosave` |
 | Fichiers | Export en fichier `.nc` / `.txt` (fins de ligne au choix) | Menu Outils | `export-file` |
+| Fichiers | Recherche des programmes par nom ou par contenu (O1234, T0303…), tri par date ou par nom, programmes épinglés en tête | Tiroir « Programmes » | `program-list` |
+| Fichiers | Corbeille : un programme supprimé reste récupérable 30 jours (« Annuler » dans la notification, ou Corbeille › Restaurer) ; désactivée, la suppression est définitive | Tiroir « Programmes » › Corbeille | `trash` |
 | Calculateurs | Calculateurs d'atelier | Page « Calculateurs » | `calculators` |
 | Apprendre | Cours d'ISO | Page « Cours d'ISO » | `courses` |
 

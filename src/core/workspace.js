@@ -24,6 +24,9 @@ export class Workspace {
   /** Vrai quand un module d'enregistrement automatique est actif. */
   autosave = false;
 
+  /** Vrai quand le module « Corbeille » est actif : une suppression est alors récupérable. */
+  trashEnabled = false;
+
   constructor({ repo, kv, bus }) {
     this.#repo = repo;
     this.#kv = kv;
@@ -173,9 +176,13 @@ export class Workspace {
     return copy;
   }
 
-  /** Supprime un programme ; si c'était le programme ouvert, ouvre le plus récent restant. */
+  /**
+   * Supprime un programme (à la corbeille si elle est active, sinon définitivement) ;
+   * si c'était le programme ouvert, ouvre le plus récent restant.
+   */
   async remove(id) {
-    await this.#repo.remove(id);
+    if (this.trashEnabled) await this.#repo.trash(id);
+    else await this.#repo.remove(id);
     if (this.#current?.id === id) {
       this.#current = null;
       const next = (await this.#repo.list())[0];
@@ -187,6 +194,42 @@ export class Workspace {
 
   list() {
     return this.#repo.list();
+  }
+
+  async setPinned(id, pinned) {
+    const program = await this.#repo.setPinned(id, pinned);
+    if (this.#current?.id === id) this.#current = { ...this.#current, pinned: program.pinned };
+    this.#bus.emit('workspace:list-changed');
+    return program;
+  }
+
+  listTrash() {
+    return this.#repo.listTrash();
+  }
+
+  async restore(id) {
+    const program = await this.#repo.restore(id);
+    this.#bus.emit('workspace:list-changed');
+    return program;
+  }
+
+  /** Suppression définitive d'un programme de la corbeille (ou de toute la corbeille). */
+  async purge(id) {
+    await this.#repo.remove(id);
+    this.#bus.emit('workspace:list-changed');
+  }
+
+  async emptyTrash() {
+    const trashed = await this.#repo.listTrash();
+    for (const program of trashed) await this.#repo.remove(program.id);
+    this.#bus.emit('workspace:list-changed');
+    return trashed.length;
+  }
+
+  async purgeExpired(days) {
+    const count = await this.#repo.purgeTrash(days);
+    if (count) this.#bus.emit('workspace:list-changed');
+    return count;
   }
 
   /** Recharge le programme courant depuis le stockage (après une restauration de sauvegarde). */

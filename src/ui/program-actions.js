@@ -100,17 +100,24 @@ export async function duplicateProgram(workspace, program) {
   }
 }
 
-export async function deleteProgram(workspace, program) {
-  const ok = await confirmDialog({
-    title: 'Supprimer le programme',
-    message: `Supprimer définitivement « ${program.name} » ? Cette action est irréversible.`,
-    confirmLabel: 'Supprimer',
-    danger: true,
-  });
-  if (!ok) return false;
+/** Suppression : à la corbeille (annulable depuis la notification) ou définitive après confirmation. */
+export async function deleteProgram(workspace, program, { trash = false } = {}) {
+  if (!trash) {
+    const ok = await confirmDialog({
+      title: 'Supprimer le programme',
+      message: `Supprimer définitivement « ${program.name} » ? Cette action est irréversible.`,
+      confirmLabel: 'Supprimer',
+      danger: true,
+    });
+    if (!ok) return false;
+  }
   try {
     await workspace.remove(program.id);
-    toast('Programme supprimé.');
+    if (trash) {
+      toast(`« ${program.name} » mis à la corbeille.`, {
+        action: { label: 'Annuler', onClick: () => workspace.restore(program.id).catch((error) => reportError('Impossible de restaurer le programme.', error)) },
+      });
+    } else toast('Programme supprimé.');
     return true;
   } catch (error) {
     reportError('Impossible de supprimer le programme.', error);

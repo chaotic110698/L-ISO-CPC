@@ -12,7 +12,8 @@ function setup({ kv = memoryKv(), db = memoryDb() } = {}) {
   for (const type of ['workspace:opened', 'workspace:dirty', 'workspace:saved', 'workspace:list-changed']) {
     bus.on(type, (payload) => events.push([type, payload]));
   }
-  const repo = createProgramRepository(db, { now: fakeClock() });
+  const clock = fakeClock();
+  const repo = createProgramRepository(db, { now: clock });
   const workspace = new Workspace({ repo, kv, bus });
   // Simule l'éditeur : un simple texte modifiable.
   const editor = { text: '' };
@@ -22,7 +23,7 @@ function setup({ kv = memoryKv(), db = memoryDb() } = {}) {
     editor.text = text;
     workspace.markDirty();
   };
-  return { workspace, repo, kv, db, bus, events, editor, type };
+  return { workspace, repo, kv, db, bus, events, editor, type, clock };
 }
 
 test('premier lancement : crée et ouvre le programme d’exemple', async () => {
@@ -134,4 +135,41 @@ test('pas de brouillon écrit sans modification', async () => {
   await workspace.init();
   workspace.writeDraft();
   assert.equal(kv.get('draft'), undefined);
+});
+
+test('corbeille : suppression récupérable, restauration, nom rendu unique', async () => {
+  const { workspace, repo } = setup();
+  await workspace.init();
+  workspace.trashEnabled = true;
+  const other = await workspace.create({ name: 'Arbre', content: 'O1\nM30' });
+  await workspace.remove(other.id);
+  assert.equal((await workspace.list()).some((p) => p.id === other.id), false, 'absent de la liste');
+  assert.deepEqual((await workspace.listTrash()).map((p) => p.name), ['Arbre']);
+  assert.notEqual(workspace.current.id, other.id, 'un autre programme est ouvert');
+  await workspace.create({ name: 'Arbre', content: 'M30' });
+  const restored = await workspace.restore(other.id);
+  assert.equal(restored.name, 'Arbre 2');
+  assert.equal(restored.content, 'O1\nM30');
+  assert.equal(restored.deletedAt, undefined);
+  assert.equal((await workspace.listTrash()).length, 0);
+  assert.equal((await repo.listAll()).length, 3);
+});
+
+test('corbeille : purge après 30 jours, suppression définitive sans corbeille', async () => {
+  const { workspace, clock } = setup();
+  await workspace.init();
+  workspace.trashEnabled = true;
+  const old = await workspace.create({ name: 'Ancien', content: 'M30' });
+  await workspace.remove(old.id);
+  clock.advance(10 * 24 * 3600 * 1000);
+  const recent = await workspace.create({ name: 'Récent', content: 'M30' });
+  await workspace.remove(recent.id);
+  clock.advance(21 * 24 * 3600 * 1000);
+  assert.equal(await workspace.purgeExpired(30), 1);
+  assert.deepEqual((await workspace.listTrash()).map((p) => p.name), ['Récent']);
+  assert.equal(await workspace.emptyTrash(), 1);
+  workspace.trashEnabled = false;
+  const gone = await workspace.create({ name: 'Définitif', content: 'M30' });
+  await workspace.remove(gone.id);
+  assert.equal((await workspace.listTrash()).length, 0);
 });
