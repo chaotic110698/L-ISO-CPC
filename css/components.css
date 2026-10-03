@@ -2830,7 +2830,7 @@ a.lesson-card:hover {
 }
 
 :root[data-ui-size='large'] .iso-key {
-  min-width: 46px;
+  min-width: 40px;
   height: 50px;
   font-size: 19px;
 }
