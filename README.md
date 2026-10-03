@@ -38,6 +38,15 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | C3 | Parcours confirmé, leçons 9 à 15 (G71/G70/G72/G73, cycles simples, filetage, G74/G75, sous-programmes, macros, bonnes pratiques) | ✅ |
 | C4 | Mode révision (questions générées par le profil, répétition espacée) | ✅ |
 
+### Ergonomie
+
+| Étape | Contenu | État |
+|---|---|---|
+| E1 | Barre de touches ISO (smartphone) | ✅ |
+| E3 | Interface agrandie (usage au doigt ou avec des gants) | ✅ |
+| E4 | Zéro barré dans l'éditeur | ✅ |
+| E5 | Plan du programme | ✅ |
+
 Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, autres types de machines,
 estimation du temps d'usinage.
 
@@ -96,14 +105,17 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 |---|---|---|---|
 | Édition | Numérotation des lignes | Marge gauche de l'éditeur | `line-numbers` |
 | Édition | Coloration syntaxique par catégorie | Texte de l'éditeur (légende dans Paramètres) | `highlighting` |
+| Édition | Zéro barré (0 distinct de la lettre O, quelle que soit la police) | Texte de l'éditeur | `slashed-zero` |
 | Édition | Mise en évidence des variables et valeurs (occurrences d'une macro, d'un code ou d'une valeur) | Texte de l'éditeur et barre d'état | `occurrences` |
 | Édition | Définitions au clic / tap : codes, paramètres de cycle selon le bloc (le U de `G71 U2. R0.5` n'est pas celui de `G71 P… Q… U0.4`), macros, décodage de T0101, G76 P020060, M98 P… | Clic / tap, F1 ou Ctrl+I | `definitions` |
 | Édition | Autocomplétion des codes G et M du profil, avec définition | En tapant G ou M, Ctrl+Espace | `autocomplete` |
+| Édition | Barre de touches ISO : adresses (G, M, X, Z, U, W, F, S, T, N…), chiffres et signes (# . - = [ ] ( )), flèches ; le clavier du téléphone reste ouvert. Sur écran tactile pendant la saisie, ou toujours | Sous l'éditeur | `iso-keys` |
 | Édition | Proposition de la prochaine macro libre | En tapant # | `macro-suggest` |
 | Édition | Repliage des sous-programmes, boucles WHILE et opérations par outil | Marge, Ctrl+Maj+[ / ], menu Outils | `folding` |
 | Édition | Annuler / rétablir | Barre d'outils, Ctrl+Z / Ctrl+Y | `history` |
 | Analyse | Vérificateur de syntaxe (parenthèses, caractères invalides, codes inconnus ou incompatibles, adresses répétées, plusieurs M, cotes sans point décimal, avance non définie, broche sans S, G96 sans G50, G40 oublié, P/Q/GOTO introuvables, N en double, M30 manquant — chaque règle désactivable) | Soulignements, marge, barre d'état, Ctrl+Maj+M | `checker` |
 | Analyse | État modal à la ligne du curseur | Barre d'état et panneau « État modal » | `modal-state` |
+| Analyse | Plan du programme : programmes O…, sections (ligne de commentaire seule), outils, cycles, appels M98/G65, fins ; un clic va à la ligne, la partie en cours est surlignée | Panneau « Plan » | `outline` |
 | Analyse | Tableau des variables (nom et description personnels, utilisations, valeurs répétées transformables en macro) | Panneau « Variables » | `variables` |
 | Analyse | Avertissements de macros (hors des plages libres du profil, double utilisation entre programmes — non bloquants) | Soulignement orange, barre d'état | `macro-warnings` |
 | Outils | Recherche et remplacement (expressions régulières) | Loupe, Ctrl+F | `search` |
@@ -119,7 +131,7 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 
 Toujours présents (socle) : gestion de plusieurs programmes (créer, ouvrir un fichier
 `.nc`/`.txt`, renommer, dupliquer, supprimer), enregistrement (Ctrl+S), thème clair/sombre,
-taille du texte, retour à la ligne, sauvegarde/restauration JSON, profils machines.
+taille du texte, taille de l'interface (Normale ou Grande : boutons, menus, interrupteurs et listes agrandis pour un usage au doigt ou avec des gants), retour à la ligne, sauvegarde/restauration JSON, profils machines.
 
 ### Raccourcis clavier
 
@@ -318,7 +330,7 @@ en vigueur sont celles du profil activé le plus spécifique qui en déclare.
 `tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
 variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
 `modalStateAt` (état modal), `checkProgram` (vérificateur, règles dans `CHECKER_RULES`),
-`renumber`, `shiftCoordinates`, `foldRanges`, `diffLines` (comparaison), `formatIso`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
+`renumber`, `shiftCoordinates`, `foldRanges`, `programOutline` (plan du programme), `diffLines` (comparaison), `formatIso`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
 (variables, valeurs répétées, avertissements), plages de macros (`parseRanges`, `nextFreeVariable`…), `tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
 `occurrenceKey` (identité d'une macro, d'un code ou
 d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).

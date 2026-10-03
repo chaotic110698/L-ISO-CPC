@@ -8,7 +8,7 @@ import { createProgramRepository } from './storage/programs.js';
 import { createBackupService } from './storage/backup.js';
 import { createSettingsStore } from './settings/settings-store.js';
 import { CORE_SETTINGS } from './settings/schema.js';
-import { applyTheme, applyEditorFontSize } from './ui/theme.js';
+import { applyTheme, applyUiSize, applyEditorFontSize } from './ui/theme.js';
 import { createShell } from './ui/shell.js';
 import { createEditorPage } from './ui/pages/editor-page.js';
 import { createSettingsPage } from './ui/pages/settings-page.js';
@@ -36,6 +36,7 @@ export async function startApp(root) {
   const kv = createKv();
   const settings = createSettingsStore({ kv, entries: CORE_SETTINGS });
   applyTheme(settings.get('theme'));
+  applyUiSize(settings.get('ui.size'));
   applyEditorFontSize(settings.get('editor.fontSize'));
 
   // --- Services ----------------------------------------------------------------------------
@@ -110,6 +111,10 @@ export async function startApp(root) {
     applyTheme(theme);
     shell.setTheme(theme);
     editor.setDark(theme === 'dark');
+  });
+  settings.subscribe('ui.size', (size) => {
+    applyUiSize(size);
+    editor.remeasure();
   });
   settings.subscribe('editor.fontSize', (size) => {
     applyEditorFontSize(size);
@@ -189,6 +194,8 @@ export async function startApp(root) {
         toolbar: editorPage.toolbar.scoped(scope),
         statusbar: editorPage.statusbar.scoped(scope),
         panels: editorPage.panels.scoped(scope),
+        /** Élément sous la zone d'édition (barre de touches…). */
+        accessories: editorPage.accessories.scoped(scope),
         /** Affiche une page (« /editeur », « /cours/repere-du-tour »…). */
         navigate: (path) => router.navigate(path),
         /** Ouvre l'éditeur avec le panneau demandé (depuis le menu latéral, par ex.). */

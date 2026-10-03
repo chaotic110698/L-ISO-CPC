@@ -608,6 +608,51 @@ const desktop = await open(DESKTOP);
     await page.waitForFunction(() => !document.querySelector('.cm-foldPlaceholder'));
   });
 
+  await step('plan du programme : sections, outils, cycles ; un clic va à la ligne', async () => {
+    await page.locator('[data-tool="panel-outline"]').click();
+    await page.locator('.outline-item').first().waitFor();
+    const kinds = await page.locator('.outline-item').evaluateAll((items) => items.map((i) => i.dataset.kind));
+    for (const kind of ['program', 'section', 'tool', 'cycle', 'end']) assert.ok(kinds.includes(kind), `élément « ${kind} » dans le plan`);
+    await page.locator('.outline-item[data-kind="section"]', { hasText: 'FINITION' }).click();
+    const line = await page.evaluate(() => {
+      const { state } = window.isoApp.editor.view;
+      return state.doc.lineAt(state.selection.main.head).text;
+    });
+    assert.equal(line, '(--- FINITION ---)');
+    assert.match(await page.locator('.outline-item.is-current').textContent(), /FINITION/);
+    await shot(page, 'pc-sombre-plan');
+    await page.locator('.side-panel button[aria-label="Fermer le panneau"]').click();
+  });
+
+  await step('zéro barré dans l’éditeur, désactivable', async () => {
+    assert.ok((await page.locator('.cm-content .cm-zero').count()) > 10, 'zéros barrés');
+    await gotoSettings(page);
+    await toggle(page, 'modules.slashedZero');
+    await gotoEditor(page);
+    assert.equal(await page.locator('.cm-content .cm-zero').count(), 0);
+    await gotoSettings(page);
+    await toggle(page, 'modules.slashedZero');
+    await gotoEditor(page);
+    assert.ok((await page.locator('.cm-content .cm-zero').count()) > 10);
+  });
+
+  await step('barre de touches ISO : masquée à la souris, affichable « toujours »', async () => {
+    await page.locator('.cm-content').click();
+    assert.equal(await page.locator('.iso-keys').isVisible(), false, 'pas d’écran tactile : masquée');
+    await page.evaluate(() => window.isoApp.settings.set('isoKeys.show', 'always'));
+    await page.locator('.iso-keys').waitFor();
+    const before = await editorText(page);
+    await page.keyboard.press('Control+End');
+    await page.locator('.iso-key[data-key="G"]').click();
+    await page.locator('.iso-key[data-key="toggle"]').click();
+    await page.locator('.iso-key[data-key="4"]').click();
+    assert.equal(await editorText(page), `${before}G4`);
+    assert.equal(await page.evaluate(() => window.isoApp.editor.view.hasFocus), true, 'l’éditeur garde le focus');
+    await setText(page, before);
+    await page.evaluate(() => window.isoApp.settings.reset('isoKeys.show'));
+    await page.waitForFunction(() => document.querySelector('.iso-keys').hidden);
+  });
+
   await step('formulaire de cycle G76 : aperçu, conversions, insertion', async () => {
     const before = await editorText(page);
     await page.locator('[data-tool="panel-cycles"]').click();
@@ -694,6 +739,16 @@ const desktop = await open(DESKTOP);
     const size = await page.locator('.cm-content').evaluate((el) => getComputedStyle(el).fontSize);
     assert.equal(size, '20px');
     await page.evaluate(() => window.isoApp.settings.reset('editor.fontSize'));
+  });
+
+  await step('interface agrandie (Paramètres › Apparence)', async () => {
+    const height = () => page.locator('[data-tool="save"]').evaluate((el) => el.getBoundingClientRect().height);
+    const normal = await height();
+    await page.evaluate(() => window.isoApp.settings.set('ui.size', 'large'));
+    assert.equal(await page.getAttribute('html', 'data-ui-size'), 'large');
+    assert.ok((await height()) >= 48 && (await height()) > normal, 'boutons agrandis');
+    await page.evaluate(() => window.isoApp.settings.reset('ui.size'));
+    assert.equal(await page.getAttribute('html', 'data-ui-size'), 'normal');
   });
 
   await step('export du programme en .nc (fins de ligne CRLF)', async () => {
@@ -1055,6 +1110,30 @@ const mobile = await open(MOBILE);
     await page.keyboard.press('Control+End');
     await page.keyboard.type('\nN310 M30');
     assert.match(await editorText(page), /N310 M30$/);
+  });
+
+  await step('barre de touches ISO pendant la saisie, clavier conservé', async () => {
+    await page.locator('.iso-keys').waitFor();
+    assert.equal(await noHorizontalScroll(), true);
+    const before = await editorText(page);
+    await page.keyboard.press('Control+End');
+    await page.locator('.iso-key[data-key="Z"]').tap();
+    await page.locator('.iso-key[data-key="toggle"]').tap();
+    for (const key of ['5', '.', 'left', '0']) await page.locator(`.iso-key[data-key="${key}"]`).tap();
+    assert.match(await editorText(page), /N310 M30Z50\.$/);
+    assert.equal(await page.evaluate(() => window.isoApp.editor.view.hasFocus), true, 'le clavier du téléphone reste ouvert');
+    await shot(page, 'mobile-clair-touches-iso');
+    await page.locator('.iso-key[data-key="toggle"]').tap();
+    await setText(page, before);
+  });
+
+  await step('plan du programme en volet bas sur smartphone', async () => {
+    await page.locator('[data-tool="panel-outline"]').tap();
+    await page.locator('.outline-item[data-kind="tool"]').nth(1).tap();
+    assert.match(await page.locator('.outline-item.is-current').textContent(), /T0202/);
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-plan');
+    await page.locator('.side-panel button[aria-label="Fermer le panneau"]').tap();
   });
 
   await step('définition au tap, lisible en largeur smartphone', async () => {

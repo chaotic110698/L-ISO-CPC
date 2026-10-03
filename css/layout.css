@@ -189,7 +189,7 @@
 
 .editor-page {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   /* Colonne limitée à la largeur de l'écran : la barre d'outils défile au lieu d'élargir la page. */
   grid-template-columns: minmax(0, 1fr);
   height: 100%;

@@ -2574,3 +2574,263 @@ a.lesson-card:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---- Plan du programme ---- */
+
+.outline {
+  display: grid;
+  gap: 2px;
+}
+
+.outline-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.outline-item:hover {
+  background: var(--surface-2);
+}
+
+.outline-item.is-current {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.outline-item.is-level-1 {
+  padding-left: 20px;
+}
+
+.outline-item.is-level-2 {
+  padding-left: 36px;
+}
+
+.outline-label {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.outline-item.is-section .outline-label {
+  font-family: inherit;
+  letter-spacing: 0.02em;
+}
+
+.outline-item.is-program .outline-label { color: var(--c-program); }
+.outline-item.is-tool .outline-label { color: var(--c-tool); }
+.outline-item.is-cycle .outline-label { color: var(--c-cycle); }
+.outline-item.is-call .outline-label,
+.outline-item.is-end .outline-label { color: var(--c-mcode); font-weight: 500; }
+
+.outline-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outline-example {
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.outline-line {
+  grid-column: 3;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* ---- Barre de touches ISO (sous l'éditeur) ---- */
+
+.iso-keys {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px max(4px, env(safe-area-inset-right)) 4px max(4px, env(safe-area-inset-left));
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.iso-keys[hidden] {
+  display: none;
+}
+
+/* iOS : posée au-dessus du clavier (voir le module iso-keys). */
+.iso-keys.is-floating {
+  position: fixed;
+  right: 0;
+  left: 0;
+  z-index: 40;
+}
+
+.iso-keys-row {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.iso-keys-row::-webkit-scrollbar {
+  display: none;
+}
+
+.iso-keys-commands {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  padding-left: 4px;
+  border-left: 1px solid var(--border);
+}
+
+.iso-key {
+  flex: none;
+  min-width: 34px;
+  height: 40px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.iso-key:active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.iso-key.is-toggle {
+  min-width: 48px;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.iso-key.is-command {
+  font-family: inherit;
+}
+
+/* ---- Interface agrandie (Paramètres › Apparence › Taille de l'interface) ----
+   Zones tactiles et texte de l'interface agrandis ; le texte du programme a son propre réglage. */
+
+:root[data-ui-size='large'] {
+  --tap: 50px;
+  --topbar-height: 58px;
+}
+
+:root[data-ui-size='large'] body {
+  font-size: 16.5px;
+}
+
+:root[data-ui-size='large'] .icon {
+  width: 24px;
+  height: 24px;
+}
+
+:root[data-ui-size='large'] .btn,
+:root[data-ui-size='large'] .input {
+  min-height: var(--tap);
+  font-size: 16.5px;
+}
+
+:root[data-ui-size='large'] .btn-small {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 15px;
+}
+
+:root[data-ui-size='large'] .tool-btn {
+  height: 48px;
+  min-width: 48px;
+}
+
+:root[data-ui-size='large'] .sidenav-item {
+  min-height: 52px;
+}
+
+:root[data-ui-size='large'] .segment {
+  min-height: 44px;
+  font-size: 15.5px;
+}
+
+:root[data-ui-size='large'] .chip {
+  min-height: 40px;
+  font-size: 15px;
+}
+
+:root[data-ui-size='large'] .switch {
+  width: 56px;
+  height: 32px;
+}
+
+:root[data-ui-size='large'] .switch-track::after {
+  width: 24px;
+  height: 24px;
+}
+
+:root[data-ui-size='large'] .switch input:checked + .switch-track::after {
+  transform: translateX(24px);
+}
+
+:root[data-ui-size='large'] .setting {
+  padding: 14px 0;
+}
+
+:root[data-ui-size='large'] .setting-description,
+:root[data-ui-size='large'] .card-description {
+  font-size: 14.5px;
+}
+
+:root[data-ui-size='large'] .action-item,
+:root[data-ui-size='large'] .quiz-option {
+  min-height: 56px;
+}
+
+:root[data-ui-size='large'] .program-open {
+  padding: 12px 12px;
+}
+
+:root[data-ui-size='large'] .quiz-line {
+  min-height: 48px;
+}
+
+:root[data-ui-size='large'] .code-token {
+  padding: 2px 1px;
+}
+
+:root[data-ui-size='large'] .statusbar {
+  min-height: 32px;
+  font-size: 13.5px;
+}
+
+:root[data-ui-size='large'] .outline-item {
+  min-height: 48px;
+  font-size: 16px;
+}
+
+:root[data-ui-size='large'] .iso-key {
+  min-width: 46px;
+  height: 50px;
+  font-size: 19px;
+}

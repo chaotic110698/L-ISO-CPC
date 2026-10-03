@@ -299,3 +299,11 @@
 .cm-searchMatch-selected {
   background: var(--occurrence-current);
 }
+
+/* Zéro barré (module slashed-zero) : barre oblique dessinée par un dégradé, couleur du texte. */
+.cm-zero {
+  background-image: linear-gradient(to bottom right, transparent calc(50% - 0.04em), currentColor calc(50% - 0.04em), currentColor calc(50% + 0.04em), transparent calc(50% + 0.04em));
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  background-size: 0.42em 0.62em;
+}

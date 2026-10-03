@@ -205,6 +205,7 @@ export class EditorHost {
       run: (command) => host.run(command),
       getText: () => host.getText(),
       focus: () => host.focus(),
+      remeasure: () => host.remeasure(),
       get view() {
         return host.view;
       },

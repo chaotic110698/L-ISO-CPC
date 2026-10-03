@@ -59,6 +59,18 @@ export const CORE_SETTINGS = [
     default: () => (systemPrefersDark() ? 'dark' : 'light'),
   },
   {
+    key: 'ui.size',
+    section: 'apparence',
+    type: 'choice',
+    label: 'Taille de l’interface',
+    description: 'Grande : boutons, menus, interrupteurs et listes agrandis, pour un usage au doigt ou avec des gants. Le texte du programme se règle à part (Éditeur › Taille du texte).',
+    options: [
+      { value: 'normal', label: 'Normale' },
+      { value: 'large', label: 'Grande' },
+    ],
+    default: 'normal',
+  },
+  {
     key: 'editor.fontSize',
     section: 'editeur',
     type: 'number',
