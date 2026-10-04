@@ -3302,6 +3302,56 @@ a.lesson-card:hover {
   white-space: nowrap;
 }
 
+.sim-panels {
+  display: grid;
+  gap: 6px;
+}
+
+.sim-tools summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sim-tools summary .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.sim-tool-table {
+  width: 100%;
+  margin-top: 6px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sim-tool-table th,
+.sim-tool-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.sim-tool-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.sim-side {
+  min-height: 32px;
+  padding: 2px 6px;
+  font-size: 13px;
+}
+
+.sim-note {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .sim-alerts summary {
   display: flex;
   align-items: center;

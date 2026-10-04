@@ -38,6 +38,22 @@ export function evaluateTokens(tokens, vars) {
   const isKeyword = (name) => peek()?.type === 'keyword' && peek().keyword === name;
   const value = (v) => (v == null ? 0 : v);
 
+  /** Comparaison (EQ, NE, GT, LT, GE, LE) : 1 si vraie, 0 sinon. */
+  const COMPARE = { EQ: (a, b) => a === b, NE: (a, b) => a !== b, GT: (a, b) => a > b, LT: (a, b) => a < b, GE: (a, b) => a >= b, LE: (a, b) => a <= b };
+  function comparison() {
+    const left = expression();
+    const op = peek()?.type === 'keyword' && COMPARE[peek().keyword] ? peek().keyword : null;
+    if (!op) return left;
+    i++;
+    const right = expression();
+    // Comparaison d'une variable vide : vide EQ vide est vrai ; vide vaut 0 sinon.
+    if (op === 'EQ' || op === 'NE') {
+      const same = left == null || right == null ? left == null && right == null : Math.abs(left - right) < 1e-9;
+      return Number(op === 'EQ' ? same : !same);
+    }
+    return Number(COMPARE[op](value(left), value(right)));
+  }
+
   function expression() {
     let left = term();
     for (;;) {
@@ -65,7 +81,7 @@ export function evaluateTokens(tokens, vars) {
   function bracket() {
     if (!isOp('[')) throw new MacroError('crochet [ attendu');
     i++;
-    const v = expression();
+    const v = comparison();
     if (!isOp(']')) throw new MacroError('crochet ] manquant');
     i++;
     return v;
@@ -101,7 +117,7 @@ export function evaluateTokens(tokens, vars) {
     throw new MacroError(`« ${token.text} » inattendu`);
   }
 
-  const result = expression();
+  const result = comparison();
   if (i < tokens.length) throw new MacroError(`« ${tokens[i].text} » inattendu`);
   return result;
 }

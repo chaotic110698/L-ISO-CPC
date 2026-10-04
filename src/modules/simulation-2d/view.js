@@ -161,7 +161,8 @@ export function createView(canvas, { onPick } = {}) {
   }
 
   function drawTool(at, move) {
-    const shape = shapeFor(move);
+    const side = scene.sides?.[move.tool ?? ''] ?? 'external';
+    const shape = shapeFor(move, side);
     const r = at.x / 2;
     g.fillStyle = colors.tool;
     g.strokeStyle = '#0008';
@@ -175,9 +176,10 @@ export function createView(canvas, { onPick } = {}) {
     g.closePath();
     g.fill();
     g.stroke();
-    // Porte-outil, vers l'extérieur.
-    const [hx0, hy0] = toScreen(at.z + 1.5, r + 5);
-    const [hx1, hy1] = toScreen(at.z + 7.5, r + 22);
+    // Porte-outil : vers l'extérieur, ou barre d'alésage qui sort par la face (outil intérieur).
+    const internal = side === 'internal' && !move.shape;
+    const [hx0, hy0] = internal ? toScreen(at.z + 1.5, r - 1.5) : toScreen(at.z + 1.5, r + 5);
+    const [hx1, hy1] = internal ? toScreen(at.z + 60, r - 5.5) : toScreen(at.z + 7.5, r + 22);
     g.fillStyle = '#6b7280';
     g.fillRect(Math.min(hx0, hx1), Math.min(hy0, hy1), Math.abs(hx1 - hx0), Math.abs(hy1 - hy0));
   }

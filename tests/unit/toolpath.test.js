@@ -146,3 +146,26 @@ test('sous-programme M98 (répétitions) et M99', () => {
   assert.deepEqual(warnings, []);
   assert.match(run('M98 P1234').warnings[0].message, /O1234 absent/);
 });
+
+test('côté des outils deviné : extérieur (exemple), intérieur (alésage depuis Ø18)', async () => {
+  const { toolSides } = await import('../../src/engine/index.js');
+  const demo = simulate(FANUC_TURNING_DEMO.content.split('\n'), a);
+  assert.deepEqual(toolSides(demo.moves), { '': 'external', T0101: 'external', T0202: 'external', T0303: 'external' });
+  const bore = run('T0404\nG97 S1000 M3\nG0 X18. Z2.\nG71 U1.5 R0.5\nG71 P10 Q20 U-0.4 W0.1 F0.2\nN10 G0 X40.\nG1 Z0 F0.1\nX34. Z-3.\nZ-30.\nN20 X18.');
+  assert.deepEqual(toolSides(bore.moves), { T0404: 'internal' });
+  // Ébauche intérieure : prises de passe vers l'extérieur, jamais au-delà du profil (Ø40 - 0,4).
+  const cuts = bore.moves.filter((m) => m.kind === 'cut');
+  assert.ok(cuts.length > 5 && cuts.every((m) => m.points.every((p) => p.x <= 39.6 + 1e-9)));
+});
+
+test('macros : WHILE … DO / END, IF … GOTO, IF … THEN, N avant l’affectation', () => {
+  // Trois passes de chariotage calculées par une boucle.
+  const loop = run(['#1 = 50.', 'M3 S1000', 'G0 X52. Z2.', 'WHILE [#1 GT 44.] DO1', '#1 = #1 - 2.', 'G1 X#1 F0.2', 'Z-20.', 'G0 X52. Z2.', 'END1', 'G0 X100.'].join('\n'));
+  assert.deepEqual(loop.moves.filter((m) => m.kind === 'cut' && m.points[1].z === -20).map((m) => m.points[1].x), [48, 46, 44]);
+  assert.deepEqual(loop.variables, { 1: 44 });
+  const jump = run(['N10 #2 = 0', 'N20 #2 = #2 + 1', 'IF [#2 LT 3] GOTO 20', 'IF [#2 EQ 3] THEN #5 = 7', 'IF [#2 EQ 9] THEN #6 = 1', 'GOTO 50', 'G0 X999.', 'N50 G0 X#5'].join('\n'));
+  assert.deepEqual(jump.variables, { 2: 3, 5: 7 });
+  assert.deepEqual(jump.moves.map((m) => m.points.at(-1).x), [7], 'la ligne sautée n’est pas exécutée');
+  assert.match(run('GOTO 99').warnings[0].message, /aucun bloc N99/);
+  assert.match(run('WHILE [1 EQ 1] DO1\nG0 X1.\nEND1').warnings.at(-1).message, /boucle sans fin/);
+});

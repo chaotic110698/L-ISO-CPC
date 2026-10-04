@@ -214,9 +214,11 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE } = {}) 
       const block = blocks[i];
       const line = i + 1;
       currentLine = line;
-      if (assign(parsed[i].tokens, line)) continue;
-      if (parsed[i].tokens.some((t) => t.type === 'keyword' && ['IF', 'GOTO', 'WHILE', 'END', 'DO'].includes(t.keyword))) {
-        warn(line, 'Instruction de macro (IF, GOTO, WHILE…) pas encore simulée : ligne ignorée.');
+      const tokens = macroTokens(parsed[i].tokens);
+      if (assign(tokens, line)) continue;
+      if (tokens[0]?.type === 'keyword' && ['IF', 'GOTO', 'WHILE', 'END'].includes(tokens[0].keyword)) {
+        const next = control(tokens, line, i);
+        if (next != null) i = next - 1; // saut : la boucle reprend à l'indice `next`
         continue;
       }
       if (block.isEmpty) continue;
@@ -244,6 +246,76 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE } = {}) 
     depth++;
     for (let n = 0; n < times && !state.ended; n++) run(start + 1, blocks.length - 1);
     depth--;
+  }
+
+  /** Jetons utiles d'une ligne de macro : sans commentaires, numéro de bloc N ni saut de bloc « / ». */
+  const macroTokens = (tokens) => tokens.filter((t) => t.type !== 'comment' && t.type !== 'blockDelete' && !(t.type === 'word' && /^N/i.test(t.text)));
+
+  /** Indice de la ligne du bloc N`value`, ou -1 (alerte). */
+  function jumpTo(value, line) {
+    const index = byNumber.get(Math.round(value)) ?? -1;
+    if (index < 0) warn(line, `GOTO ${value} : aucun bloc N${value} dans le programme.`);
+    return index < 0 ? null : index;
+  }
+
+  /** Expression entre crochets qui commence à tokens[at] : { value, end } (end : indice après « ] »). */
+  function condition(tokens, at, line) {
+    if (tokens[at]?.text !== '[') throw new Error('condition entre crochets attendue');
+    let level = 0;
+    for (let k = at; k < tokens.length; k++) {
+      if (tokens[k].text === '[') level++;
+      if (tokens[k].text === ']' && --level === 0) return { value: evaluateTokens(tokens.slice(at, k + 1), vars), end: k + 1 };
+    }
+    throw new Error(`crochet ] manquant (ligne ${line})`);
+  }
+
+  /** Numéro de boucle après DO / END (DO1, END 1). */
+  const loopId = (tokens, keyword) => {
+    const at = tokens.findIndex((t) => t.type === 'keyword' && t.keyword === keyword);
+    return at >= 0 && tokens[at + 1]?.type === 'number' ? tokens[at + 1].value : null;
+  };
+
+  /**
+   * Instructions de contrôle : GOTO n, IF […] GOTO n, IF […] THEN #… = …, WHILE […] DO m / END m.
+   * Renvoie l'indice de la prochaine ligne à exécuter, ou null pour continuer normalement.
+   */
+  function control(tokens, line, index) {
+    const keyword = tokens[0].keyword;
+    try {
+      if (keyword === 'GOTO') return jumpTo(evaluateTokens(tokens.slice(1), vars), line);
+      if (keyword === 'IF') {
+        const { value, end } = condition(tokens, 1, line);
+        const then = tokens[end];
+        if (then?.keyword === 'GOTO') return value ? jumpTo(evaluateTokens(tokens.slice(end + 1), vars), line) : null;
+        if (then?.keyword === 'THEN') {
+          if (value) assign(tokens.slice(end + 1), line);
+          return null;
+        }
+        throw new Error('GOTO ou THEN attendu après la condition');
+      }
+      if (keyword === 'WHILE') {
+        const { value } = condition(tokens, 1, line);
+        const id = loopId(tokens, 'DO');
+        if (value) return null;
+        // Condition fausse : reprise après le END de même numéro.
+        for (let k = index + 1; k < blocks.length; k++) {
+          const t = macroTokens(parsed[k].tokens);
+          if (t[0]?.keyword === 'END' && loopId(t, 'END') === id) return k + 1;
+        }
+        throw new Error(`END${id} introuvable pour WHILE … DO${id}`);
+      }
+      if (keyword === 'END') {
+        const id = loopId(tokens, 'END');
+        for (let k = index - 1; k >= 0; k--) {
+          const t = macroTokens(parsed[k].tokens);
+          if (t[0]?.keyword === 'WHILE' && loopId(t, 'DO') === id) return k; // la condition est réévaluée
+        }
+        throw new Error(`WHILE … DO${id} introuvable pour END${id}`);
+      }
+    } catch (error) {
+      warn(line, `Instruction de macro non exécutée (${error.message}).`);
+    }
+    return null;
   }
 
   /** Affectation « #n = expression » : calculée et mémorisée. Renvoie true si c'en était une. */
@@ -476,4 +548,30 @@ export function moveMinutes(move, { rapidRate = 10000, defaultRpm = 1000, maxRpm
     minutes += length / (move.feed * rpm);
   }
   return minutes;
+}
+
+/**
+ * Côté de travail de chaque outil, deviné d'après le trajet : « internal » (alésage) si son
+ * point d'approche est plus près de l'axe que là où il coupe ensuite, sinon « external ».
+ * → { T0101: 'external', T0303: 'internal', … }
+ */
+export function toolSides(moves) {
+  const sides = {};
+  const tools = [...new Set(moves.map((m) => m.tool ?? ''))];
+  for (const tool of tools) {
+    const own = moves.filter((m) => (m.tool ?? '') === tool);
+    const firstCut = own.findIndex((m) => m.kind === 'cut');
+    if (firstCut < 0) {
+      sides[tool] = 'external';
+      continue;
+    }
+    const cutPoints = own.filter((m) => m.kind === 'cut').flatMap((m) => m.points);
+    const cutX = cutPoints.map((p) => Math.abs(p.x));
+    const nearZ = Math.max(...cutPoints.map((p) => p.z)) + 15;
+    // Point d'approche : premier rapide qui arrive près de la pièce (pas le retour au point de référence).
+    const rapids = own.slice(0, firstCut).filter((m) => m.kind === 'rapid').map((m) => m.points.at(-1));
+    const approach = rapids.find((p) => p.z <= nearZ) ?? rapids.at(-1) ?? own[firstCut].points[0];
+    sides[tool] = Math.abs(approach.x) < Math.max(...cutX) - 0.01 ? 'internal' : 'external';
+  }
+  return sides;
 }

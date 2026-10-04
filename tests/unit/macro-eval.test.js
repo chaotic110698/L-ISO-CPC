@@ -32,3 +32,13 @@ test('simulation : affectations puis adresses calculées', () => {
   assert.deepEqual(moves.map((m) => [m.points.at(-1).x, m.points.at(-1).z]), [[20, 15], [40, -15]]);
   assert.match(warnings[0].message, /X#500 : variable vide/);
 });
+
+test('comparaisons : EQ NE GT LT GE LE, combinées par AND / OR, variable vide', () => {
+  assert.equal(evaluateExpression('[#1 GT 5]', vars), 1);
+  assert.equal(evaluateExpression('[#1 LE 5]', vars), 0);
+  assert.equal(evaluateExpression('[#1 EQ 10] AND [#2 LT 5]', vars), 1);
+  assert.equal(evaluateExpression('[#1 EQ 0] OR [#2 NE 4]', vars), 0);
+  assert.equal(evaluateExpression('[#100 EQ #0]', vars), 1, 'vide EQ vide');
+  assert.equal(evaluateExpression('[#100 EQ 0]', vars), 0, 'vide n’est pas égal à 0');
+  assert.equal(evaluateExpression('[#100 LT 1]', vars), 1, 'vide vaut 0 dans GT / LT');
+});

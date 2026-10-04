@@ -1,6 +1,6 @@
 import { EditorView } from '@codemirror/view';
 import { h } from '../../core/dom.js';
-import { simulate } from '../../engine/index.js';
+import { simulate, toolSides } from '../../engine/index.js';
 import { highlightCode } from '../../ui/code-view.js';
 import { icon } from '../../ui/icons.js';
 import { segmented } from '../../ui/segmented.js';
@@ -19,7 +19,8 @@ const STOCK_FIELDS = [
   { key: 'diameter', label: 'Diamètre du brut', unit: 'mm' },
   { key: 'length', label: 'Longueur du brut (partie serrée comprise)', unit: 'mm' },
   { key: 'face', label: 'Z de la face avant du brut', unit: 'mm', hint: '0 : face déjà dressée ; 1 : 1 mm de surépaisseur à dresser.' },
-  { key: 'bore', label: 'Alésage déjà présent (tube)', unit: 'mm Ø', hint: '0 pour une barre pleine.' },
+  { key: 'bore', label: 'Diamètre intérieur (pré-perçage ou tube)', unit: 'mm Ø', hint: '0 pour une barre pleine.' },
+  { key: 'boreDepth', label: 'Profondeur du pré-perçage', unit: 'mm', hint: 'Depuis la face avant ; 0 : débouchant (tube).' },
   { key: 'grip', label: 'Longueur serrée dans les mors', unit: 'mm' },
 ];
 
@@ -71,6 +72,7 @@ export default {
     const range = h('input', { type: 'range', class: 'sim-range', min: 0, max: 1000, value: 0, 'aria-label': 'Avancement', oninput: () => seek((range.value / 1000) * (scene?.timeline.total ?? 0)) });
     const playButton = h('button', { type: 'button', class: 'btn btn-primary sim-play', dataset: { action: 'sim-play' }, onclick: () => (playing ? pause() : play()) });
     const alertsEl = h('details', { class: 'sim-alerts', hidden: true });
+    const toolsEl = h('details', { class: 'sim-tools', hidden: true });
     const stockEl = h('span', { class: 'sim-stock' });
 
     const iconButton = (name, label, action, onclick) => h('button', { type: 'button', class: 'icon-btn sim-btn', title: label, 'aria-label': label, dataset: { action }, onclick }, icon(name));
@@ -114,7 +116,7 @@ export default {
             speedControl,
           ),
           blockEl,
-          alertsEl,
+          h('div', { class: 'sim-panels' }, toolsEl, alertsEl),
         ),
       );
       page.tabIndex = -1;
@@ -131,6 +133,7 @@ export default {
     }
 
     const stockKey = () => `simulation.stock.${ctx.workspace.current?.id ?? 'sans-id'}`;
+    const sidesKey = () => `simulation.sides.${ctx.workspace.current?.id ?? 'sans-id'}`;
 
     /** (Re)calcule la simulation si le texte du programme a changé. */
     function load({ force = false } = {}) {
@@ -146,10 +149,14 @@ export default {
       const stock = sanitizeStock(saved ?? fallback, fallback);
       const material = createMaterial(stock);
       const timeline = createTimeline(result.moves, { rapidRate: ctx.settings.get('simulation.rapidRate') });
-      scene = { ...result, lines, stock, material, timeline, front: ctx.settings.get('simulation.turret') === 'front', stockSource: saved ? 'saisi' : fromProgram ? 'programme' : 'estimé' };
+      const autoSides = toolSides(result.moves);
+      const overrides = ctx.kv.get(sidesKey(), {}) ?? {};
+      const sides = Object.fromEntries(Object.entries(autoSides).map(([tool, side]) => [tool, overrides[tool] ?? side]));
+      scene = { ...result, lines, stock, material, timeline, sides, autoSides, overrides, front: ctx.settings.get('simulation.turret') === 'front', stockSource: saved ? 'saisi' : fromProgram ? 'programme' : 'estimé' };
       scene.warnings = [...result.warnings, ...collisions(scene)].sort((a, b) => a.line - b.line);
-      stockEl.replaceChildren(icon('edit'), `Brut Ø${stock.diameter} × ${stock.length}`);
+      stockEl.replaceChildren(icon('edit'), `Brut Ø${stock.diameter} × ${stock.length}${stock.bore > 0 ? ` · int. Ø${stock.bore}` : ''}`);
       renderAlerts();
+      renderTools();
       material.reset(stockColor());
       erased = { index: 0, fraction: 0 };
       time = 0;
@@ -163,14 +170,14 @@ export default {
      * Passage complet hors écran : rapides qui traversent de la matière, pointe dans les mors.
      * (Les déplacements de travail enlèvent la matière : c'est leur rôle.)
      */
-    function collisions({ moves, stock }) {
+    function collisions({ moves, stock, sides }) {
       const found = [];
       const probe = createMaterial(stock, { maxPixels: 900 });
       probe.reset();
       const zGrip = stock.face - stock.length + stock.grip;
       const jaw = Math.max(6, stock.diameter * 0.175);
       for (const move of moves) {
-        const shape = shapeFor(move);
+        const shape = shapeFor(move, sides[move.tool ?? '']);
         for (let i = 1; i < move.points.length; i++) {
           const a = { z: move.points[i - 1].z, r: move.points[i - 1].x / 2 };
           const b = { z: move.points[i].z, r: move.points[i].x / 2 };
@@ -208,6 +215,50 @@ export default {
       );
     }
 
+    /** Outils : côté de travail (deviné ou choisi) et temps d'usinage de chacun. */
+    function renderTools() {
+      const { moves, timeline, autoSides, overrides } = scene;
+      const tools = Object.keys(autoSides).filter((tool) => tool && moves.some((m) => m.tool === tool && m.kind === 'cut'));
+      toolsEl.hidden = !tools.length;
+      const time = (tool, kind) => moves.reduce((sum, m, i) => sum + (m.tool === tool && (!kind || m.kind === kind) ? timeline.durations[i] : 0), 0);
+      const SIDES = { external: 'Extérieur', internal: 'Intérieur' };
+      toolsEl.replaceChildren(
+        h('summary', null, icon('clock'), `Outils et temps (${formatDuration(timeline.total)})`),
+        h(
+          'table',
+          { class: 'sim-tool-table' },
+          h('thead', null, h('tr', null, h('th', null, 'Outil'), h('th', null, 'Côté'), h('th', null, 'Travail'), h('th', null, 'Rapides'))),
+          h(
+            'tbody',
+            null,
+            tools.map((tool) => {
+              const select = h(
+                'select',
+                {
+                  class: 'input sim-side',
+                  'aria-label': `Côté de travail de ${tool}`,
+                  dataset: { tool },
+                  onchange: () => {
+                    const next = { ...(ctx.kv.get(sidesKey(), {}) ?? {}) };
+                    if (select.value === 'auto') delete next[tool];
+                    else next[tool] = select.value;
+                    ctx.kv.set(sidesKey(), next);
+                    load({ force: true });
+                  },
+                },
+                h('option', { value: 'auto' }, `Auto (${SIDES[autoSides[tool]].toLowerCase()})`),
+                h('option', { value: 'external' }, 'Extérieur'),
+                h('option', { value: 'internal' }, 'Intérieur'),
+              );
+              select.value = overrides[tool] ?? 'auto';
+              return h('tr', null, h('td', { class: 'mono' }, tool), h('td', null, select), h('td', null, formatDuration(time(tool, 'cut'))), h('td', null, formatDuration(time(tool, 'rapid'))));
+            }),
+          ),
+        ),
+        h('p', { class: 'sim-note' }, 'Temps estimé sans accélérations ni changements d’outil ; rapides à la vitesse réglée dans Paramètres.'),
+      );
+    }
+
     /** Efface la matière jusqu'à la position courante (en repartant du brut si on recule). */
     function advanceMaterial(to) {
       const { material, timeline, moves } = scene;
@@ -220,7 +271,7 @@ export default {
         const until = i === to.index ? to.fraction : 1;
         if (until <= from) continue;
         const points = timeline.partial(i, until, from);
-        const shape = shapeFor(moves[i]);
+        const shape = shapeFor(moves[i], scene.sides[moves[i].tool ?? '']);
         for (let k = 1; k < points.length; k++) material.sweep({ z: points[k - 1].z, r: points[k - 1].x / 2 }, { z: points[k].z, r: points[k].x / 2 }, shape);
       }
       erased = { ...to };
@@ -326,7 +377,7 @@ export default {
         body: h(
           'div',
           { class: 'cycle-form' },
-          h('p', { class: 'card-description' }, `La barre avant usinage, pour dessiner la matière. Actuellement : ${source}. Astuce : écrivez-le dans le programme, par exemple `, h('code', null, '(BRUT D50 X 80)'), ' — diamètre 50, longueur 80.'),
+          h('p', { class: 'card-description' }, `La barre avant usinage, pour dessiner la matière. Actuellement : ${source}. Astuce : écrivez-le dans le programme, par exemple `, h('code', null, '(BRUT D50 X 80)'), ' — diamètre 50, longueur 80 ; pré-percé : ', h('code', null, '(BRUT D50 X 80 PERCE D20 P30)'), ' — trou Ø20 sur 30 mm de profondeur.'),
           h('div', { class: 'cycle-fields' }, fields),
         ),
         actions: [{ label: 'Appliquer', value: 'ok', primary: true }, ...(scene.stockSource === 'saisi' ? [{ label: 'Reprendre celui du programme', value: 'reset' }] : []), { label: 'Annuler' }],

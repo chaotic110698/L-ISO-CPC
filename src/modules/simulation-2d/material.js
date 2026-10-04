@@ -50,8 +50,15 @@ export const TOOL_SHAPES = {
   ],
 };
 
-/** Forme d'outil d'un déplacement : indiquée par le cycle, filetage G32 / G33, sinon outil à charioter. */
-export const shapeFor = (move) => TOOL_SHAPES[move.shape] ?? (['G32', 'G33'].includes(move.code) ? TOOL_SHAPES.thread : TOOL_SHAPES.turning);
+/**
+ * Forme d'outil d'un déplacement : indiquée par le cycle, filetage G32 / G33, sinon outil à
+ * charioter. side 'internal' (alésage) : plaquette retournée, vers l'axe.
+ */
+export function shapeFor(move, side = 'external') {
+  const shape = TOOL_SHAPES[move.shape] ?? (['G32', 'G33'].includes(move.code) ? TOOL_SHAPES.thread : TOOL_SHAPES.turning);
+  const flips = side === 'internal' && (shape === TOOL_SHAPES.turning || shape === TOOL_SHAPES.thread);
+  return flips ? shape.map(([dz, dr]) => [dz, -dr]) : shape;
+}
 
 /** Enveloppe convexe (chaîne monotone) d'une liste de points [z, r]. */
 export function convexHull(points) {
@@ -88,7 +95,22 @@ export function createMaterial(stock, { maxPixels = 2400, makeCanvas = () => doc
     g.clearRect(0, 0, canvas.width, canvas.height);
     g.fillStyle = color ?? '#8a94a3';
     g.fillRect(1, 1, stock.length * res, stock.diameter * res);
-    if (stock.bore > 0) g.clearRect(0, (radius - stock.bore / 2) * res + 1, canvas.width, stock.bore * res);
+    if (stock.bore > 0) {
+      const rb = stock.bore / 2;
+      if (!(stock.boreDepth > 0)) {
+        g.clearRect(0, (radius - rb) * res + 1, canvas.width, stock.bore * res); // tube : débouchant
+      } else {
+        // Pré-perçage borgne depuis la face, fond en pointe de foret (118°).
+        const bottom = zMax - stock.boreDepth;
+        const tip = bottom - rb / Math.tan((59 * Math.PI) / 180);
+        g.globalCompositeOperation = 'destination-out';
+        g.beginPath();
+        for (const [z, r] of [[zMax + 1, rb], [bottom, rb], [tip, 0], [bottom, -rb], [zMax + 1, -rb]]) g.lineTo(...px(z, r));
+        g.closePath();
+        g.fill();
+        g.globalCompositeOperation = 'source-over';
+      }
+    }
   }
 
   /** Efface la matière balayée par l'outil de a à b ({ z, r }), sur les deux moitiés. */

@@ -17,4 +17,4 @@ export { shiftCoordinates } from './shift.js';
 export { foldRanges } from './folding.js';
 export { programOutline, outlineSectionAt } from './outline.js';
 export { resolveGoTo, executableLines } from './goto.js';
-export { simulate, arcPoints, arcCenterFromRadius, codeSystemOf, moveLength, moveMinutes, REFERENCE } from './toolpath.js';
+export { simulate, arcPoints, arcCenterFromRadius, codeSystemOf, moveLength, moveMinutes, toolSides, REFERENCE } from './toolpath.js';
