@@ -46,6 +46,8 @@ const PATHS = {
   bookmark: '<path d="M6 4h12v17l-6-4-6 4z"/>',
   outline: '<path d="M4 6h2M9 6h11M7 12h2M12 12h8M7 18h2M12 18h8"/>',
   console: '<rect x="3" y="3" width="18" height="13" rx="2"/><path d="M7 7h10M7 10h6M7 13h8M9 20h6M12 16v4"/>',
+  play: '<path d="M8 5v14l11-7z"/>',
+  pause: '<path d="M8 5v14M16 5v14"/>',
   keyboard: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h0M11 10h0M15 10h0M7 14h10"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   warning: '<path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.5"/>',

@@ -523,8 +523,10 @@ const desktop = await open(DESKTOP);
     const first = page.locator('.cm-tooltip-autocomplete li').first();
     await first.waitFor();
     assert.match(await first.textContent(), /^#902prochaine macro libre/, '#900 et #901 sont nommées : réservées');
+    await page.waitForTimeout(120); // CodeMirror ignore Entrée pendant 75 ms après l'ouverture de la liste
     await page.keyboard.press('Enter');
-    assert.match(await editorText(page), /\n#902$/);
+    const text = await editorText(page);
+    assert.match(text, /\n#902$/, JSON.stringify(text.slice(-80)));
     await page.locator('[data-tool="undo"]').click();
     await page.locator('[data-tool="undo"]').click();
     await page.locator('[data-tool="panel-variables"]').click();
@@ -564,6 +566,7 @@ const desktop = await open(DESKTOP);
     assert.match(await options.first().textContent(), /^G7\.1Interpolation cylindrique/);
     await page.keyboard.type('1');
     await page.waitForFunction(() => document.querySelector('.cm-tooltip-autocomplete li')?.textContent.startsWith('G71'));
+    await page.waitForTimeout(120);
     await page.keyboard.press('Enter');
     assert.match(await editorText(page), /\nG71$/);
     await typeAtEnd(page, ' M');
@@ -742,6 +745,29 @@ const desktop = await open(DESKTOP);
     assert.equal(await page.evaluate(() => window.isoApp.editor.cursor.line), 9);
   });
 
+  await step('simulation 2D : brut lu dans le programme, lecture, bloc par bloc, retour à l’éditeur', async () => {
+    await page.locator('[data-tool="simulation"]').click();
+    await page.waitForSelector('.sim-page:not([hidden])');
+    assert.match(await page.locator('[data-action="sim-stock"]').textContent(), /Brut Ø50 × 80/);
+    assert.match(await page.locator('.sim-time').textContent(), /^0 s \/ \d+/);
+    await page.locator('[data-action="sim-play"]').click();
+    await page.waitForFunction(() => !/^0 s/.test(document.querySelector('.sim-time').textContent));
+    await page.locator('[data-action="sim-play"]').click(); // pause
+    await page.locator('[data-action="sim-next"]').click();
+    const status = await page.locator('.sim-page .console-counter').textContent();
+    assert.match(status, /^Ligne \d+/);
+    await page.evaluate(() => {
+      const range = document.querySelector('.sim-range');
+      range.value = 1000;
+      range.dispatchEvent(new Event('input'));
+    });
+    await shot(page, 'pc-sombre-simulation');
+    const line = Number(/Ligne (\d+)/.exec(await page.locator('.sim-page .console-counter').textContent())[1]);
+    await page.locator('[data-action="sim-leave"]').click();
+    await page.waitForSelector('.editor-page:not([hidden])');
+    assert.equal(await page.evaluate(() => window.isoApp.editor.cursor.line), line, 'curseur sur la ligne simulée');
+  });
+
   await step('zéro barré dans l’éditeur, désactivable', async () => {
     assert.ok((await page.locator('.cm-content .cm-zero').count()) > 10, 'zéros barrés');
     await gotoSettings(page);
@@ -796,7 +822,7 @@ const desktop = await open(DESKTOP);
     assert.match(await page.locator('.cycle-preview').textContent(), /T0505\nG50 S3000\nG96 S220 M03/);
     await shot(page, 'pc-sombre-modele-outil');
     await page.locator('.dialog button', { hasText: 'Insérer' }).click();
-    assert.match(await editorText(page), /T0505\nG50 S3000/);
+    await page.waitForFunction(() => /T0505\nG50 S3000/.test(window.isoApp.editor.getText()));
     await setText(page, before);
     await page.evaluate(() => window.isoApp.profiles.update('fanuc-turning-bc', { enabled: true }));
     await page.locator('.cycle-item[data-template="tool"]').click();
@@ -1315,6 +1341,25 @@ const mobile = await open(MOBILE);
     await shot(page, 'mobile-clair-pupitre');
     await page.locator('[data-action="console-leave"]').tap();
     await page.waitForSelector('.editor-page:not([hidden])');
+  });
+
+  await step('simulation 2D sur smartphone : sans défilement horizontal, brut modifiable', async () => {
+    await navTo(page, 'simulation', '.sim-page:not([hidden])');
+    assert.equal(await noHorizontalScroll(), true);
+    await page.locator('[data-action="sim-stock"]').tap();
+    await page.locator('.dialog input[name="diameter"]').fill('60');
+    await page.locator('.dialog button', { hasText: 'Appliquer' }).tap();
+    await page.waitForFunction(() => /Ø60/.test(document.querySelector('[data-action="sim-stock"]').textContent));
+    await page.evaluate(() => {
+      const range = document.querySelector('.sim-range');
+      range.value = 600;
+      range.dispatchEvent(new Event('input'));
+    });
+    await shot(page, 'mobile-clair-simulation');
+    await page.locator('[data-action="sim-stock"]').tap();
+    await page.locator('.dialog button', { hasText: 'Reprendre celui du programme' }).tap();
+    await page.waitForFunction(() => /Ø50/.test(document.querySelector('[data-action="sim-stock"]').textContent));
+    await gotoEditor(page);
   });
 
   await step('définition au tap, lisible en largeur smartphone', async () => {

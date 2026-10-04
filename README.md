@@ -65,8 +65,16 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | E12 | Fiche à imprimer / PDF | ✅ |
 | E13 | Installation comme application (PWA, site hébergé) | ✅ |
 
-Prévus ensuite (emplacements déjà réservés) : simulation 2D tour, autres types de machines,
-estimation du temps d'usinage.
+### Simulation 2D (tournage)
+
+| Étape | Contenu | État |
+|---|---|---|
+| S1 | Interpréteur de trajectoire (G0/G1/G2/G3, U/W ou G91, G28, G70, variables #), page animée : brut, enlèvement de matière, mandrin, lecture / pause / vitesse / bloc par bloc, temps estimé, alertes | ✅ |
+| S2 | Cycles développés en passes : G71/G72/G73, G90/G92/G94, G74/G75, G76, sous-programmes M98/M99 | à faire |
+| S3 | Formes d'outil (intérieur, gorge, filetage), temps d'usinage par outil | à faire |
+| S5 | Instructions de macro IF / GOTO / WHILE | à faire |
+
+Prévus ensuite : autres types de machines.
 
 ## Pages
 
@@ -134,6 +142,7 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Édition | Annuler / rétablir | Barre d'outils, Ctrl+Z / Ctrl+Y | `history` |
 | Analyse | Vérificateur de syntaxe (parenthèses, caractères invalides, codes inconnus ou incompatibles, adresses répétées, plusieurs M, cotes sans point décimal, avance non définie, broche sans S, G96 sans G50, G40 oublié, P/Q/GOTO introuvables, N en double, M30 manquant — chaque règle désactivable) | Soulignements, marge, barre d'état, Ctrl+Maj+M | `checker` |
 | Analyse | État modal à la ligne du curseur | Barre d'état et panneau « État modal » | `modal-state` |
+| Analyse | Simulation 2D du tournage : usinage animé (brut lu dans « (BRUT D50 X 80) » ou saisi, enlèvement de matière, mandrin, outil), lecture / pause / vitesse ×1 à ×100 / bloc par bloc, temps estimé, alertes (rapide G0 dans la matière, outil dans les mors, arc impossible, avance absente…) ; un tap sur le trajet va au bloc, retour à l'éditeur sur la ligne simulée | Menu latéral « Simulation 2D », bouton « Simuler » | `simulation-2d` |
 | Analyse | Plan du programme : programmes O…, sections (ligne de commentaire seule), outils, cycles, appels M98/G65, fins ; un clic va à la ligne, la partie en cours est surlignée | Panneau « Plan » | `outline` |
 | Analyse | Tableau des variables (nom et description personnels, utilisations, valeurs répétées transformables en macro) | Panneau « Variables » | `variables` |
 | Analyse | Avertissements de macros (hors des plages libres du profil, double utilisation entre programmes — non bloquants) | Soulignement orange, barre d'état | `macro-warnings` |
@@ -201,8 +210,8 @@ src/
   settings/             schéma déclaratif des réglages et magasin persistant
   ui/                   coque (barre du haut + menu latéral), éditeur (enveloppe CodeMirror),
                         pages (accueil, éditeur, paramètres, profils), dialogues, barre d'outils…
-  modules/              fonctionnalités branchables, une par dossier (+ emplacements futurs :
-                        simulation-2d, machining-time)
+  modules/              fonctionnalités branchables, une par dossier (+ emplacement futur :
+                        machining-time)
 tests/unit/             tests Node (moteur, stockage, réglages, modules…)
 tests/e2e/              test de bout en bout dans Chromium (PC et smartphone)
 tools/                  build (esbuild), génération des icônes PNG
@@ -364,11 +373,11 @@ en vigueur sont celles du profil activé le plus spécifique qui en déclare.
 
 ### Moteur d'analyse
 
-`src/engine/` ne dépend ni du DOM ni de CodeMirror (réutilisable par la future simulation) :
+`src/engine/` ne dépend ni du DOM ni de CodeMirror (réutilisé par la simulation) :
 `tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
 variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
 `modalStateAt` (état modal), `checkProgram` (vérificateur, règles dans `CHECKER_RULES`),
-`renumber`, `shiftCoordinates`, `foldRanges`, `programOutline` (plan du programme), `resolveGoTo` (« Aller à… »), `diffLines` (comparaison), `formatIso`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
+`renumber`, `shiftCoordinates`, `foldRanges`, `programOutline` (plan du programme), `resolveGoTo` (« Aller à… »), `simulate` / `moveMinutes` (trajectoire de l'outil et durées, `toolpath.js`), `evaluateExpression` (expressions de macro, `macro-eval.js`), `diffLines` (comparaison), `formatIso`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
 (variables, valeurs répétées, avertissements), plages de macros (`parseRanges`, `nextFreeVariable`…), `tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
 `occurrenceKey` (identité d'une macro, d'un code ou
 d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).

@@ -1,11 +1,14 @@
-# Simulation 2D du tournage (hors phase 1)
+# Simulation 2D du tournage
 
-Emplacement réservé. Module prévu :
+- `src/engine/toolpath.js` (moteur, sans DOM) interprète le programme : liste des déplacements
+  `{ line, kind: 'rapid' | 'cut', points: [{ x (diamètre), z }], feed, speed… }` et alertes ;
+  `src/engine/macro-eval.js` calcule les expressions de macro.
+- `cycles.js` : cycles développés en passes (G71, G76…), fournis à l'interpréteur (étape S2).
+- `stock.js` : brut lu dans un commentaire « (BRUT D50 X 80) », estimé, ou saisi (par programme).
+- `material.js` : matière restante en pixels ; l'outil balayé le long du trajet l'efface.
+- `playback.js` : chronologie (durée de chaque déplacement, position de l'outil à un instant).
+- `view.js` : dessin dans un `<canvas>`, zoom / déplacement au doigt ou à la souris.
+- `index.js` : page `#/simulation`, commandes de lecture, alertes, lien avec l'éditeur.
 
-- consomme la sortie du moteur (`src/engine/`) : blocs analysés + état modal ;
-- calcule la trajectoire de l'outil dans le plan X/Z (G0/G1/G2/G3, cycles développés en mouvements élémentaires) ;
-- l'affiche dans un `<canvas>` (vue de profil, diamètre/rayon selon le profil machine) ;
-- enregistre sa propre page via le routeur (`#/simulation`) et son lien de navigation ;
-- évolution possible : enlèvement de matière animé, estimation du temps d'usinage (`../machining-time/`).
-
-Comme tout module, il sera activable/désactivable dans Paramètres.
+Tourelle avant ou arrière : simple miroir à l'affichage (réglage du module). Prochaine étape :
+`../machining-time/` (temps d'usinage détaillé) s'appuiera sur `moveMinutes`.
