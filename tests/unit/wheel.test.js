@@ -48,3 +48,13 @@ test('changement de diamant : départ depuis la position réelle (origine du dia
   const [, second] = toWheelMoves(moves, wheel, (t) => kinds[t]);
   assert.deepEqual(second.points, [{ x: 2, z: -3 }, { x: 2, z: 39.8 }]);
 });
+
+test('sens des axes inversé (selon la machine) : X+ vers la meule, Z+ vers le flanc gauche', () => {
+  const moves = [{ tool: 'T1', points: [{ x: 2, z: 0 }, { x: -0.2, z: 5 }] }];
+  const wheel = sanitizeWheel({ width: 40, invertX: true, invertZ: true });
+  const [left] = toWheelMoves(moves, wheel, () => 'leftFlank');
+  assert.deepEqual(left.points, [{ x: -2, z: 0 }, { x: 0.2, z: -5 }]);
+  const [right] = toWheelMoves(moves, { ...wheel, invertX: false }, () => 'rightFlank');
+  assert.deepEqual(right.points, [{ x: 2, z: 40 }, { x: -0.2, z: 35 }], 'origine flanc droit inchangée : angle droit');
+  assert.equal(sanitizeWheel({}).invertX, false);
+});

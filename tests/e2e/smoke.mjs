@@ -797,6 +797,12 @@ const desktop = await open(DESKTOP);
       range.dispatchEvent(new Event('input'));
     });
     await shot(page, 'pc-sombre-taillage-meule');
+    // Sens des axes inversable (trièdre propre à chaque machine), mémorisé par programme.
+    await page.locator('[data-action="sim-invert-x"]').click();
+    await page.waitForFunction(() => document.querySelector('[data-action="sim-invert-x"]').getAttribute('aria-pressed') === 'true');
+    assert.equal(await page.locator('[data-action="sim-invert-z"]').getAttribute('aria-pressed'), 'false');
+    await page.locator('[data-action="sim-invert-x"]').click();
+    await page.waitForFunction(() => document.querySelector('[data-action="sim-invert-x"]').getAttribute('aria-pressed') === 'false');
     // Largeur et diamant par défaut modifiables, machine mémorisée par programme.
     await page.locator('[data-action="sim-stock"]').click();
     await page.locator('.dialog input[name="width"]').fill('25');

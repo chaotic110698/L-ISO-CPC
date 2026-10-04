@@ -139,11 +139,14 @@ export function createView(canvas, { onPick } = {}) {
     g.setLineDash([]);
     g.fillStyle = colors.text;
     g.font = '12px system-ui, sans-serif';
-    // Légende du côté opposé à la périphérie (loin du diamant).
-    g.fillText(`Meule — largeur ${width} mm`, mx + 6, scene.front ? top + 16 : top + depth * s - 8);
+    // Légende du côté opposé à la périphérie (loin du diamant), à droite : à gauche, les flèches du repère.
+    const caption = `Meule — largeur ${width} mm`;
+    g.fillText(caption, mx + width * s - 6 - g.measureText(caption).width, scene.front ? top + 16 : top + depth * s - 8);
     // Repère : axes Z (vers la droite) et X (en s'éloignant de la meule) depuis l'origine principale.
     const [x0, y0] = toScreen(0, 0);
-    const away = scene.front ? 1 : -1; // sens écran de X+
+    // Sens écran de X+ (en s'éloignant de la meule, sauf axe inversé) et de Z+ (vers la droite, sauf axe inversé).
+    const away = (scene.front ? 1 : -1) * (scene.wheelSettings?.invertX ? -1 : 1);
+    const right = scene.wheelSettings?.invertZ ? -1 : 1;
     const arrow = (x1, y1, label, dx, dy) => {
       g.beginPath();
       g.moveTo(x0, y0);
@@ -161,7 +164,7 @@ export function createView(canvas, { onPick } = {}) {
     g.strokeStyle = colors.text;
     g.fillStyle = colors.text;
     g.lineWidth = 1.5;
-    arrow(x0 + 46, y0, 'Z+', 4, 4);
+    arrow(x0 + right * 46, y0, 'Z+', right > 0 ? 4 : -22, 4);
     arrow(x0, y0 + away * 46, 'X+', 4, away > 0 ? 12 : 0);
     let previousEnd = -Infinity;
     for (const origin of scene.origins ?? []) {

@@ -74,6 +74,10 @@ export default {
     const playButton = h('button', { type: 'button', class: 'btn btn-primary sim-play', dataset: { action: 'sim-play' }, onclick: () => (playing ? pause() : play()) });
     const alertsEl = h('details', { class: 'sim-alerts', hidden: true });
     const toolsEl = h('details', { class: 'sim-tools', hidden: true });
+    // Taillage de meule : sens des axes selon la machine (le trièdre diffère d'une machine à l'autre).
+    const axisButton = (axis) =>
+      h('button', { type: 'button', class: 'btn btn-small sim-axis', dataset: { action: `sim-invert-${axis.toLowerCase()}` }, title: `Inverser le sens de ${axis}+`, 'aria-pressed': 'false', onclick: () => invertAxis(axis) }, `${axis}+ ${axis === 'X' ? '⇅' : '⇄'}`);
+    const axesEl = h('div', { class: 'sim-axes', hidden: true, role: 'group', 'aria-label': 'Sens des axes' }, axisButton('X'), axisButton('Z'));
     const stockEl = h('span', { class: 'sim-stock' });
 
     const iconButton = (name, label, action, onclick) => h('button', { type: 'button', class: 'icon-btn sim-btn', title: label, 'aria-label': label, dataset: { action }, onclick }, icon(name));
@@ -102,7 +106,7 @@ export default {
             h('button', { type: 'button', class: 'btn btn-small', dataset: { action: 'sim-leave' }, onclick: () => leave() }, icon('code'), h('span', { class: 'sim-hide-narrow' }, 'Éditeur')),
           ),
         ),
-        h('div', { class: 'sim-stage' }, canvas, iconButton('fold', 'Ajuster la vue (double-tap)', 'sim-fit', () => view.fit())),
+        h('div', { class: 'sim-stage' }, canvas, iconButton('fold', 'Ajuster la vue (double-tap)', 'sim-fit', () => view.fit()), axesEl),
         h(
           'div',
           { class: 'sim-controls' },
@@ -232,8 +236,22 @@ export default {
       return found.filter((w, i, all) => all.findIndex((o) => o.line === w.line) === i);
     }
 
+    /** Inverse le sens d'un axe (X ou Z) pour ce programme, puis recalcule. */
+    function invertAxis(axis) {
+      const key = axis === 'X' ? 'invertX' : 'invertZ';
+      const current = scene.wheelSettings ?? sanitizeWheel(WHEEL_DEFAULTS);
+      // Seul le sens est mémorisé : la largeur lue dans le programme reste prise en compte.
+      ctx.kv.set(wheelKey(), { ...(ctx.kv.get(wheelKey(), null) ?? {}), [key]: !current[key] });
+      load({ force: true });
+    }
+
     /** Affichage d'une simulation (re)calculée. */
     function show() {
+      axesEl.hidden = !scene.wheel;
+      if (scene.wheel) {
+        axesEl.querySelector('[data-action="sim-invert-x"]').setAttribute('aria-pressed', String(scene.wheelSettings.invertX));
+        axesEl.querySelector('[data-action="sim-invert-z"]').setAttribute('aria-pressed', String(scene.wheelSettings.invertZ));
+      }
       const { material } = scene;
       renderAlerts();
       renderTools();

@@ -3250,6 +3250,29 @@ a.lesson-card:hover {
   border: 1px solid var(--border);
 }
 
+.sim-axes {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.sim-axes[hidden] {
+  display: none;
+}
+
+.sim-axis {
+  background: var(--surface);
+  font-family: var(--font-mono);
+}
+
+.sim-axis[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .sim-controls {
   display: grid;
   gap: 8px;

@@ -25,7 +25,7 @@ export const ORIGINS = {
   right: 'Angle droit de la meule',
 };
 
-export const WHEEL_DEFAULTS = { width: 40, xMode: 'diameter', straightOrigin: 'left', diamond: 'straight' };
+export const WHEEL_DEFAULTS = { width: 40, xMode: 'diameter', straightOrigin: 'left', diamond: 'straight', invertX: false, invertZ: false };
 const number = (text) => Number(String(text).replace(',', '.'));
 
 /** Diamant droit (pointe à 60°, corps vers le haut), tourné de `angle` degrés autour de la pointe. */
@@ -78,7 +78,11 @@ export function originZ(kind, wheel) {
  * diamondOf(outil) → 'straight' | 'leftFlank' | 'rightFlank'.
  */
 export function toWheelMoves(moves, wheel, diamondOf) {
-  const radial = (x) => (wheel.xMode === 'radius' ? x : x / 2);
+  // Sens des axes selon la machine : X+ en s'éloignant de la meule (ou vers elle si inversé),
+  // Z+ vers le flanc droit (ou vers le flanc gauche si inversé).
+  const sx = wheel.invertX ? -1 : 1;
+  const sz = wheel.invertZ ? -1 : 1;
+  const radial = (x) => sx * (wheel.xMode === 'radius' ? x : x / 2);
   let previous = null;
   return moves.map((move) => {
     const diamond = diamondOf(move.tool ?? '');
@@ -87,7 +91,7 @@ export function toWheelMoves(moves, wheel, diamondOf) {
     // calcule avec l'origine du diamant précédent.
     const startDz = previous && previous !== diamond ? originZ(previous, wheel) : dz;
     previous = diamond;
-    return { ...move, diamond, points: move.points.map((p, i) => ({ x: radial(p.x) * 2, z: p.z + (i === 0 ? startDz : dz) })) };
+    return { ...move, diamond, points: move.points.map((p, i) => ({ x: radial(p.x) * 2, z: sz * p.z + (i === 0 ? startDz : dz) })) };
   });
 }
 
@@ -99,5 +103,7 @@ export function sanitizeWheel(raw) {
     xMode: raw?.xMode === 'radius' ? 'radius' : 'diameter',
     straightOrigin: ORIGINS[raw?.straightOrigin] ? raw.straightOrigin : WHEEL_DEFAULTS.straightOrigin,
     diamond: DIAMONDS[raw?.diamond] ? raw.diamond : WHEEL_DEFAULTS.diamond,
+    invertX: raw?.invertX === true,
+    invertZ: raw?.invertZ === true,
   };
 }
