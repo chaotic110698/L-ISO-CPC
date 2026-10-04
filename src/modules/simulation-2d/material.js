@@ -19,16 +19,39 @@ export const TOOL_SHAPES = {
     [1.5, 5],
   ],
   // Outil à fileter : pointe à 60°.
-  threading: [
+  thread: [
     [0, 0],
     [1.6, 2.8],
     [1.6, 8],
     [-1.6, 8],
     [-1.6, 2.8],
   ],
+  // Foret Ø8 dans l'axe (pointe à 118°), pour G74 sur X0.
+  drill: [
+    [0, 0],
+    [2.4, 4],
+    [40, 4],
+    [40, -4],
+    [2.4, -4],
+  ],
+  // Outil à gorge radiale (G75) : plaquette de 3 mm, pointe = coin côté mandrin.
+  groove: [
+    [0, 0],
+    [3, 0],
+    [3, 14],
+    [0, 14],
+  ],
+  // Outil à gorge frontale (G74 hors de l'axe) : 3 mm de large en X.
+  grooveFace: [
+    [0, 0],
+    [0, 3],
+    [14, 3],
+    [14, 0],
+  ],
 };
 
-export const shapeFor = (move) => (['G32', 'G33', 'G76', 'G92thread'].includes(move.code) || move.thread ? TOOL_SHAPES.threading : TOOL_SHAPES.turning);
+/** Forme d'outil d'un déplacement : indiquée par le cycle, filetage G32 / G33, sinon outil à charioter. */
+export const shapeFor = (move) => TOOL_SHAPES[move.shape] ?? (['G32', 'G33'].includes(move.code) ? TOOL_SHAPES.thread : TOOL_SHAPES.turning);
 
 /** Enveloppe convexe (chaîne monotone) d'une liste de points [z, r]. */
 export function convexHull(points) {
@@ -93,15 +116,21 @@ export function createMaterial(stock, { maxPixels = 2400, makeCanvas = () => doc
     return g.getImageData(Math.floor(x), Math.floor(y), 1, 1).data[3] > 128;
   }
 
-  /** Vrai si la pointe traverse de la matière entre a et b (extrémités exclues sur 0,3 mm). */
+  /**
+   * Vrai si la pointe traverse de la matière entre a et b (extrémités exclues sur 0,3 mm).
+   * Seule une pénétration franche compte : le point et ses voisins à `tol` doivent être dans la
+   * matière (une pointe qui longe une surface usinée n'est pas une collision).
+   */
   function hitsAlong(a, b) {
+    const tol = Math.max(0.2, 2 / res);
+    const deep = (z, r) => solidAt(z, r) && solidAt(z + tol, r) && solidAt(z - tol, r) && solidAt(z, r + tol) && solidAt(z, r - tol);
     const length = Math.hypot(b.z - a.z, b.r - a.r);
     const steps = Math.ceil(length * res);
     for (let i = 0; i <= steps; i++) {
       const d = (length * i) / Math.max(1, steps);
       if (d < 0.3 || d > length - 0.3) continue;
       const t = d / length;
-      if (solidAt(a.z + (b.z - a.z) * t, Math.abs(a.r + (b.r - a.r) * t))) return true;
+      if (deep(a.z + (b.z - a.z) * t, Math.abs(a.r + (b.r - a.r) * t))) return true;
     }
     return false;
   }

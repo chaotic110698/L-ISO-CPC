@@ -749,6 +749,7 @@ const desktop = await open(DESKTOP);
     await page.locator('[data-tool="simulation"]').click();
     await page.waitForSelector('.sim-page:not([hidden])');
     assert.match(await page.locator('[data-action="sim-stock"]').textContent(), /Brut Ø50 × 80/);
+    assert.equal(await page.locator('.sim-alerts').isHidden(), true, 'programme d’exemple sans alerte (G71, G70, G76 simulés)');
     assert.match(await page.locator('.sim-time').textContent(), /^0 s \/ \d+/);
     await page.locator('[data-action="sim-play"]').click();
     await page.waitForFunction(() => !/^0 s/.test(document.querySelector('.sim-time').textContent));

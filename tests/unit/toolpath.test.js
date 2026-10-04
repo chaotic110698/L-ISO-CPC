@@ -75,7 +75,7 @@ test('programme d’exemple : G70 suit le profil, G71 saute son profil, outils e
   assert.deepEqual(last(finish.at(-1)), { x: 48, z: -55 });
   const css = sim.moves.find((m) => m.tool === 'T0202' && m.kind === 'cut');
   assert.deepEqual([css.speedMode, css.speed, css.maxSpeed, css.feed], ['css', 280, 3000, 0.12]);
-  assert.ok(sim.warnings.some((w) => /G71 : cycle pas encore simulé/.test(w.message)));
+  assert.deepEqual(sim.warnings, [], 'programme d’exemple sans alerte');
 });
 
 test('durée des déplacements : rapide, mm/min, mm/tr en G97 et G96 limité', async () => {
@@ -88,4 +88,61 @@ test('durée des déplacements : rapide, mm/min, mm/tr en G97 et G96 limité', a
   close(moveMinutes(line(50, 0, 50, -100, { feed: 0.1, feedMode: 'rev', speed: 200, speedMode: 'css', maxSpeed: 1000 })), 1);
   close(moveMinutes(line(50, 0, 50, -100, { feed: 0.1, feedMode: 'rev', speed: 200, speedMode: 'css' })), 100 / (0.1 * ((1000 * 200) / (Math.PI * 50))));
   assert.equal(moveMinutes(line(20, 0, 20, -10, { feed: null })), 0);
+});
+
+const lastOf = (moves) => moves.at(-1).points.at(-1);
+
+test('G71 : passes de 2 mm au rayon jusqu’au profil décalé, demi-finition, retour au point A', () => {
+  const sim = simulate(FANUC_TURNING_DEMO.content.split('\n'), a);
+  const g71 = sim.moves.filter((m) => m.line === 13);
+  // Passes en Z (travail) : niveaux Ø48, Ø44 … Ø20 (8 passes), au-dessus du profil Ø16 + 0,4.
+  const passes = g71.filter((m) => m.kind === 'cut' && m.points[0].x === m.points[1].x && m.points[0].z === 2);
+  assert.deepEqual(passes.map((m) => m.points[0].x), [48, 44, 40, 36, 32, 28, 24, 20]);
+  // Ø48 : arrêt sur le profil décalé (Ø48 + 0,4 atteint au flanc Z-30 + 0,1).
+  close(passes[0].points[1].z, -29.9, 'arrêt de la 1re passe');
+  // Ø20 : arrêt au chanfrein (Ø20,4 à Z-1,9), donc entre Z-2 et Z0.
+  assert.ok(passes.at(-1).points[1].z < 0 && passes.at(-1).points[1].z > -2);
+  assert.deepEqual(lastOf(g71), { x: 52, z: 2 }, 'retour au point A');
+  for (const m of g71) for (const p of m.points) assert.ok(p.x >= 16.4 - 1e-9 || m.kind === 'rapid', 'jamais sous la surépaisseur');
+});
+
+test('cycle simple G90 modal : répété par les blocs X seuls', () => {
+  const { moves } = run('G0 X52. Z2.\nM3\nG90 X48. Z-30. F0.2\nX46.\nX44.\nG0 X100.');
+  const cycles = moves.filter((m) => m.code === 'G90');
+  assert.equal(cycles.length, 12);
+  assert.deepEqual(cycles.filter((m) => m.kind === 'cut' && m.points[0].z !== -30 && m.points[1].z === -30).map((m) => m.points[1].x), [48, 46, 44]);
+  assert.deepEqual(lastOf(moves), { x: 100, z: 2 });
+});
+
+test('G76 : passes à section constante jusqu’au fond du filet, outil à fileter', () => {
+  const { moves } = run('G0 X24. Z5.\nM3 S1200\nG76 P020060 Q50 R0.02\nG76 X18.16 Z-22. P920 Q300 F1.5');
+  const cuts = moves.filter((m) => m.code === 'G76' && m.kind === 'cut');
+  assert.ok(cuts.length >= 8, `${cuts.length} passes`);
+  assert.ok(cuts.every((m) => m.shape === 'thread' && m.feed === 1.5));
+  const diameters = cuts.map((m) => m.points.at(-1).x);
+  close(diameters.at(-1), 18.16, 'fond du filet');
+  close(diameters.at(-2), 18.16, '2 passes de finition (P02…)');
+  close(diameters[0], 18.16 + 2 * (0.92 - 0.3), '1re passe : Q300 µm');
+  for (let i = 1; i < diameters.length; i++) assert.ok(diameters[i] <= diameters[i - 1] + 1e-9, 'de plus en plus profond');
+});
+
+test('G74 perçage avec débourrage, G75 gorge, G72 et G73', () => {
+  const drill = run('G0 X0 Z2.\nM3\nG74 R1.\nG74 Z-20. Q5000 F0.1').moves.filter((m) => m.code === 'G74');
+  assert.deepEqual(drill.filter((m) => m.kind === 'cut').map((m) => m.points.at(-1).z), [-3, -8, -13, -18, -20]);
+  assert.ok(drill.every((m) => m.shape === 'drill'));
+  const groove = run('G0 X42. Z-20.\nM3\nG75 R0.5\nG75 X30. Z-24. P2000 Q3000 F0.05').moves.filter((m) => m.code === 'G75' && m.kind === 'cut');
+  assert.deepEqual([...new Set(groove.map((m) => m.points.at(-1).z))], [-20, -23, -24]);
+  assert.equal(Math.min(...groove.map((m) => m.points.at(-1).x)), 30);
+  const face = run('G0 X52. Z2.\nM3\nG72 W2. R0.5\nG72 P10 Q20 U0.2 W0.1 F0.2\nN10 G0 Z-6.\nG1 X20.\nN20 Z0').moves.filter((m) => m.code === 'G72' && m.kind === 'cut');
+  assert.ok(face.length > 3 && face.every((m) => m.points.every((p) => p.x >= 20 - 1e-9)));
+  const repeat = run('G0 X52. Z2.\nM3\nG73 U3. W0 R3\nG73 P10 Q20 U0.4 W0 F0.2\nN10 G0 X30.\nG1 Z-20.\nN20 X50.').moves.filter((m) => m.code === 'G73' && m.kind === 'cut' && m.points[0].z === 2);
+  assert.deepEqual(repeat.map((m) => m.points[0].x), [36.4, 33.4, 30.4]);
+});
+
+test('sous-programme M98 (répétitions) et M99', () => {
+  const text = 'O1000\nG0 X50. Z2.\nM98 P20010\nG0 X100.\nM30\nO0010\nG0 W-5.\nM99';
+  const { moves, warnings } = run(text);
+  assert.deepEqual(moves.map((m) => [m.line, m.points.at(-1).z]), [[2, 2], [7, -3], [7, -8], [4, -8]]);
+  assert.deepEqual(warnings, []);
+  assert.match(run('M98 P1234').warnings[0].message, /O1234 absent/);
 });

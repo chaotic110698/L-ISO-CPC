@@ -4,7 +4,6 @@ import { simulate } from '../../engine/index.js';
 import { highlightCode } from '../../ui/code-view.js';
 import { icon } from '../../ui/icons.js';
 import { segmented } from '../../ui/segmented.js';
-import { TURNING_CYCLES } from './cycles.js';
 import { createMaterial, shapeFor } from './material.js';
 import { createTimeline, formatDuration } from './playback.js';
 import { guessStock, parseStock, sanitizeStock } from './stock.js';
@@ -140,7 +139,7 @@ export default {
       if (!force && scene && text === sourceText) return;
       sourceText = text;
       const lines = text.split('\n');
-      const result = simulate(lines, codes, { cycles: TURNING_CYCLES });
+      const result = simulate(lines, codes);
       const fromProgram = parseStock(lines);
       const fallback = fromProgram ?? guessStock(result.moves);
       const saved = ctx.kv.get(stockKey(), null);

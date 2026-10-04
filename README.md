@@ -70,7 +70,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | Étape | Contenu | État |
 |---|---|---|
 | S1 | Interpréteur de trajectoire (G0/G1/G2/G3, U/W ou G91, G28, G70, variables #), page animée : brut, enlèvement de matière, mandrin, lecture / pause / vitesse / bloc par bloc, temps estimé, alertes | ✅ |
-| S2 | Cycles développés en passes : G71/G72/G73, G90/G92/G94, G74/G75, G76, sous-programmes M98/M99 | à faire |
+| S2 | Cycles développés en passes : G71/G72 (ébauche), G73 (répétition de forme), G90/G92/G94 (G77/G78/G79 en B/C, modaux), G74/G75 (perçage, gorges), G76 (filetage multipasses) ; sous-programmes M98/M99 | ✅ |
 | S3 | Formes d'outil (intérieur, gorge, filetage), temps d'usinage par outil | à faire |
 | S5 | Instructions de macro IF / GOTO / WHILE | à faire |
 
@@ -377,7 +377,7 @@ en vigueur sont celles du profil activé le plus spécifique qui en déclare.
 `tokenizeLine` (jetons d'une ligne), `parseLine` / `parseProgram` (blocs : mots, codes,
 variables, commentaires, N, O, saut de bloc), `createCodeDictionary` (couches de codes),
 `modalStateAt` (état modal), `checkProgram` (vérificateur, règles dans `CHECKER_RULES`),
-`renumber`, `shiftCoordinates`, `foldRanges`, `programOutline` (plan du programme), `resolveGoTo` (« Aller à… »), `simulate` / `moveMinutes` (trajectoire de l'outil et durées, `toolpath.js`), `evaluateExpression` (expressions de macro, `macro-eval.js`), `diffLines` (comparaison), `formatIso`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
+`renumber`, `shiftCoordinates`, `foldRanges`, `programOutline` (plan du programme), `resolveGoTo` (« Aller à… »), `simulate` / `moveMinutes` (trajectoire de l'outil et durées, `toolpath.js` ; cycles développés en passes, `turning-cycles.js`), `evaluateExpression` (expressions de macro, `macro-eval.js`), `diffLines` (comparaison), `formatIso`, `cutting` (formules de coupe et conversions d'unités), `analyzeMacros` / `variableWarnings`
 (variables, valeurs répétées, avertissements), plages de macros (`parseRanges`, `nextFreeVariable`…), `tokenCategory` (catégorie d'affichage), `explainToken` (définition d'un jeton dans son bloc),
 `occurrenceKey` (identité d'une macro, d'un code ou
 d'une valeur ; X25. et X25 sans point sont distingués, car sur Fanuc X25 peut valoir 0,025 mm).

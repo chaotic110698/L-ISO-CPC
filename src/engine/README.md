@@ -22,5 +22,10 @@ publique est réexportée par `index.js`.
 | `format.js` | écriture d'une valeur à la manière d'un programme ISO (point décimal, sans zéros inutiles) |
 | `diff.js` | comparaison ligne à ligne (algorithme de Myers) pour les versions |
 | `cutting.js` | formules de coupe des calculateurs (tournage, fraisage, rectification) |
+| `outline.js` | plan du programme (programmes, sections, outils, cycles, appels, fins) |
+| `goto.js` | « Aller à… » (ligne, N, O, T) et lignes exécutables (mode pupitre) |
+| `toolpath.js` | interpréteur de trajectoire pour la simulation : déplacements, alertes, durées |
+| `turning-cycles.js` | cycles de tournage développés en passes (G71…G76, G90/G92/G94) |
+| `macro-eval.js` | calcul des expressions de macro (#…, [ ], fonctions) |
 
 Règle : **aucun import depuis `src/ui/` ni depuis `@codemirror/*`** dans ce dossier.

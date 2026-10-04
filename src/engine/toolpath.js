@@ -1,5 +1,6 @@
 import { parseLine } from './parser.js';
 import { evaluateExpression, evaluateTokens } from './macro-eval.js';
+import { cycleParameters, isModalSimpleCycle, turningCycle } from './turning-cycles.js';
 
 /**
  * Interpréteur de trajectoire pour le tournage (plan X/Z) : fonction pure, sans DOM. Sert à la
@@ -68,7 +69,7 @@ export function arcCenterFromRadius(from, to, radius, cw) {
  */
 export const codeSystemOf = (dictionary) => (dictionary?.lookup('G91')?.group === 'distance' ? 'bc' : 'a');
 
-export function simulate(lineTexts, dictionary, { reference = REFERENCE, cycles = {} } = {}) {
+export function simulate(lineTexts, dictionary, { reference = REFERENCE } = {}) {
   const texts = [...lineTexts];
   const parsed = texts.map((text) => parseLine(text));
   const blocks = parsed.map((p) => p.block);
@@ -102,9 +103,17 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, cycles 
     tool: null,
     spindle: null, // 'M3' | 'M4' | null
     ended: false,
+    cycleParams: {}, // paramètres des 1res lignes de cycles (G71 U… R…)
+    modalCycle: null, // cycle simple modal en cours (G90 / G92 / G94, ou G77 / G78 / G79)
   };
   let steps = 0;
   let currentLine = 0;
+  let capture = null; // tracé d'un profil P…Q sans l'exécuter (cycles d'ébauche)
+  let depth = 0; // profondeur d'appel de sous-programme
+  const programs = new Map(); // numéro O → indice de ligne
+  blocks.forEach((block, i) => {
+    if (block.programNumber != null && !programs.has(block.programNumber)) programs.set(block.programNumber, i);
+  });
 
   /**
    * Valeur numérique de l'adresse `letter` du bloc : nombre écrit, ou expression de macro
@@ -128,9 +137,9 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, cycles 
   }
 
   /** Ajoute un déplacement (points en diamètre) depuis la position courante. */
-  function pushMove(line, kind, code, points) {
+  function pushMove(line, kind, code, points, extra = {}) {
     if (!points.length) return;
-    moves.push({
+    (capture ?? moves).push({
       line,
       kind,
       code,
@@ -142,6 +151,7 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, cycles 
       maxSpeed: state.maxSpeed,
       tool: state.tool,
       spindle: state.spindle,
+      ...extra,
     });
     state.pos = { ...points.at(-1) };
   }
@@ -212,9 +222,28 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, cycles 
       if (block.isEmpty) continue;
       const jump = execute(block, line, i);
       if (jump === 'end') return false;
+      if (jump === 'return') return true; // M99 : fin du sous-programme
       if (typeof jump === 'number') i = jump; // reprise après la ligne d'indice `jump`
     }
     return true;
+  }
+
+  /**
+   * M98 P… : appel d'un sous-programme du même fichier. P de plus de 4 chiffres : répétitions
+   * puis numéro (P30010 : 3 fois O0010) ; sinon L donne les répétitions.
+   */
+  function callSubprogram(block, line) {
+    const word = block.words.find((w) => w.letter === 'P' && w.valueKind === 'number');
+    if (!word) return warn(line, 'M98 sans numéro de programme P.');
+    const digits = word.valueText.replace(/\D/g, '');
+    const number = digits.length > 4 ? Number(digits.slice(-4)) : Number(digits);
+    const times = digits.length > 4 ? Number(digits.slice(0, -4)) || 1 : (num(block, 'L') ?? 1);
+    const start = programs.get(number);
+    if (start == null) return warn(line, `M98 P${word.valueText} : sous-programme O${String(number).padStart(4, '0')} absent de ce fichier, appel ignoré.`);
+    if (depth >= 8) return warn(line, 'Appels de sous-programmes imbriqués trop profonds (plus de 8) : appel ignoré.');
+    depth++;
+    for (let n = 0; n < times && !state.ended; n++) run(start + 1, blocks.length - 1);
+    depth--;
   }
 
   /** Affectation « #n = expression » : calculée et mémorisée. Renvoie true si c'en était une. */
@@ -237,6 +266,7 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, cycles 
     let cycle = null;
     let reference28 = false;
     let coordinateSet = false;
+    let callSub = false;
     for (const word of block.codes) {
       const code = word.code;
       const def = dictionary?.lookup(code);
@@ -252,15 +282,17 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, cycles 
       else if (code === 'M3' || code === 'M4') state.spindle = code;
       else if (code === 'M5') state.spindle = null;
       else if (code === 'M30' || code === 'M2') {
-        state.ended = true;
-      } else if (def?.category === 'cycle') cycle = code;
+        if (!capture) state.ended = true;
+      } else if (code === 'M98') callSub = true;
+      else if (code === 'G65' || code === 'G66') warn(line, `${code} : appel de macro pas encore simulé.`);
+      else if (def?.category === 'cycle' || isModalSimpleCycle(code, system)) cycle = code;
     }
 
     // Outil, avance, vitesse (S de limitation après G50 / G92).
     const T = block.words.find((w) => w.letter === 'T' && w.valueKind === 'number');
     if (T) {
       state.tool = `T${T.valueText}`;
-      tools.push({ line, word: state.tool });
+      if (!capture) tools.push({ line, word: state.tool });
     }
     const F = num(block, 'F');
     if (F !== undefined && !cycle) state.feed = F;
@@ -289,56 +321,119 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, cycles 
     }
 
     if (cycle) {
+      if (cycle !== state.modalCycle) state.lastCycleTarget = null;
+      state.modalCycle = isModalSimpleCycle(cycle, system) ? cycle : null;
       const result = runCycle(cycle, block, line, index);
       return state.ended ? 'end' : result;
     }
 
-    if (motionCode) state.motion = motionCode;
+    if (motionCode) {
+      state.motion = motionCode;
+      state.modalCycle = null;
+      state.lastCycleTarget = null;
+    }
     const to = target(block);
-    if (to) motionTo(line, block, state.motion, to);
-    if (block.codes.some((w) => w.code === 'M99')) return 'end';
+    // Bloc qui ne donne que X / Z après un cycle simple : le cycle est répété (modal).
+    if (to && state.modalCycle && !motionCode) runCycle(state.modalCycle, block, line, index);
+    else if (to) motionTo(line, block, state.motion, to);
+    if (callSub) callSubprogram(block, line);
+    if (block.codes.some((w) => w.code === 'M99')) return depth > 0 || capture ? 'return' : 'end';
     return state.ended ? 'end' : null;
   }
 
   /** Index de ligne du bloc N`value`, ou -1. */
   const lineOfN = (value) => byNumber.get(value) ?? -1;
 
+  /** Points du profil P…Q (indices start…stop) tracés depuis la position courante, sans les exécuter. */
+  function traceProfile(start, stop) {
+    const saved = { ...state, pos: { ...state.pos } };
+    const outer = capture;
+    capture = [];
+    run(start, stop);
+    const traced = capture;
+    capture = outer;
+    Object.assign(state, saved);
+    return [{ ...saved.pos }, ...traced.flatMap((m) => m.points.slice(1))];
+  }
+
   /**
-   * Cycles : G70 (finition sur le profil P…Q) est exécuté ici ; les autres sont fournis par
-   * `cycles` (développement en passes). Un cycle de profil non simulé saute son profil P…Q,
-   * comme la commande, qui reprend après le bloc Q.
+   * Cycles : la 1re ligne (G71 U… R…, G76 P… Q… R…) mémorise ses paramètres ; G70 suit le
+   * profil P…Q ; les autres sont développés en passes (turning-cycles.js). Après un cycle de
+   * profil, la commande reprend après le bloc Q (le profil n'est pas exécuté à la suite).
    */
   function runCycle(code, block, line, index) {
-    const P = num(block, 'P');
-    const Q = num(block, 'Q');
+    const words = (letter) => block.words.find((w) => w.letter === letter);
+    const value = (letter) => num(block, letter);
+    const micro = (letter) => {
+      const word = words(letter);
+      const v = num(block, letter);
+      return v === undefined ? undefined : word?.valueKind === 'number' && !word.hasDecimal ? v / 1000 : v;
+    };
+    const helpers = { has: (letter) => Boolean(words(letter)), value, micro, text: (letter) => words(letter)?.valueText };
+    const params = cycleParameters(code, helpers);
+    if (params) {
+      state.cycleParams[code] = params;
+      return null;
+    }
+    const F = num(block, 'F');
+    const cycleFeed = F ?? state.feed;
     const profileCycle = ['G70', 'G71', 'G72', 'G73'].includes(code);
-    if (profileCycle && (P === undefined || Q === undefined)) return null; // 1re ligne G71 U… R… : paramètres
+    let start = -1;
+    let stop = -1;
     if (profileCycle) {
-      const start = lineOfN(P);
-      const stop = lineOfN(Q);
+      const P = num(block, 'P');
+      const Q = num(block, 'Q');
+      start = lineOfN(P);
+      stop = lineOfN(Q);
       if (start < 0 || stop < 0 || stop < start) {
         warn(line, `${code} : bloc N${P ?? '?'} ou N${Q ?? '?'} introuvable, cycle ignoré.`);
         return null;
       }
-      if (code === 'G70') {
-        const back = { ...state.pos };
-        const savedMotion = state.motion;
-        run(start, stop);
-        state.motion = savedMotion;
-        // Fin de G70 : retour en rapide au point de départ du cycle.
-        pushMove(line, 'rapid', 'G70', [back]);
-        return null;
-      }
-      const generator = cycles[code];
-      if (generator) generator({ state, block, line, start, stop, blocks, pushMove, warn, target, num, system, motionTo });
-      else warn(line, `${code} : cycle pas encore simulé (passes non dessinées).`);
-      // Le profil P…Q n'est pas exécuté à la suite : reprise après le bloc Q.
-      return stop > index ? stop : null;
     }
-    const generator = cycles[code];
-    if (generator) generator({ state, block, line, blocks, pushMove, warn, target, num, system, motionTo });
-    else warn(line, `${code} : cycle pas encore simulé.`);
-    return null;
+    if (code === 'G70') {
+      const back = { ...state.pos };
+      const savedMotion = state.motion;
+      run(start, stop);
+      state.motion = savedMotion;
+      pushMove(line, 'rapid', 'G70', [back]); // fin de G70 : retour au point de départ
+      return null;
+    }
+    const generator = turningCycle(code, system);
+    if (!generator) {
+      warn(line, `${code} : cycle pas encore simulé.`);
+      return profileCycle && stop > index ? stop : null;
+    }
+    if (!state.spindle) warn(line, `${code} : cycle d’usinage broche arrêtée (pas de M03 / M04 avant).`);
+    if (!(cycleFeed > 0)) warn(line, `${code} : avance F non définie.`);
+    const savedFeed = state.feed;
+    state.feed = cycleFeed;
+    // Cycle simple répété par un bloc X seul (ou Z seul) : l'autre cote reste celle du cycle précédent.
+    const simple = isModalSimpleCycle(code, system);
+    const has = (letters) => block.words.some((w) => letters.includes(w.letter));
+    const cycleTarget = () => {
+      const t = target(block);
+      const last = state.lastCycleTarget;
+      if (!simple || !last) return t;
+      if (!t) return last;
+      return { x: has(['X', 'U']) ? t.x : last.x, z: has(['Z', 'W']) ? t.z : last.z };
+    };
+    if (simple) state.lastCycleTarget = cycleTarget();
+    generator({
+      code,
+      start: { ...state.pos },
+      feed: cycleFeed,
+      params: state.cycleParams[code] ?? {},
+      value,
+      micro,
+      target: () => (simple ? state.lastCycleTarget : target(block)),
+      profile: () => traceProfile(start, stop),
+      rapid: (to, extra) => pushMove(line, 'rapid', code, [to], extra),
+      cut: (to, extra) => pushMove(line, 'cut', code, [to], extra),
+      warn: (message) => warn(line, message),
+    });
+    // Avance du cycle (F du bloc) conservée ensuite, comme sur la commande.
+    if (F === undefined) state.feed = savedFeed;
+    return profileCycle && stop > index ? stop : null;
   }
 
   run(0, blocks.length - 1);
