@@ -73,6 +73,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | S2 | Cycles développés en passes : G71/G72 (ébauche), G73 (répétition de forme), G90/G92/G94 (G77/G78/G79 en B/C, modaux), G74/G75 (perçage, gorges), G76 (filetage multipasses) ; sous-programmes M98/M99 | ✅ |
 | S3 | Formes d'outil (extérieur / intérieur deviné ou choisi par outil, filetage, foret, gorges), temps d'usinage par outil, brut pré-percé (diamètre intérieur et profondeur) | ✅ |
 | S5 | Instructions de macro : GOTO, IF […] GOTO, IF […] THEN, WHILE […] DO / END, comparaisons EQ NE GT LT GE LE | ✅ |
+| R1 | Rectification : taillage de meule — vue de dessus, meule = rectangle (largeur réglable), diamant droit ou incliné à 45° (flanc gauche : origine sur l'angle gauche ; flanc droit : origine sur l'angle droit) | ✅ |
 
 Prévus ensuite : autres types de machines.
 
@@ -143,6 +144,7 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Analyse | Vérificateur de syntaxe (parenthèses, caractères invalides, codes inconnus ou incompatibles, adresses répétées, plusieurs M, cotes sans point décimal, avance non définie, broche sans S, G96 sans G50, G40 oublié, P/Q/GOTO introuvables, N en double, M30 manquant — chaque règle désactivable) | Soulignements, marge, barre d'état, Ctrl+Maj+M | `checker` |
 | Analyse | État modal à la ligne du curseur | Barre d'état et panneau « État modal » | `modal-state` |
 | Analyse | Simulation 2D du tournage : usinage animé (brut lu dans « (BRUT D50 X 80) » ou « (BRUT D50 X 80 PERCE D20 P30) » pour un pré-perçage, ou saisi, enlèvement de matière, mandrin, outil), lecture / pause / vitesse ×1 à ×100 / bloc par bloc, temps estimé, alertes (rapide G0 dans la matière, outil dans les mors, arc impossible, avance absente…) ; un tap sur le trajet va au bloc, retour à l'éditeur sur la ligne simulée | Menu latéral « Simulation 2D », bouton « Simuler » | `simulation-2d` |
+| Analyse | Taillage de meule (rectification) : vue de dessus avec repère X/Z, meule en rectangle (largeur lue dans « (MEULE L40) » ou saisie), diamant droit, 45° flanc gauche (origine angle gauche) ou 45° flanc droit (origine angle droit) choisi par outil ou lu dans « T0202 (DIAMANT FLANC GAUCHE) », X au diamètre ou au rayon ; programme reconnu par un commentaire MEULE / DIAMANT / TAILLAGE, ou choisi dans « Brut ou meule » | Page « Simulation 2D » › Brut ou meule | `simulation-2d` |
 | Analyse | Plan du programme : programmes O…, sections (ligne de commentaire seule), outils, cycles, appels M98/G65, fins ; un clic va à la ligne, la partie en cours est surlignée | Panneau « Plan » | `outline` |
 | Analyse | Tableau des variables (nom et description personnels, utilisations, valeurs répétées transformables en macro) | Panneau « Variables » | `variables` |
 | Analyse | Avertissements de macros (hors des plages libres du profil, double utilisation entre programmes — non bloquants) | Soulignement orange, barre d'état | `macro-warnings` |

@@ -50,10 +50,10 @@ export function createView(canvas, { onPick } = {}) {
   function fit() {
     if (!scene) return;
     const { width, height } = size();
-    const { stock } = scene;
+    const { stock, material } = scene;
     const cut = scene.moves.filter((m) => m.kind === 'cut').flatMap((m) => m.points);
-    const zs = [stock.face + 4, stock.face - stock.length - 12, ...cut.map((p) => p.z)];
-    const rs = [stock.diameter / 2 + 10, -(stock.diameter / 2 + 10), ...cut.map((p) => p.x / 2)];
+    const zs = scene.wheel ? [-6, material.zMax + 6, ...cut.map((p) => p.z)] : [stock.face + 4, stock.face - stock.length - 12, ...cut.map((p) => p.z)];
+    const rs = scene.wheel ? [material.bottom - 1, 8, ...cut.map((p) => p.x / 2)] : [stock.diameter / 2 + 10, -(stock.diameter / 2 + 10), ...cut.map((p) => p.x / 2)];
     const zMin = Math.min(...zs);
     const zMax = Math.max(...zs) + 6;
     const rMin = Math.min(...rs);
@@ -84,8 +84,96 @@ export function createView(canvas, { onPick } = {}) {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = colors.bg;
     g.fillRect(0, 0, width, height);
-    const { stock, material, moves, timeline } = scene;
+    const { moves, timeline } = scene;
+    if (scene.wheel) drawWheel();
+    else drawLathe();
+
+    // Trajet : à venir (pâle), déjà parcouru (couleurs), déplacement en cours jusqu'à l'outil.
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    const done = progress.index;
+    if (showAll) {
+      g.strokeStyle = colors.future;
+      g.lineWidth = 1;
+      for (let i = Math.max(0, done); i < moves.length; i++) {
+        g.setLineDash(moves[i].kind === 'rapid' ? [5, 4] : []);
+        polyline(moves[i].points);
+      }
+    }
+    for (let i = 0; i < done; i++) drawMove(moves[i], moves[i].points);
+    let toolAt = null;
+    if (done >= 0) {
+      const points = timeline.partial(done, progress.fraction);
+      drawMove(moves[done], points);
+      toolAt = { at: points.at(-1), move: moves[done] };
+    }
+    g.setLineDash([]);
+    if (toolAt) drawTool(toolAt.at, toolAt.move);
+  }
+
+  /** Taillage de meule : meule (matière restante, contour d'origine), repère X/Z et origines des diamants. */
+  function drawWheel() {
+    const { material } = scene;
     const s = view.scale;
+    const width = material.zMax - material.zMin;
+    const depth = -material.bottom;
+    const [mx, my] = toScreen(material.zMin, 0);
+    g.imageSmoothingEnabled = s / material.res < 2;
+    g.drawImage(material.canvas, 1, 1, material.canvas.width - 2, material.canvas.height - 2, mx, my, width * s, depth * s);
+    g.strokeStyle = colors.axis;
+    g.lineWidth = 1;
+    g.setLineDash([4, 4]);
+    g.strokeRect(mx, my, width * s, depth * s);
+    g.setLineDash([]);
+    g.fillStyle = colors.text;
+    g.font = '12px system-ui, sans-serif';
+    g.fillText(`Meule — largeur ${width} mm`, mx + 6, my + depth * s - 8);
+    // Repère : axes X (vers le haut) et Z (vers la droite) depuis l'origine principale.
+    const [x0, y0] = toScreen(0, 0);
+    const arrow = (x1, y1, label, dx, dy) => {
+      g.beginPath();
+      g.moveTo(x0, y0);
+      g.lineTo(x1, y1);
+      g.stroke();
+      const a = Math.atan2(y1 - y0, x1 - x0);
+      g.beginPath();
+      g.moveTo(x1, y1);
+      g.lineTo(x1 - 8 * Math.cos(a - 0.4), y1 - 8 * Math.sin(a - 0.4));
+      g.lineTo(x1 - 8 * Math.cos(a + 0.4), y1 - 8 * Math.sin(a + 0.4));
+      g.closePath();
+      g.fill();
+      g.fillText(label, x1 + dx, y1 + dy);
+    };
+    g.strokeStyle = colors.text;
+    g.fillStyle = colors.text;
+    g.lineWidth = 1.5;
+    arrow(x0 + 46, y0, 'Z+', 4, 4);
+    arrow(x0, y0 - 46, 'X+', 4, 0);
+    let previousEnd = -Infinity;
+    for (const origin of scene.origins ?? []) {
+      const [ox, oy] = toScreen(origin.z, 0);
+      const textWidth = g.measureText(origin.label).width;
+      const textX = ox + (origin.z > width / 2 ? -8 - textWidth : 8);
+      // Deux étiquettes qui se chevauchent (écran étroit) : la seconde passe à la ligne suivante.
+      const row = textX < previousEnd + 8 ? 1 : 0;
+      previousEnd = textX + textWidth;
+      g.beginPath();
+      g.arc(ox, oy, 5, 0, Math.PI * 2);
+      g.moveTo(ox - 8, oy);
+      g.lineTo(ox + 8, oy);
+      g.moveTo(ox, oy - 8);
+      g.lineTo(ox, oy + 8);
+      g.stroke();
+      // Étiquette dans la meule, sous l'origine (au-dessus : les flèches du repère).
+      g.fillText(origin.label, textX, oy + 18 + row * 16);
+    }
+  }
+
+  /** Tournage : mandrin, pièce (matière restante), axe et origine programme. */
+  function drawLathe() {
+    const { stock, material } = scene;
+    const s = view.scale;
+    const { width } = size();
 
     // Mandrin : corps à gauche du brut et mors sur la longueur serrée.
     const zLeft = stock.face - stock.length;
@@ -129,28 +217,6 @@ export function createView(canvas, { onPick } = {}) {
     g.fillStyle = colors.text;
     g.font = '12px system-ui, sans-serif';
     g.fillText('X0 Z0', x0 + 8, y0 + (scene.front ? -8 : 16));
-
-    // Trajet : à venir (pâle), déjà parcouru (couleurs), déplacement en cours jusqu'à l'outil.
-    g.lineJoin = 'round';
-    g.lineCap = 'round';
-    const done = progress.index;
-    if (showAll) {
-      g.strokeStyle = colors.future;
-      g.lineWidth = 1;
-      for (let i = Math.max(0, done); i < moves.length; i++) {
-        g.setLineDash(moves[i].kind === 'rapid' ? [5, 4] : []);
-        polyline(moves[i].points);
-      }
-    }
-    for (let i = 0; i < done; i++) drawMove(moves[i], moves[i].points);
-    let toolAt = null;
-    if (done >= 0) {
-      const points = timeline.partial(done, progress.fraction);
-      drawMove(moves[done], points);
-      toolAt = { at: points.at(-1), move: moves[done] };
-    }
-    g.setLineDash([]);
-    if (toolAt) drawTool(toolAt.at, toolAt.move);
   }
 
   function drawMove(move, points) {
@@ -162,7 +228,7 @@ export function createView(canvas, { onPick } = {}) {
 
   function drawTool(at, move) {
     const side = scene.sides?.[move.tool ?? ''] ?? 'external';
-    const shape = shapeFor(move, side);
+    const shape = scene.shapeOf ? scene.shapeOf(move) : shapeFor(move, side);
     const r = at.x / 2;
     g.fillStyle = colors.tool;
     g.strokeStyle = '#0008';
@@ -176,6 +242,7 @@ export function createView(canvas, { onPick } = {}) {
     g.closePath();
     g.fill();
     g.stroke();
+    if (scene.wheel) return; // diamant : le corps fait partie de la forme
     // Porte-outil : vers l'extérieur, ou barre d'alésage qui sort par la face (outil intérieur).
     const internal = side === 'internal' && !move.shape;
     const [hx0, hy0] = internal ? toScreen(at.z + 1.5, r - 1.5) : toScreen(at.z + 1.5, r + 5);

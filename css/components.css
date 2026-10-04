@@ -3352,6 +3352,10 @@ a.lesson-card:hover {
   font-size: 12px;
 }
 
+.sim-machine {
+  margin-bottom: 4px;
+}
+
 .sim-alerts summary {
   display: flex;
   align-items: center;

@@ -159,3 +159,63 @@ export function createMaterial(stock, { maxPixels = 2400, makeCanvas = () => doc
 
   return { canvas, zMin, zMax, radius, res, reset, sweep, solidAt, hitsAlong };
 }
+
+/**
+ * Meule vue de dessus (taillage) : rectangle z ∈ [0, largeur], r ∈ [−profondeur, 0], usiné par
+ * le diamant (sans symétrie : la vue n'est pas une coupe de pièce tournée). Même interface que
+ * createMaterial ; `top` / `bottom` donnent l'étendue en r.
+ */
+export function createWheelMaterial(width, depth, { maxPixels = 2400, makeCanvas = () => document.createElement('canvas') } = {}) {
+  const zMin = 0;
+  const zMax = width;
+  const res = Math.max(1, Math.min(40, maxPixels / Math.max(width, depth)));
+  const canvas = makeCanvas();
+  canvas.width = Math.ceil(width * res) + 2;
+  canvas.height = Math.ceil(depth * res) + 2;
+  const g = canvas.getContext('2d', { willReadFrequently: true });
+  const px = (z, r) => [(z - zMin) * res + 1, -r * res + 1];
+
+  function reset(color) {
+    g.globalCompositeOperation = 'source-over';
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    g.fillStyle = color ?? '#8a94a3';
+    g.fillRect(1, 1, width * res, depth * res);
+  }
+
+  function sweep(a, b, shape) {
+    const hull = convexHull([...shape.map(([dz, dr]) => [a.z + dz, a.r + dr]), ...shape.map(([dz, dr]) => [b.z + dz, b.r + dr])]);
+    g.globalCompositeOperation = 'destination-out';
+    g.fillStyle = '#000';
+    g.beginPath();
+    hull.forEach(([z, r], i) => {
+      const [x, y] = px(z, r);
+      if (i) g.lineTo(x, y);
+      else g.moveTo(x, y);
+    });
+    g.closePath();
+    g.fill();
+    g.globalCompositeOperation = 'source-over';
+  }
+
+  function solidAt(z, r) {
+    const [x, y] = px(z, r);
+    if (x < 1 || y < 1 || x >= canvas.width - 1 || y >= canvas.height - 1) return false;
+    return g.getImageData(Math.floor(x), Math.floor(y), 1, 1).data[3] > 128;
+  }
+
+  function hitsAlong(a, b) {
+    const tol = Math.max(0.05, 2 / res);
+    const deep = (z, r) => solidAt(z, r) && solidAt(z + tol, r) && solidAt(z - tol, r) && solidAt(z, r + tol) && solidAt(z, r - tol);
+    const length = Math.hypot(b.z - a.z, b.r - a.r);
+    const steps = Math.ceil(length * res);
+    for (let i = 0; i <= steps; i++) {
+      const d = (length * i) / Math.max(1, steps);
+      if (d < 0.1 || d > length - 0.1) continue;
+      const t = d / length;
+      if (deep(a.z + (b.z - a.z) * t, a.r + (b.r - a.r) * t)) return true;
+    }
+    return false;
+  }
+
+  return { canvas, zMin, zMax, top: 0, bottom: -depth, radius: 0, res, reset, sweep, solidAt, hitsAlong, wheel: true };
+}

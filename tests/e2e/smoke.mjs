@@ -781,6 +781,34 @@ const desktop = await open(DESKTOP);
     assert.equal(await page.evaluate(() => window.isoApp.editor.cursor.line), line, 'curseur sur la ligne simulée');
   });
 
+  await step('simulation : taillage de meule (vue de dessus, diamants droit et 45°, origines)', async () => {
+    const before = await editorText(page);
+    await setText(page, ['%', 'O0500 (TAILLAGE MEULE L40)', 'G98', 'T0101 (DIAMANT DROIT)', 'G0 X2. Z-3.', 'G1 X-0.2 F300', 'Z43. F150', 'G0 X2.', 'T0202 (DIAMANT FLANC GAUCHE)', 'G0 X2. Z0.2', 'G1 X-12. F80', 'G0 Z-3.', 'G0 X2.', 'T0303 (DIAMANT FLANC DROIT)', 'G0 X2. Z-0.2', 'G1 X-12. F80', 'G0 Z3.', 'G0 X2.', 'M30', '%'].join('\n'));
+    await page.locator('[data-tool="simulation"]').click();
+    await page.waitForSelector('.sim-page:not([hidden])');
+    assert.equal(await page.locator('[data-action="sim-stock"]').textContent(), 'Meule L40');
+    assert.equal(await page.locator('.sim-alerts').isHidden(), true, 'X négatif : normal en taillage, pas d’alerte');
+    await page.locator('.sim-tools summary').click();
+    const diamonds = await page.locator('.sim-side').evaluateAll((selects) => selects.map((s) => s.selectedOptions[0].textContent));
+    assert.deepEqual(diamonds.map((d) => /droit \(face|flanc gauche|flanc droit/.exec(d)[0]), ['droit (face', 'flanc gauche', 'flanc droit']);
+    await page.evaluate(() => {
+      const range = document.querySelector('.sim-range');
+      range.value = 1000;
+      range.dispatchEvent(new Event('input'));
+    });
+    await shot(page, 'pc-sombre-taillage-meule');
+    // Largeur et diamant par défaut modifiables, machine mémorisée par programme.
+    await page.locator('[data-action="sim-stock"]').click();
+    await page.locator('.dialog input[name="width"]').fill('25');
+    await page.locator('.dialog button', { hasText: 'Appliquer' }).click();
+    await page.waitForFunction(() => document.querySelector('[data-action="sim-stock"]').textContent === 'Meule L25');
+    await page.locator('[data-action="sim-stock"]').click();
+    await page.locator('.dialog button', { hasText: 'Reprendre celui du programme' }).click();
+    await page.waitForFunction(() => document.querySelector('[data-action="sim-stock"]').textContent === 'Meule L40');
+    await page.locator('[data-action="sim-leave"]').click();
+    await setText(page, before);
+  });
+
   await step('zéro barré dans l’éditeur, désactivable', async () => {
     assert.ok((await page.locator('.cm-content .cm-zero').count()) > 10, 'zéros barrés');
     await gotoSettings(page);

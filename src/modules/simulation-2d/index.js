@@ -1,13 +1,14 @@
 import { EditorView } from '@codemirror/view';
 import { h } from '../../core/dom.js';
-import { simulate, toolSides } from '../../engine/index.js';
+import { REFERENCE, simulate, toolSides } from '../../engine/index.js';
 import { highlightCode } from '../../ui/code-view.js';
 import { icon } from '../../ui/icons.js';
 import { segmented } from '../../ui/segmented.js';
-import { createMaterial, shapeFor } from './material.js';
+import { createMaterial, createWheelMaterial, shapeFor } from './material.js';
 import { createTimeline, formatDuration } from './playback.js';
 import { guessStock, parseStock, sanitizeStock } from './stock.js';
 import { createView } from './view.js';
+import { DIAMONDS, ORIGINS, WHEEL_DEFAULTS, diamondFromComment, diamondShape, isDressingProgram, originZ, parseWheel, sanitizeWheel, toWheelMoves } from './wheel.js';
 
 const SPEEDS = [
   { value: 1, label: '×1' },
@@ -134,6 +135,11 @@ export default {
 
     const stockKey = () => `simulation.stock.${ctx.workspace.current?.id ?? 'sans-id'}`;
     const sidesKey = () => `simulation.sides.${ctx.workspace.current?.id ?? 'sans-id'}`;
+    const machineKey = () => `simulation.machine.${ctx.workspace.current?.id ?? 'sans-id'}`;
+    const wheelKey = () => `simulation.wheel.${ctx.workspace.current?.id ?? 'sans-id'}`;
+    const diamondsKey = () => `simulation.diamonds.${ctx.workspace.current?.id ?? 'sans-id'}`;
+    /** Machine du programme : choisie, sinon « taillage » si un commentaire parle de meule ou de diamant. */
+    const machineOf = (lines) => ctx.kv.get(machineKey(), null) ?? (isDressingProgram(lines) ? 'dressing' : 'lathe');
 
     /** (Re)calcule la simulation si le texte du programme a changé. */
     function load({ force = false } = {}) {
@@ -143,6 +149,7 @@ export default {
       sourceText = text;
       const lines = text.split('\n');
       const result = simulate(lines, codes);
+      if (machineOf(lines) === 'dressing') return loadDressing(lines, result);
       const fromProgram = parseStock(lines);
       const fallback = fromProgram ?? guessStock(result.moves);
       const saved = ctx.kv.get(stockKey(), null);
@@ -155,6 +162,79 @@ export default {
       scene = { ...result, lines, stock, material, timeline, sides, autoSides, overrides, front: ctx.settings.get('simulation.turret') === 'front', stockSource: saved ? 'saisi' : fromProgram ? 'programme' : 'estimé' };
       scene.warnings = [...result.warnings, ...collisions(scene)].sort((a, b) => a.line - b.line);
       stockEl.replaceChildren(icon('edit'), `Brut Ø${stock.diameter} × ${stock.length}${stock.bore > 0 ? ` · int. Ø${stock.bore}` : ''}`);
+      show();
+    }
+
+    /**
+     * Taillage de meule : le programme pilote le diamant ; ses cotes sont ramenées dans le repère
+     * de la meule (origine du diamant : angle gauche, angle droit ou milieu), vue de dessus.
+     */
+    function loadDressing(lines, result) {
+      const fromProgram = parseWheel(lines);
+      const saved = ctx.kv.get(wheelKey(), null);
+      const wheel = sanitizeWheel({ ...WHEEL_DEFAULTS, ...(fromProgram ?? {}), ...(saved ?? {}) });
+      // Diamant de chaque outil : commentaire de sa ligne (« DIAMANT FLANC GAUCHE »), sinon celui par défaut.
+      const autoSides = { '': wheel.diamond };
+      for (const tool of result.tools) autoSides[tool.word] ??= diamondFromComment(lines[tool.line - 1]) ?? wheel.diamond;
+      const overrides = ctx.kv.get(diamondsKey(), {}) ?? {};
+      const diamondOf = (tool) => overrides[tool] ?? autoSides[tool] ?? wheel.diamond;
+      // Sans le premier rapide depuis le point de départ fictif du tour (X200 Z150) : sans objet ici.
+      const programMoves = result.moves[0]?.kind === 'rapid' && result.moves[0].points[0].x === REFERENCE.x && result.moves[0].points[0].z === REFERENCE.z ? result.moves.slice(1) : result.moves;
+      const moves = toWheelMoves(programMoves, wheel, diamondOf);
+      const deepest = Math.min(0, ...moves.filter((m) => m.kind === 'cut').flatMap((m) => m.points.map((p) => p.x / 2)));
+      const depth = Math.max(10, wheel.width * 0.4, -deepest + 4);
+      const material = createWheelMaterial(wheel.width, depth);
+      const timeline = createTimeline(moves, { rapidRate: ctx.settings.get('simulation.rapidRate') });
+      const used = [...new Set(moves.filter((m) => m.kind === 'cut').map((m) => m.diamond))];
+      // Origines des diamants utilisés (plusieurs diamants peuvent partager le même angle).
+      const byZ = new Map();
+      for (const kind of used.length ? used : [wheel.diamond]) byZ.set(originZ(kind, wheel), [...(byZ.get(originZ(kind, wheel)) ?? []), DIAMONDS[kind].short]);
+      const origins = [...byZ].map(([z, names]) => ({ z, label: `X0 Z0 · diamant${names.length > 1 ? 's' : ''} ${names.join(', ')}` }));
+      scene = {
+        ...result,
+        moves,
+        lines,
+        wheel: true,
+        wheelSettings: wheel,
+        material,
+        timeline,
+        origins,
+        autoSides,
+        overrides,
+        shapeOf: (move) => diamondShape(move.diamond),
+        front: false,
+        stockSource: saved ? 'saisi' : fromProgram ? 'programme' : 'estimé',
+      };
+      // Alertes propres au tour sans objet ici : broche de la meule, X négatif (= dans la meule).
+      const own = result.warnings.filter((w) => !/broche arrêtée|diamètre négatif/.test(w.message));
+      scene.warnings = [...own, ...wheelCollisions(scene)].sort((a, b) => a.line - b.line);
+      stockEl.replaceChildren(icon('edit'), `Meule L${wheel.width}`);
+      show();
+    }
+
+    /** Rapides du diamant à travers la meule. */
+    function wheelCollisions({ moves, material }) {
+      const probe = createWheelMaterial(material.zMax, -material.bottom, { maxPixels: 900 });
+      probe.reset();
+      const found = [];
+      for (const move of moves) {
+        const shape = diamondShape(move.diamond);
+        for (let i = 1; i < move.points.length; i++) {
+          const a = { z: move.points[i - 1].z, r: move.points[i - 1].x / 2 };
+          const b = { z: move.points[i].z, r: move.points[i].x / 2 };
+          if (move.kind === 'rapid' && probe.hitsAlong(a, b)) {
+            found.push({ line: move.line, message: 'Rapide G0 à travers la meule : le diamant toucherait la meule (vérifiez l’approche ou le dégagement).', kind: 'collision' });
+            break;
+          }
+          probe.sweep(a, b, shape);
+        }
+      }
+      return found.filter((w, i, all) => all.findIndex((o) => o.line === w.line) === i);
+    }
+
+    /** Affichage d'une simulation (re)calculée. */
+    function show() {
+      const { material } = scene;
       renderAlerts();
       renderTools();
       material.reset(stockColor());
@@ -221,13 +301,14 @@ export default {
       const tools = Object.keys(autoSides).filter((tool) => tool && moves.some((m) => m.tool === tool && m.kind === 'cut'));
       toolsEl.hidden = !tools.length;
       const time = (tool, kind) => moves.reduce((sum, m, i) => sum + (m.tool === tool && (!kind || m.kind === kind) ? timeline.durations[i] : 0), 0);
-      const SIDES = { external: 'Extérieur', internal: 'Intérieur' };
+      const SIDES = scene.wheel ? Object.fromEntries(Object.entries(DIAMONDS).map(([k, d]) => [k, d.label])) : { external: 'Extérieur', internal: 'Intérieur' };
+      const key = scene.wheel ? diamondsKey : sidesKey;
       toolsEl.replaceChildren(
         h('summary', null, icon('clock'), `Outils et temps (${formatDuration(timeline.total)})`),
         h(
           'table',
           { class: 'sim-tool-table' },
-          h('thead', null, h('tr', null, h('th', null, 'Outil'), h('th', null, 'Côté'), h('th', null, 'Travail'), h('th', null, 'Rapides'))),
+          h('thead', null, h('tr', null, h('th', null, 'Outil'), h('th', null, scene.wheel ? 'Diamant' : 'Côté'), h('th', null, 'Travail'), h('th', null, 'Rapides'))),
           h(
             'tbody',
             null,
@@ -236,19 +317,18 @@ export default {
                 'select',
                 {
                   class: 'input sim-side',
-                  'aria-label': `Côté de travail de ${tool}`,
+                  'aria-label': scene.wheel ? `Diamant de ${tool}` : `Côté de travail de ${tool}`,
                   dataset: { tool },
                   onchange: () => {
-                    const next = { ...(ctx.kv.get(sidesKey(), {}) ?? {}) };
+                    const next = { ...(ctx.kv.get(key(), {}) ?? {}) };
                     if (select.value === 'auto') delete next[tool];
                     else next[tool] = select.value;
-                    ctx.kv.set(sidesKey(), next);
+                    ctx.kv.set(key(), next);
                     load({ force: true });
                   },
                 },
                 h('option', { value: 'auto' }, `Auto (${SIDES[autoSides[tool]].toLowerCase()})`),
-                h('option', { value: 'external' }, 'Extérieur'),
-                h('option', { value: 'internal' }, 'Intérieur'),
+                Object.entries(SIDES).map(([value, label]) => h('option', { value }, label)),
               );
               select.value = overrides[tool] ?? 'auto';
               return h('tr', null, h('td', { class: 'mono' }, tool), h('td', null, select), h('td', null, formatDuration(time(tool, 'cut'))), h('td', null, formatDuration(time(tool, 'rapid'))));
@@ -271,7 +351,7 @@ export default {
         const until = i === to.index ? to.fraction : 1;
         if (until <= from) continue;
         const points = timeline.partial(i, until, from);
-        const shape = shapeFor(moves[i], scene.sides[moves[i].tool ?? '']);
+        const shape = scene.shapeOf ? scene.shapeOf(moves[i]) : shapeFor(moves[i], scene.sides[moves[i].tool ?? '']);
         for (let k = 1; k < points.length; k++) material.sweep({ z: points[k - 1].z, r: points[k - 1].x / 2 }, { z: points[k].z, r: points[k].x / 2 }, shape);
       }
       erased = { ...to };
@@ -362,30 +442,88 @@ export default {
       ctx.ui.navigate('/editeur');
     }
 
+    /** Champ numérique du formulaire Brut / Meule. */
+    const numberField = (field, value, inputs) => {
+      inputs[field.key] = h('input', { class: 'input mono', inputmode: 'decimal', autocomplete: 'off', name: field.key, value: String(value).replace('.', ',') });
+      return h('div', { class: 'field cycle-field' }, h('label', null, field.label), h('div', { class: 'calc-input' }, inputs[field.key], h('span', { class: 'calc-unit-text' }, field.unit)), field.hint ? h('small', null, field.hint) : null);
+    };
+    const selectField = (key, label, options, value, inputs, hint) => {
+      inputs[key] = h('select', { class: 'input', name: key }, Object.entries(options).map(([v, text]) => h('option', { value: v }, text)));
+      inputs[key].value = value;
+      return h('div', { class: 'field cycle-field' }, h('label', null, label), inputs[key], hint ? h('small', null, hint) : null);
+    };
+    const readNumbers = (inputs, keys) => Object.fromEntries(keys.map((key) => [key, Number(inputs[key].value.replace(',', '.'))]));
+
+    /**
+     * Brut (tournage) ou meule (taillage) : choix de la machine pour ce programme, puis les
+     * dimensions. La machine est mémorisée par programme.
+     */
     async function editStock() {
       pause();
-      const { stock } = scene;
-      const inputs = {};
-      const fields = STOCK_FIELDS.map((field) => {
-        inputs[field.key] = h('input', { class: 'input mono', inputmode: 'decimal', autocomplete: 'off', name: field.key, value: String(stock[field.key]).replace('.', ',') });
-        return h('div', { class: 'field cycle-field' }, h('label', null, field.label), h('div', { class: 'calc-input' }, inputs[field.key], h('span', { class: 'calc-unit-text' }, field.unit)), field.hint ? h('small', null, field.hint) : null);
-      });
-      const source = { programme: 'lu dans le commentaire (BRUT …) du programme', saisi: 'saisi pour ce programme', estimé: 'estimé d’après les passes (aucun commentaire (BRUT …) dans le programme)' }[scene.stockSource];
-      const choice = await ctx.ui.openDialog({
-        title: 'Brut (barre de départ)',
-        className: 'dialog-wide',
-        body: h(
-          'div',
-          { class: 'cycle-form' },
-          h('p', { class: 'card-description' }, `La barre avant usinage, pour dessiner la matière. Actuellement : ${source}. Astuce : écrivez-le dans le programme, par exemple `, h('code', null, '(BRUT D50 X 80)'), ' — diamètre 50, longueur 80 ; pré-percé : ', h('code', null, '(BRUT D50 X 80 PERCE D20 P30)'), ' — trou Ø20 sur 30 mm de profondeur.'),
-          h('div', { class: 'cycle-fields' }, fields),
+      const lines = scene.lines;
+      let machine = machineOf(lines);
+      const stock = scene.stock ?? guessStock(scene.moves);
+      const wheel = scene.wheelSettings ?? sanitizeWheel({ ...WHEEL_DEFAULTS, ...(parseWheel(lines) ?? {}), ...(ctx.kv.get(wheelKey(), null) ?? {}) });
+
+      const stockInputs = {};
+      const lathePart = h(
+        'div',
+        { class: 'cycle-form', dataset: { machine: 'lathe' } },
+        h('p', { class: 'card-description' }, 'La barre avant usinage, pour dessiner la matière. Astuce : écrivez-la dans le programme, par exemple ', h('code', null, '(BRUT D50 X 80)'), ' — diamètre 50, longueur 80 ; pré-percée : ', h('code', null, '(BRUT D50 X 80 PERCE D20 P30)'), ' — trou Ø20 sur 30 mm.'),
+        h('div', { class: 'cycle-fields' }, STOCK_FIELDS.map((field) => numberField(field, stock[field.key], stockInputs))),
+      );
+      const wheelInputs = {};
+      const dressingPart = h(
+        'div',
+        { class: 'cycle-form', dataset: { machine: 'dressing' } },
+        h(
+          'p',
+          { class: 'card-description' },
+          'Vue de dessus : la meule est un rectangle, le programme pilote le diamant. Le diamant flanc gauche a son origine sur l’angle gauche de la meule, le diamant flanc droit sur l’angle droit. Astuce : ',
+          h('code', null, '(MEULE L40)'),
+          ' dans le programme donne la largeur ; ',
+          h('code', null, 'T0202 (DIAMANT FLANC GAUCHE)'),
+          ' choisit le diamant de l’outil.',
         ),
-        actions: [{ label: 'Appliquer', value: 'ok', primary: true }, ...(scene.stockSource === 'saisi' ? [{ label: 'Reprendre celui du programme', value: 'reset' }] : []), { label: 'Annuler' }],
+        h(
+          'div',
+          { class: 'cycle-fields' },
+          numberField({ key: 'width', label: 'Largeur de la meule', unit: 'mm' }, wheel.width, wheelInputs),
+          selectField('diamond', 'Diamant par défaut', Object.fromEntries(Object.entries(DIAMONDS).map(([k, d]) => [k, d.label])), wheel.diamond, wheelInputs, 'Chaque outil peut avoir le sien (panneau « Outils et temps »).'),
+          selectField('straightOrigin', 'Origine du diamant droit', ORIGINS, wheel.straightOrigin, wheelInputs),
+          selectField('xMode', 'Cotes X du programme', { diameter: 'Au diamètre (X-0.1 : 0,05 mm à la meule)', radius: 'Au rayon (X-0.1 : 0,1 mm)' }, wheel.xMode, wheelInputs),
+        ),
+      );
+      const showPart = () => {
+        lathePart.hidden = machine !== 'lathe';
+        dressingPart.hidden = machine !== 'dressing';
+      };
+      const machineControl = segmented({
+        label: 'Machine',
+        options: [
+          { value: 'lathe', label: 'Tour (brut)' },
+          { value: 'dressing', label: 'Taillage de meule' },
+        ],
+        value: machine,
+        onChange: (value) => {
+          machine = value;
+          showPart();
+        },
       });
-      if (choice === 'reset') ctx.kv.remove(stockKey());
-      else if (choice === 'ok') {
-        const raw = Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, Number(input.value.replace(',', '.'))]));
-        ctx.kv.set(stockKey(), sanitizeStock(raw, stock));
+      showPart();
+      const custom = ctx.kv.get(stockKey(), null) || ctx.kv.get(wheelKey(), null) || ctx.kv.get(machineKey(), null);
+      const choice = await ctx.ui.openDialog({
+        title: 'Brut ou meule',
+        className: 'dialog-wide',
+        body: h('div', { class: 'cycle-form' }, h('div', { class: 'sim-machine' }, machineControl), lathePart, dressingPart),
+        actions: [{ label: 'Appliquer', value: 'ok', primary: true }, ...(custom ? [{ label: 'Reprendre celui du programme', value: 'reset' }] : []), { label: 'Annuler' }],
+      });
+      if (choice === 'reset') {
+        for (const key of [stockKey(), wheelKey(), machineKey()]) ctx.kv.remove(key);
+      } else if (choice === 'ok') {
+        ctx.kv.set(machineKey(), machine);
+        if (machine === 'lathe') ctx.kv.set(stockKey(), sanitizeStock(readNumbers(stockInputs, STOCK_FIELDS.map((f) => f.key)), stock));
+        else ctx.kv.set(wheelKey(), sanitizeWheel({ width: readNumbers(wheelInputs, ['width']).width, diamond: wheelInputs.diamond.value, straightOrigin: wheelInputs.straightOrigin.value, xMode: wheelInputs.xMode.value }));
       } else return;
       load({ force: true });
     }
