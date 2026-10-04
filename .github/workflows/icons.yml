@@ -1,10 +1,10 @@
 # Fabrique les icônes de l'application (assets/*.png) à partir de l'image déposée dans logo/,
-# les enregistre dans le dépôt, puis relance la publication GitHub Pages.
+# les enregistre sur la même branche, puis (sur main) relance la publication GitHub Pages.
 name: Icônes de l'application
 
 on:
+  # Toutes les branches : l'image peut être déposée sur main ou sur une branche de travail.
   push:
-    branches: [main]
     paths: ['logo/**', '!logo/README.md']
   workflow_dispatch:
 
@@ -49,7 +49,7 @@ jobs:
 
       # Une modification enregistrée par une action ne relance pas toujours GitHub Pages.
       - name: Relancer la publication GitHub Pages
-        if: steps.commit.outputs.changed == 'true'
+        if: steps.commit.outputs.changed == 'true' && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}

@@ -31,24 +31,62 @@ const defaultSvg = ({ full }) => `
 </svg>`;
 
 /**
- * Image personnelle : entière (jamais rognée), centrée. full : fond de la couleur du coin
- * haut-gauche de l'image (blanc si transparent) et marge de sécurité de 10 % — Android découpe
- * les icônes « maskable » en cercle ou en carré arrondi.
+ * Image personnelle : entière (jamais rognée), centrée.
+ * - full (icônes Android « maskable », iPhone) : fond plein de la couleur du coin haut-gauche
+ *   (blanc si transparent) et marge de sécurité de 10 % — Android découpe en cercle.
+ * - sinon : le fond uni relié aux coins (coins blancs d'un logo carré arrondi, par exemple)
+ *   devient transparent, pour un rendu propre sur fond sombre.
  */
-const customHtml = (url, { full }) => `
-<div id="box" style="width:100%;height:100%;display:grid;place-items:center;box-sizing:border-box;padding:${full ? '10%' : '0'}">
-  <img id="logo" src="${url}" style="max-width:100%;max-height:100%;object-fit:contain">
-</div>
+const customHtml = (url, { full, size }) => `
+<canvas id="c" width="${size}" height="${size}" style="display:block"></canvas>
 <script>
-  const img = document.getElementById('logo');
+  const img = new Image();
+  img.src = ${JSON.stringify(url)};
   window.ready = img.decode().then(() => {
-    if (!${full}) return;
-    const c = document.createElement('canvas');
-    c.width = c.height = 1;
-    const g = c.getContext('2d');
-    g.drawImage(img, 0, 0, 1, 1, 0, 0, 1, 1);
-    const [r, v, b, a] = g.getImageData(0, 0, 1, 1).data;
-    document.getElementById('box').style.background = a > 200 ? 'rgb(' + r + ',' + v + ',' + b + ')' : '#fff';
+    const c = document.getElementById('c');
+    const g = c.getContext('2d', { willReadFrequently: true });
+    const size = ${size};
+    const pad = ${full ? 0.1 : 0} * size;
+    const k = Math.min((size - 2 * pad) / img.naturalWidth, (size - 2 * pad) / img.naturalHeight);
+    const w = img.naturalWidth * k, h = img.naturalHeight * k;
+    // Couleur du coin de l'image d'origine.
+    const probe = document.createElement('canvas');
+    probe.width = probe.height = 1;
+    const pg = probe.getContext('2d');
+    pg.drawImage(img, 0, 0, 1, 1, 0, 0, 1, 1);
+    const [cr, cg, cb, ca] = pg.getImageData(0, 0, 1, 1).data;
+    if (${full}) {
+      g.fillStyle = ca > 200 ? 'rgb(' + cr + ',' + cg + ',' + cb + ')' : '#fff';
+      g.fillRect(0, 0, size, size);
+    }
+    g.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+    if (${full} || ca < 200) return;
+    // Détourage : remplissage par diffusion depuis les quatre coins, couleurs proches du coin.
+    const data = g.getImageData(0, 0, size, size);
+    const px = data.data;
+    // Pixel déjà transparent (bord d'une image non carrée) : on le traverse.
+    // Fond blanc (le cas courant) : tout pixel presque blanc et peu coloré ; sinon, couleur proche du coin.
+    const whiteBg = Math.min(cr, cg, cb) > 225;
+    const close = (i) =>
+      px[i + 3] === 0 ||
+      (whiteBg
+        ? Math.min(px[i], px[i + 1], px[i + 2]) > 200 && Math.max(px[i], px[i + 1], px[i + 2]) - Math.min(px[i], px[i + 1], px[i + 2]) < 30
+        : Math.abs(px[i] - cr) + Math.abs(px[i + 1] - cg) + Math.abs(px[i + 2] - cb) < 60);
+    const seen = new Uint8Array(size * size);
+    const stack = [0, size - 1, size * (size - 1), size * size - 1];
+    while (stack.length) {
+      const p = stack.pop();
+      if (seen[p]) continue;
+      seen[p] = 1;
+      if (!close(p * 4)) continue;
+      px[p * 4 + 3] = 0;
+      const x = p % size, y = (p / size) | 0;
+      if (x > 0) stack.push(p - 1);
+      if (x < size - 1) stack.push(p + 1);
+      if (y > 0) stack.push(p - size);
+      if (y < size - 1) stack.push(p + size);
+    }
+    g.putImageData(data, 0, 0);
   });
 </script>`;
 

@@ -5,7 +5,7 @@ installée (écran d'accueil du téléphone, onglet du navigateur, haut de page)
 
 ## Depuis GitHub (sans rien installer)
 
-1. Sur la page du dépôt, ouvrez le dossier `logo`.
+1. Sur la page du dépôt (branche **main** : c'est elle qui est publiée), ouvrez le dossier `logo`.
 2. **Add file › Upload files**, choisissez votre image, puis **Commit changes**.
 3. Patientez une à deux minutes : GitHub fabrique les icônes (onglet **Actions**,
    « Icônes de l'application »), les enregistre dans `assets/`, puis GitHub Pages met le site à jour.
@@ -18,6 +18,8 @@ installée (écran d'accueil du téléphone, onglet du navigateur, haut de page)
 - Idéalement **carrée**, d'au moins **512 × 512 pixels**. Une image rectangulaire est gardée
   entière (jamais rognée) et centrée.
 - Fond transparent possible : il devient blanc pour les icônes de téléphone, qui exigent un fond plein.
+- Fond blanc uni autour du dessin (logo carré arrondi) : il est rendu transparent sur les icônes
+  qui le permettent (onglet, haut de page), pour un rendu propre en thème sombre.
 - Gardez une marge autour du dessin : Android découpe l'icône en cercle ou en carré arrondi.
 - **Une seule image** dans ce dossier (s'il y en a plusieurs, la première par ordre alphabétique
   est utilisée).
