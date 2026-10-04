@@ -23,14 +23,16 @@
 
 .brand {
   display: none;
-  padding: 2px 7px;
   margin: 0 6px 0 2px;
+  line-height: 0;
+}
+
+/* Logo de l'application (assets/icon-192.png, généré depuis le dossier logo/). */
+.brand img {
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font: 700 12px/1.4 var(--font-mono);
-  letter-spacing: 0.04em;
-  text-decoration: none;
+  object-fit: contain;
 }
 
 .program-title {

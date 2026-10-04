@@ -11,6 +11,8 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
   (GitHub Pages, serveur web d'atelier…). Aucune compilation n'est nécessaire pour l'utiliser.
   Avec GitHub Pages : dépôt › Settings › Pages › « Deploy from a branch », branche `main`,
   dossier `/ (root)`.
+- **Votre logo :** déposer une image dans le dossier `logo/` (sur GitHub : Add file › Upload
+  files) ; les icônes de l'application sont fabriquées automatiquement (voir `logo/README.md`).
 - **Comme une application** (icône sur l'écran d'accueil, plein écran, sans connexion) : une
   fois le site en ligne en https, ouvrir l'adresse sur le téléphone puis menu Outils ›
   **Installer l'application** (ou, sur iPhone, Partager › « Sur l'écran d'accueil »).
@@ -181,7 +183,9 @@ raccourci dont la fonctionnalité est désactivée y est signalé).
 ```
 index.html              page unique ; charge css/ et dist/app.js
 css/                    tokens.css (couleurs des 2 thèmes), base, layout, components
-assets/                 icônes (SVG ; PNG de l'application installable, générés par tools/make-icons.mjs)
+assets/                 icônes PNG (générées par tools/make-icons.mjs, ne pas modifier à la main)
+logo/                   VOTRE logo : y déposer une image, GitHub fabrique les icônes (voir logo/README.md)
+.github/workflows/      icons.yml : fabrique les icônes quand logo/ change
 manifest.webmanifest    manifeste de l'application installable
 sw.js                   service worker (hors ligne quand le site est hébergé)
 dist/                   GÉNÉRÉ par « npm run build » (versionné pour que le site marche sans outil)

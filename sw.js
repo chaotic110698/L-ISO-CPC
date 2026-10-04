@@ -17,7 +17,7 @@ const SHELL = [
   'css/components.css',
   'css/editor.css',
   'manifest.webmanifest',
-  'assets/icon.svg',
+  'assets/favicon-64.png',
   'assets/icon-192.png',
   'assets/icon-512.png',
   'assets/icon-maskable-512.png',
