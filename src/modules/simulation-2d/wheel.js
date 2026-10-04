@@ -2,7 +2,8 @@
  * Taillage de meule (rectification) : la meule, vue de dessus, est un rectangle ; le diamant
  * piloté par le programme l'usine comme une plaquette carbure usine une pièce. Fonctions pures.
  *
- * Repère d'affichage : Z vers la droite, X vers le haut (en s'éloignant de la meule).
+ * Repère : Z vers la droite, X+ en s'éloignant de la meule. À l'écran, vue en miroir comme à la
+ * machine : meule au-dessus, diamant en dessous, X+ vers le bas.
  *   z = 0 : flanc gauche de la meule, z = largeur : flanc droit ; r = 0 : périphérie de la
  *   meule, la meule est en dessous (r < 0).
  *

@@ -117,19 +117,33 @@ export function createView(canvas, { onPick } = {}) {
     const s = view.scale;
     const width = material.zMax - material.zMin;
     const depth = -material.bottom;
-    const [mx, my] = toScreen(material.zMin, 0);
+    // Vue en miroir (comme à la machine) : meule au-dessus, diamant en dessous, X+ vers le bas.
+    // L'image de la matière a la périphérie en haut : retournée verticalement à l'affichage.
+    const [mx, periphery] = toScreen(material.zMin, 0);
+    const far = toScreen(material.zMin, -depth)[1];
+    const top = Math.min(periphery, far);
     g.imageSmoothingEnabled = s / material.res < 2;
-    g.drawImage(material.canvas, 1, 1, material.canvas.width - 2, material.canvas.height - 2, mx, my, width * s, depth * s);
+    g.save();
+    if (scene.front) {
+      g.translate(0, periphery);
+      g.scale(1, -1);
+      g.drawImage(material.canvas, 1, 1, material.canvas.width - 2, material.canvas.height - 2, mx, 0, width * s, depth * s);
+    } else {
+      g.drawImage(material.canvas, 1, 1, material.canvas.width - 2, material.canvas.height - 2, mx, periphery, width * s, depth * s);
+    }
+    g.restore();
     g.strokeStyle = colors.axis;
     g.lineWidth = 1;
     g.setLineDash([4, 4]);
-    g.strokeRect(mx, my, width * s, depth * s);
+    g.strokeRect(mx, top, width * s, depth * s);
     g.setLineDash([]);
     g.fillStyle = colors.text;
     g.font = '12px system-ui, sans-serif';
-    g.fillText(`Meule — largeur ${width} mm`, mx + 6, my + depth * s - 8);
-    // Repère : axes X (vers le haut) et Z (vers la droite) depuis l'origine principale.
+    // Légende du côté opposé à la périphérie (loin du diamant).
+    g.fillText(`Meule — largeur ${width} mm`, mx + 6, scene.front ? top + 16 : top + depth * s - 8);
+    // Repère : axes Z (vers la droite) et X (en s'éloignant de la meule) depuis l'origine principale.
     const [x0, y0] = toScreen(0, 0);
+    const away = scene.front ? 1 : -1; // sens écran de X+
     const arrow = (x1, y1, label, dx, dy) => {
       g.beginPath();
       g.moveTo(x0, y0);
@@ -148,7 +162,7 @@ export function createView(canvas, { onPick } = {}) {
     g.fillStyle = colors.text;
     g.lineWidth = 1.5;
     arrow(x0 + 46, y0, 'Z+', 4, 4);
-    arrow(x0, y0 - 46, 'X+', 4, 0);
+    arrow(x0, y0 + away * 46, 'X+', 4, away > 0 ? 12 : 0);
     let previousEnd = -Infinity;
     for (const origin of scene.origins ?? []) {
       const [ox, oy] = toScreen(origin.z, 0);
@@ -164,8 +178,8 @@ export function createView(canvas, { onPick } = {}) {
       g.moveTo(ox, oy - 8);
       g.lineTo(ox, oy + 8);
       g.stroke();
-      // Étiquette dans la meule, sous l'origine (au-dessus : les flèches du repère).
-      g.fillText(origin.label, textX, oy + 18 + row * 16);
+      // Étiquette dans la meule, côté meule de l'origine (de l'autre côté : les flèches du repère).
+      g.fillText(origin.label, textX, scene.front ? oy - 10 - row * 16 : oy + 18 + row * 16);
     }
   }
 

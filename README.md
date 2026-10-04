@@ -73,7 +73,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | S2 | Cycles développés en passes : G71/G72 (ébauche), G73 (répétition de forme), G90/G92/G94 (G77/G78/G79 en B/C, modaux), G74/G75 (perçage, gorges), G76 (filetage multipasses) ; sous-programmes M98/M99 | ✅ |
 | S3 | Formes d'outil (extérieur / intérieur deviné ou choisi par outil, filetage, foret, gorges), temps d'usinage par outil, brut pré-percé (diamètre intérieur et profondeur) | ✅ |
 | S5 | Instructions de macro : GOTO, IF […] GOTO, IF […] THEN, WHILE […] DO / END, comparaisons EQ NE GT LT GE LE | ✅ |
-| R1 | Rectification : taillage de meule — vue de dessus, meule = rectangle (largeur réglable), diamant droit ou incliné à 45° (flanc gauche : origine sur l'angle gauche ; flanc droit : origine sur l'angle droit) | ✅ |
+| R1 | Rectification : taillage de meule — vue de dessus en miroir (meule au-dessus, diamant en dessous, X+ vers le bas), meule = rectangle (largeur réglable), diamant droit ou incliné à 45° (flanc gauche : origine sur l'angle gauche ; flanc droit : origine sur l'angle droit) | ✅ |
 
 Prévus ensuite : autres types de machines.
 

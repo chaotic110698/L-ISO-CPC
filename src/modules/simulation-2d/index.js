@@ -202,7 +202,7 @@ export default {
         autoSides,
         overrides,
         shapeOf: (move) => diamondShape(move.diamond),
-        front: false,
+        front: true, // miroir : meule au-dessus, diamant en dessous (repère des opérateurs)
         stockSource: saved ? 'saisi' : fromProgram ? 'programme' : 'estimé',
       };
       // Alertes propres au tour sans objet ici : broche de la meule, X négatif (= dans la meule).
