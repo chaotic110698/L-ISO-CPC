@@ -220,9 +220,9 @@ export async function startApp(root) {
         /** Entrée du menu latéral (remplace l'entrée « à venir » de même identifiant). */
         addNavItem: (item) => scope.add(shell.addNavItem(item)),
         /** Ajoute une page et son entrée de menu (retirées à la désactivation du module). */
-        addPage({ id, path, label, icon, order, mount, onShow }) {
+        addPage({ id, path, label, icon, order, section, mount, onShow }) {
           const removeRoute = router.register(path, { title: label, mount, onShow });
-          const removeNav = shell.addNavItem({ id, path, label, icon, order });
+          const removeNav = shell.addNavItem({ id, path, label, icon, order, section });
           scope.add(() => {
             removeNav();
             removeRoute();
@@ -265,19 +265,20 @@ export async function startApp(root) {
   // Menu latéral. Les fonctions à venir y figurent grisées ; chaque module les remplacera
   // par une vraie entrée (avec sa page) lorsqu'il sera développé.
   shell.addNavItem({ id: 'accueil', path: '/accueil', label: 'Accueil', icon: 'home', order: 10 });
-  shell.addNavItem({ id: 'editeur', path: '/editeur', label: 'Éditeur', icon: 'code', order: 20 });
+  shell.addNavItem({ id: 'editeur', path: '/editeur', label: 'Éditeur', icon: 'code', order: 20, section: 'programmation' });
   shell.addNavItem({
     id: 'programmes',
     label: 'Mes programmes',
     icon: 'folder',
     order: 30,
+    section: 'programmation',
     onSelect: () => {
       router.navigate('/editeur');
       openPrograms();
     },
   });
-  shell.addNavItem({ id: 'profils', path: '/profils', label: 'Profils machines', icon: 'machine', order: 35 });
-  shell.addNavItem({ id: 'parametres', path: '/parametres', label: 'Paramètres', icon: 'settings', order: 90 });
+  shell.addNavItem({ id: 'profils', path: '/profils', label: 'Profils machines', icon: 'machine', order: 35, section: 'reglages' });
+  shell.addNavItem({ id: 'parametres', path: '/parametres', label: 'Paramètres', icon: 'settings', order: 90, section: 'reglages' });
   // Fonctions prévues (grisées). Les fonctionnalités existantes ajoutent leur propre entrée
   // depuis leur module : désactivées, elles disparaissent du menu.
   for (const item of [

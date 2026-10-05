@@ -103,6 +103,13 @@ const desktop = await open(DESKTOP);
     assert.match(await page.locator('.home-resume').textContent(), /Exemple — tournage Fanuc/);
     assert.ok((await page.locator('.sidenav [data-nav]').count()) >= 8, 'menu latéral avec fonctions disponibles et à venir');
     assert.equal(await page.locator('.sidenav [data-nav="accueil"] a').getAttribute('aria-current'), 'page');
+    // Sections distinctes : programmation, simulateur, apprentissage, réglages.
+    assert.deepEqual(await page.locator('.sidenav-section:not([hidden]) .sidenav-heading').allTextContents(), ['Programmation', 'Simulateur', 'Apprentissage', 'Réglages']);
+    const sectionOf = (id) => page.locator(`.sidenav [data-nav="${id}"]:not([hidden])`).evaluate((li) => li.closest('.sidenav-section').dataset.section);
+    assert.equal(await sectionOf('editeur'), 'programmation');
+    assert.equal(await sectionOf('simulation'), 'simulateur');
+    assert.equal(await sectionOf('cours'), 'apprentissage');
+    assert.equal(await sectionOf('parametres'), 'reglages');
     await shot(page, 'pc-clair-accueil');
     await page.locator('[data-action="start"]').click();
     await page.waitForSelector('.editor-page:not([hidden])');
@@ -763,7 +770,7 @@ const desktop = await open(DESKTOP);
       range.dispatchEvent(new Event('input'));
     });
     await page.locator('.sim-tools summary').click();
-    assert.deepEqual(await page.locator('.sim-tool-table td.mono').allTextContents(), ['T0101', 'T0202', 'T0303']);
+    assert.deepEqual(await page.locator('.sim-tools .sim-tool-table td.mono').allTextContents(), ['T0101', 'T0202', 'T0303']);
     assert.match(await page.locator('.sim-side[data-tool="T0101"] option:checked').textContent(), /Auto \(extérieur\)/);
     // Brut pré-percé : diamètre intérieur et profondeur.
     await page.locator('[data-action="sim-stock"]').click();
@@ -789,8 +796,7 @@ const desktop = await open(DESKTOP);
     assert.equal(await page.locator('[data-action="sim-stock"]').textContent(), 'Meule L40');
     assert.equal(await page.locator('.sim-alerts').isHidden(), true, 'X négatif : normal en taillage, pas d’alerte');
     await page.locator('.sim-tools summary').click();
-    const diamonds = await page.locator('.sim-side').evaluateAll((selects) => selects.map((s) => s.selectedOptions[0].textContent));
-    assert.deepEqual(diamonds.map((d) => /droit \(face|flanc gauche|flanc droit/.exec(d)[0]), ['droit (face', 'flanc gauche', 'flanc droit']);
+    assert.deepEqual(await page.locator('.sim-tools .sim-tool-table tbody td:nth-child(2)').allTextContents(), ['droit, flanc gauche, flanc droit'], 'diamant de chaque outil lu dans son commentaire');
     await page.evaluate(() => {
       const range = document.querySelector('.sim-range');
       range.value = 1000;
@@ -813,6 +819,63 @@ const desktop = await open(DESKTOP);
     await page.waitForFunction(() => document.querySelector('[data-action="sim-stock"]').textContent === 'Meule L40');
     await page.locator('[data-action="sim-leave"]').click();
     await setText(page, before);
+  });
+
+  await step('simulateur indépendant : deux programmes de taillage enchaînés, variables partagées', async () => {
+    const workspace = () => page.evaluate(() => window.isoApp.workspace.current);
+    const originalId = (await workspace()).id;
+    const ids = await page.evaluate(async () => {
+      const ws = window.isoApp.workspace;
+      const right = await ws.create({ name: 'E2E DIAMANT DROIT', content: ['O0601 (TAILLAGE MEULE L40)', 'G98', '#100=12. (PROFONDEUR COMMUNE)', '#101=#101+1', 'T0303 (DIAMANT FLANC DROIT)', 'G0 X2. Z-0.2', 'G1 X[-#100] F80', 'G0 Z3.', 'G0 X2.', 'M30'].join('\n') });
+      const left = await ws.create({ name: 'E2E DIAMANT GAUCHE', content: ['O0602 (TAILLAGE MEULE L40)', 'G98', '#101=#101+1', 'T0202 (DIAMANT FLANC GAUCHE)', 'G0 X2. Z0.2', 'G1 X[-#100] F80', 'G0 Z-3.', 'G0 X2.', 'M30'].join('\n') });
+      return [right.id, left.id];
+    });
+    await page.evaluate((id) => window.isoApp.workspace.open(id), originalId);
+    await navTo(page, 'simulation', '.sim-page:not([hidden])');
+    await page.locator('[data-action="sim-clear"]').click();
+    await page.waitForSelector('.sim-empty:not([hidden])');
+    await page.locator('[data-action="sim-load-empty"]').click();
+    for (const name of ['E2E DIAMANT DROIT', 'E2E DIAMANT GAUCHE']) await page.locator('.dialog .sim-pick', { hasText: name }).locator('input').check();
+    assert.equal(await page.locator('.dialog .sim-pick', { hasText: 'E2E DIAMANT GAUCHE' }).getAttribute('data-rank'), '2', 'ordre de sélection');
+    await page.locator('.dialog button', { hasText: 'Charger' }).click();
+    await page.waitForFunction(() => document.querySelector('.sim-page .console-title').textContent === 'E2E DIAMANT DROIT + E2E DIAMANT GAUCHE');
+    assert.equal(await page.locator('[data-action="sim-stock"]').textContent(), 'Meule L40');
+    assert.equal(await page.locator('.sim-program').count(), 2);
+    assert.equal(await page.locator('.sim-alerts').isHidden(), true);
+    // Le 2e programme reprend #100 du 1er (sinon son X[-#100] serait sans effet) et le compteur continue.
+    await page.locator('.sim-variables summary').click();
+    assert.deepEqual(await page.locator('.sim-variables td').allTextContents(), ['#100', '12', '#101', '2']);
+    assert.deepEqual(await page.locator('.sim-tools .sim-tool-table tbody td:nth-child(2)').allTextContents(), ['flanc droit', 'flanc gauche']);
+    // Diamant choisi par programme.
+    await page.locator('select[data-program="1"]').selectOption('straight');
+    await page.waitForFunction(() => [...document.querySelectorAll('.sim-tools .sim-tool-table tbody td:nth-child(2)')].map((td) => td.textContent).join() === 'flanc droit,droit');
+    await page.locator('select[data-program="1"]').selectOption('auto');
+    // Ordre modifiable.
+    await page.locator('.sim-program[data-index="0"] [data-action="sim-program-down"]').click();
+    await page.waitForFunction(() => document.querySelector('.sim-page .console-title').textContent === 'E2E DIAMANT GAUCHE + E2E DIAMANT DROIT');
+    // Retour à l'éditeur : ouvre le programme de la ligne en cours (le dernier à la fin).
+    await page.evaluate(() => {
+      const range = document.querySelector('.sim-range');
+      range.value = 1000;
+      range.dispatchEvent(new Event('input'));
+    });
+    assert.match(await page.locator('.sim-page .console-counter').textContent(), /^E2E DIAMANT DROIT · ligne \d+/);
+    await shot(page, 'pc-sombre-taillage-deux-diamants');
+    await page.locator('[data-action="sim-leave"]').click();
+    await page.waitForSelector('.editor-page:not([hidden])');
+    await page.waitForFunction(() => window.isoApp.workspace.current.name === 'E2E DIAMANT DROIT');
+    await page.evaluate(
+      async ([id, created]) => {
+        const ws = window.isoApp.workspace;
+        await ws.open(id);
+        for (const c of created) {
+          await ws.remove(c);
+          await ws.purge(c);
+        }
+      },
+      [originalId, ids],
+    );
+    assert.equal((await workspace()).id, originalId);
   });
 
   await step('zéro barré dans l’éditeur, désactivable', async () => {
@@ -1392,7 +1455,15 @@ const mobile = await open(MOBILE);
 
   await step('simulation 2D sur smartphone : sans défilement horizontal, brut modifiable', async () => {
     await navTo(page, 'simulation', '.sim-page:not([hidden])');
+    // Indépendant de l'éditeur : le programme se charge dans le simulateur.
+    await page.waitForSelector('.sim-empty:not([hidden])');
     assert.equal(await noHorizontalScroll(), true);
+    await page.locator('[data-action="sim-load-empty"]').tap();
+    await page.locator('.dialog .sim-pick', { hasText: 'Exemple' }).first().locator('input').check();
+    await page.locator('.dialog button', { hasText: 'Charger' }).tap();
+    await page.waitForSelector('.sim-empty[hidden]', { state: 'attached' });
+    assert.equal(await noHorizontalScroll(), true);
+    await shot(page, 'mobile-clair-simulation-programmes');
     await page.locator('[data-action="sim-stock"]').tap();
     await page.locator('.dialog input[name="diameter"]').fill('60');
     await page.locator('.dialog button', { hasText: 'Appliquer' }).tap();

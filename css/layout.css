@@ -88,7 +88,7 @@
   z-index: 50;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   width: min(280px, 84vw);
   padding: 10px 8px calc(16px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   overflow-y: auto;

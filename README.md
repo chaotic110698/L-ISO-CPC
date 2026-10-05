@@ -73,6 +73,7 @@ hors ligne** : aucune installation, aucun serveur, aucune donnée envoyée.
 | S2 | Cycles développés en passes : G71/G72 (ébauche), G73 (répétition de forme), G90/G92/G94 (G77/G78/G79 en B/C, modaux), G74/G75 (perçage, gorges), G76 (filetage multipasses) ; sous-programmes M98/M99 | ✅ |
 | S3 | Formes d'outil (extérieur / intérieur deviné ou choisi par outil, filetage, foret, gorges), temps d'usinage par outil, brut pré-percé (diamètre intérieur et profondeur) | ✅ |
 | S5 | Instructions de macro : GOTO, IF […] GOTO, IF […] THEN, WHILE […] DO / END, comparaisons EQ NE GT LT GE LE | ✅ |
+| S6 | Simulateur indépendant de l'éditeur : programmes chargés explicitement (enregistrés ou fichier), exécutés l'un après l'autre sans remise à zéro des variables # (un programme par diamant), ordre et diamant choisis par programme, variables en fin de simulation | ✅ |
 | R1 | Rectification : taillage de meule — vue de dessus en miroir (meule au-dessus, diamant en dessous, X+ vers le bas), meule = rectangle (largeur réglable), diamant droit ou incliné à 45° (flanc gauche : origine sur l'angle gauche ; flanc droit : origine sur l'angle droit) | ✅ |
 
 Prévus ensuite : autres types de machines.
@@ -81,8 +82,10 @@ Prévus ensuite : autres types de machines.
 
 - **Accueil** (page d'ouverture) : présentation du site et bouton **« Commencer à
   programmer »** qui ouvre l'éditeur.
-- **Menu latéral** (☰) : Accueil, Éditeur, Mode pupitre, Mes programmes, Profils machines, Cours d'ISO,
-  Calculateurs, Cycles, Ma bibliothèque, Paramètres, et les fonctions à venir (grisées). Affiché sur grand
+- **Menu latéral** (☰), en sections distinctes : Accueil ; **Programmation** (Éditeur, Mode pupitre,
+  Mes programmes, Calculateurs, Cycles, Ma bibliothèque) ; **Simulateur** (Simulation 2D) ;
+  **Apprentissage** (Cours d'ISO) ; **Réglages** (Profils machines, Paramètres) ; et les fonctions à
+  venir (grisées). Affiché sur grand
   écran (repliable), escamoté sur smartphone. Une page dont la fonctionnalité est désactivée
   disparaît du menu.
 - **Éditeur** : barre d'outils (Programmes, Enregistrer, puis les outils des fonctionnalités
@@ -143,8 +146,8 @@ Sous chaque interrupteur, Paramètres indique **où se trouve** la fonctionnalit
 | Édition | Annuler / rétablir | Barre d'outils, Ctrl+Z / Ctrl+Y | `history` |
 | Analyse | Vérificateur de syntaxe (parenthèses, caractères invalides, codes inconnus ou incompatibles, adresses répétées, plusieurs M, cotes sans point décimal, avance non définie, broche sans S, G96 sans G50, G40 oublié, P/Q/GOTO introuvables, N en double, M30 manquant — chaque règle désactivable) | Soulignements, marge, barre d'état, Ctrl+Maj+M | `checker` |
 | Analyse | État modal à la ligne du curseur | Barre d'état et panneau « État modal » | `modal-state` |
-| Analyse | Simulation 2D du tournage : usinage animé (brut lu dans « (BRUT D50 X 80) » ou « (BRUT D50 X 80 PERCE D20 P30) » pour un pré-perçage, ou saisi, enlèvement de matière, mandrin, outil), lecture / pause / vitesse ×1 à ×100 / bloc par bloc, temps estimé, alertes (rapide G0 dans la matière, outil dans les mors, arc impossible, avance absente…) ; un tap sur le trajet va au bloc, retour à l'éditeur sur la ligne simulée | Menu latéral « Simulation 2D », bouton « Simuler » | `simulation-2d` |
-| Analyse | Taillage de meule (rectification) : vue de dessus avec repère X/Z, meule en rectangle (largeur lue dans « (MEULE L40) » ou saisie), diamant droit, 45° flanc gauche (origine angle gauche) ou 45° flanc droit (origine angle droit) choisi par outil ou lu dans « T0202 (DIAMANT FLANC GAUCHE) », X au diamètre ou au rayon, sens de X+ et de Z+ inversables (boutons « X+ ⇅ » et « Z+ ⇄ », selon le trièdre de la machine) ; programme reconnu par un commentaire MEULE / DIAMANT / TAILLAGE, ou choisi dans « Brut ou meule » | Page « Simulation 2D » › Brut ou meule | `simulation-2d` |
+| Analyse | Simulateur 2D, section à part : on y charge un ou plusieurs programmes (copie de leur texte, « Recharger » reprend le texte enregistré), exécutés à la suite comme à la machine — chacun repart de la position du précédent, variables #… partagées ; le bouton « Simuler » de l'éditeur charge le programme ouvert. Usinage animé (brut lu dans « (BRUT D50 X 80) » ou « (BRUT D50 X 80 PERCE D20 P30) » pour un pré-perçage, ou saisi, enlèvement de matière, mandrin, outil), lecture / pause / vitesse ×1 à ×100 / bloc par bloc, temps estimé, alertes (rapide G0 dans la matière, outil dans les mors, arc impossible, avance absente…) ; un tap sur le trajet va au bloc, retour à l'éditeur sur la ligne simulée (dans le bon programme) | Menu latéral › Simulateur, bouton « Simuler » | `simulation-2d` |
+| Analyse | Taillage de meule (rectification) : vue de dessus avec repère X/Z, meule en rectangle (largeur lue dans « (MEULE L40) » ou saisie), diamant droit, 45° flanc gauche (origine angle gauche) ou 45° flanc droit (origine angle droit) choisi par programme ou lu dans « T0202 (DIAMANT FLANC GAUCHE) » ; un programme par diamant (droite / gauche) enchaînés avec leurs variables communes, X au diamètre ou au rayon, sens de X+ et de Z+ inversables (boutons « X+ ⇅ » et « Z+ ⇄ », selon le trièdre de la machine) ; programme reconnu par un commentaire MEULE / DIAMANT / TAILLAGE, ou choisi dans « Brut ou meule » | Page « Simulation 2D » › Brut ou meule | `simulation-2d` |
 | Analyse | Plan du programme : programmes O…, sections (ligne de commentaire seule), outils, cycles, appels M98/G65, fins ; un clic va à la ligne, la partie en cours est surlignée | Panneau « Plan » | `outline` |
 | Analyse | Tableau des variables (nom et description personnels, utilisations, valeurs répétées transformables en macro) | Panneau « Variables » | `variables` |
 | Analyse | Avertissements de macros (hors des plages libres du profil, double utilisation entre programmes — non bloquants) | Soulignement orange, barre d'état | `macro-warnings` |

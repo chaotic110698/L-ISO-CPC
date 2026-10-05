@@ -120,6 +120,6 @@ export default {
         return { dispose: off };
       },
     });
-    ctx.ui.addNavItem({ id: 'ma-bibliotheque', label: 'Ma bibliothèque', icon: 'bookmark', order: 46, onSelect: () => ctx.ui.showPanel('library') });
+    ctx.ui.addNavItem({ id: 'ma-bibliotheque', label: 'Ma bibliothèque', icon: 'bookmark', order: 46, section: 'programmation', onSelect: () => ctx.ui.showPanel('library') });
   },
 };

@@ -58,6 +58,7 @@ export default {
       label: 'Calculateurs',
       icon: 'calculator',
       order: 40,
+      section: 'programmation',
       mount: () => createPage(ctx),
     });
   },

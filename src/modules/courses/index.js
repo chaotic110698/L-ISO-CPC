@@ -49,6 +49,7 @@ export default {
       label: 'Cours d’ISO',
       icon: 'book',
       order: 38,
+      section: 'apprentissage',
       mount: () =>
         (page = createCoursesPage({
           progress,

@@ -43,6 +43,6 @@ export default {
         return { dispose: off };
       },
     });
-    ctx.ui.addNavItem({ id: 'bibliotheque', label: 'Cycles (formulaires)', icon: 'cycle', order: 45, onSelect: () => ctx.ui.showPanel('cycles') });
+    ctx.ui.addNavItem({ id: 'bibliotheque', label: 'Cycles (formulaires)', icon: 'cycle', order: 45, section: 'programmation', onSelect: () => ctx.ui.showPanel('cycles') });
   },
 };

@@ -1,11 +1,14 @@
 import { EditorView } from '@codemirror/view';
-import { h } from '../../core/dom.js';
-import { REFERENCE, simulate, toolSides } from '../../engine/index.js';
+import { h, pickFile, readTextFile } from '../../core/dom.js';
+import { formatRelativeTime } from '../../core/util.js';
+import { REFERENCE, toolSides } from '../../engine/index.js';
 import { highlightCode } from '../../ui/code-view.js';
 import { icon } from '../../ui/icons.js';
+import { switchProgram } from '../../ui/program-actions.js';
 import { segmented } from '../../ui/segmented.js';
 import { createMaterial, createWheelMaterial, shapeFor } from './material.js';
 import { createTimeline, formatDuration } from './playback.js';
+import { MAX_PROGRAMS, sameBlock, sanitizeSession, simulateChain } from './session.js';
 import { guessStock, parseStock, sanitizeStock } from './stock.js';
 import { createView } from './view.js';
 import { DIAMONDS, ORIGINS, WHEEL_DEFAULTS, diamondFromComment, diamondShape, isDressingProgram, originZ, parseWheel, sanitizeWheel, toWheelMoves } from './wheel.js';
@@ -26,18 +29,20 @@ const STOCK_FIELDS = [
 ];
 
 /**
- * Simulation 2D du tournage : le programme de l'éditeur est interprété (moteur toolpath), puis
+ * Simulateur 2D, section à part de l'éditeur : on y charge un ou plusieurs programmes (copie de
+ * leur texte), exécutés l'un après l'autre sans remise à zéro des variables #… (taillage de
+ * meule : un programme par diamant). Les programmes sont interprétés (moteur toolpath), puis
  * l'usinage est animé — enlèvement de matière, trajet, outil — avec lecture, pause, vitesse,
  * bloc par bloc, retour à l'éditeur sur la ligne en cours, et alertes (rapide dans la matière,
  * arc impossible, avance absente…).
  */
 export default {
   id: 'simulation',
-  label: 'Simulation 2D (tournage)',
+  label: 'Simulateur 2D (tournage, taillage de meule)',
   description:
-    'Usinage animé du programme ouvert : brut (lu dans un commentaire « (BRUT D50 X 80) » ou saisi), enlèvement de matière, trajet de l’outil, temps estimé, alertes (rapide G0 dans la matière, arc impossible, avance absente…). Lecture, pause, vitesse, bloc par bloc, zoom à deux doigts.',
+    'Section à part : chargez un ou plusieurs programmes enregistrés (exécutés à la suite, variables # partagées — un programme par diamant en taillage de meule). Usinage animé : brut (lu dans un commentaire « (BRUT D50 X 80) » ou saisi), enlèvement de matière, trajet de l’outil, temps estimé, alertes (rapide G0 dans la matière, arc impossible, avance absente…). Lecture, pause, vitesse, bloc par bloc, zoom à deux doigts.',
   group: 'analyse',
-  where: 'Menu latéral « Simulation 2D », bouton de la barre d’outils de l’éditeur',
+  where: 'Menu latéral, section « Simulateur » ; bouton « Simuler » de l’éditeur (charge le programme ouvert)',
   settings: [
     {
       key: 'simulation.turret',
@@ -55,14 +60,16 @@ export default {
     const { editor, codes } = ctx;
     let page = null;
     let scene = null;
-    let sourceText = null;
+    let sourceKey = null;
+    const SESSION_KEY = 'simulation.session';
+    let session = sanitizeSession(ctx.kv.get(SESSION_KEY, null));
     let time = 0;
     let playing = false;
     let frame = 0;
     let lastTick = 0;
     let erased = { index: 0, fraction: 0 }; // matière effacée jusqu'à ce point du trajet
     let speed = ctx.kv.get('simulation.speed', 20);
-    let currentLine = 0;
+    let currentMove = null;
 
     const canvas = h('canvas', { class: 'sim-canvas', 'aria-label': 'Simulation de l’usinage' });
     const view = createView(canvas, { onPick: (index) => seek(scene.timeline.starts[index] + scene.timeline.durations[index] * 0.999) });
@@ -79,6 +86,18 @@ export default {
       h('button', { type: 'button', class: 'btn btn-small sim-axis', dataset: { action: `sim-invert-${axis.toLowerCase()}` }, title: `Inverser le sens de ${axis}+`, 'aria-pressed': 'false', onclick: () => invertAxis(axis) }, `${axis}+ ${axis === 'X' ? '⇅' : '⇄'}`);
     const axesEl = h('div', { class: 'sim-axes', hidden: true, role: 'group', 'aria-label': 'Sens des axes' }, axisButton('X'), axisButton('Z'));
     const stockEl = h('span', { class: 'sim-stock' });
+    const stockButton = h('button', { type: 'button', class: 'btn btn-small', dataset: { action: 'sim-stock' }, onclick: () => editStock() }, stockEl);
+    const programsEl = h('details', { class: 'sim-programs' });
+    programsEl.open = ctx.kv.get('simulation.programsOpen', true) !== false;
+    programsEl.addEventListener('toggle', () => session.programs.length && ctx.kv.set('simulation.programsOpen', programsEl.open));
+    const emptyEl = h(
+      'div',
+      { class: 'sim-empty', hidden: true },
+      h('p', null, 'Aucun programme chargé.'),
+      h('p', { class: 'sim-note' }, 'Chargez un programme enregistré (ou un fichier). En taillage de meule, chargez un programme par diamant : ils s’exécutent l’un après l’autre, sans remise à zéro des variables.'),
+      h('button', { type: 'button', class: 'btn btn-primary', dataset: { action: 'sim-load-empty' }, onclick: () => pickPrograms() }, icon('plus'), 'Charger un programme'),
+    );
+    const variablesEl = h('details', { class: 'sim-variables', hidden: true });
 
     const iconButton = (name, label, action, onclick) => h('button', { type: 'button', class: 'icon-btn sim-btn', title: label, 'aria-label': label, dataset: { action }, onclick }, icon(name));
     const speedControl = segmented({
@@ -102,11 +121,12 @@ export default {
           h(
             'div',
             { class: 'sim-header-actions' },
-            h('button', { type: 'button', class: 'btn btn-small', dataset: { action: 'sim-stock' }, onclick: editStock }, stockEl),
-            h('button', { type: 'button', class: 'btn btn-small', dataset: { action: 'sim-leave' }, onclick: () => leave() }, icon('code'), h('span', { class: 'sim-hide-narrow' }, 'Éditeur')),
+            stockButton,
+            h('button', { type: 'button', class: 'btn btn-small', title: 'Ouvrir dans l’éditeur, sur la ligne en cours', dataset: { action: 'sim-leave' }, onclick: () => leave() }, icon('code'), h('span', { class: 'sim-hide-narrow' }, 'Éditeur')),
           ),
         ),
-        h('div', { class: 'sim-stage' }, canvas, iconButton('fold', 'Ajuster la vue (double-tap)', 'sim-fit', () => view.fit()), axesEl),
+        programsEl,
+        h('div', { class: 'sim-stage' }, canvas, iconButton('fold', 'Ajuster la vue (double-tap)', 'sim-fit', () => view.fit()), axesEl, emptyEl),
         h(
           'div',
           { class: 'sim-controls' },
@@ -121,7 +141,7 @@ export default {
             speedControl,
           ),
           blockEl,
-          h('div', { class: 'sim-panels' }, toolsEl, alertsEl),
+          h('div', { class: 'sim-panels' }, toolsEl, variablesEl, alertsEl),
         ),
       );
       page.tabIndex = -1;
@@ -137,23 +157,48 @@ export default {
       return page;
     }
 
-    const stockKey = () => `simulation.stock.${ctx.workspace.current?.id ?? 'sans-id'}`;
-    const sidesKey = () => `simulation.sides.${ctx.workspace.current?.id ?? 'sans-id'}`;
-    const machineKey = () => `simulation.machine.${ctx.workspace.current?.id ?? 'sans-id'}`;
-    const wheelKey = () => `simulation.wheel.${ctx.workspace.current?.id ?? 'sans-id'}`;
-    const diamondsKey = () => `simulation.diamonds.${ctx.workspace.current?.id ?? 'sans-id'}`;
-    /** Machine du programme : choisie, sinon « taillage » si un commentaire parle de meule ou de diamant. */
+    // Réglages (brut, machine, meule, côtés) mémorisés pour le 1er programme chargé.
+    const sessionId = () => session.programs[0]?.id ?? 'sans-id';
+    const stockKey = () => `simulation.stock.${sessionId()}`;
+    const sidesKey = () => `simulation.sides.${sessionId()}`;
+    const machineKey = () => `simulation.machine.${sessionId()}`;
+    const wheelKey = () => `simulation.wheel.${sessionId()}`;
+    /** Machine : choisie, sinon « taillage » si un commentaire parle de meule ou de diamant. */
     const machineOf = (lines) => ctx.kv.get(machineKey(), null) ?? (isDressingProgram(lines) ? 'dressing' : 'lathe');
+    const isDressing = () => machineOf(session.programs.flatMap((p) => p.text.split('\n'))) === 'dressing';
 
-    /** (Re)calcule la simulation si le texte du programme a changé. */
+    /** Enregistre la liste des programmes chargés et recalcule. */
+    function setPrograms(programs) {
+      session = sanitizeSession({ programs });
+      ctx.kv.set(SESSION_KEY, session);
+      load({ force: true });
+    }
+
+    /** (Re)calcule la simulation si les programmes chargés ont changé. */
     function load({ force = false } = {}) {
-      const text = editor.view.state.doc.toString();
-      titleEl.textContent = ctx.workspace.current?.name ?? 'Programme';
-      if (!force && scene && text === sourceText) return;
-      sourceText = text;
-      const lines = text.split('\n');
-      const result = simulate(lines, codes);
-      if (machineOf(lines) === 'dressing') return loadDressing(lines, result);
+      const { programs } = session;
+      const key = JSON.stringify(programs);
+      if (!force && key === sourceKey && (scene || !programs.length)) return;
+      pause();
+      sourceKey = key;
+      renderPrograms();
+      titleEl.textContent = programs.length ? programs.map((p) => p.name).join(' + ') : 'Simulateur 2D';
+      emptyEl.hidden = programs.length > 0;
+      stockButton.hidden = !programs.length;
+      if (!programs.length) {
+        scene = null;
+        view.setScene(null);
+        axesEl.hidden = true;
+        for (const el of [alertsEl, toolsEl, variablesEl]) el.hidden = true;
+        statusEl.textContent = 'Chargez un programme pour le simuler';
+        blockEl.replaceChildren();
+        update();
+        return;
+      }
+      const programLines = programs.map((p) => p.text.split('\n'));
+      const lines = programLines.flat();
+      const result = simulateChain(programs, codes);
+      if (machineOf(lines) === 'dressing') return loadDressing(lines, programLines, result);
       const fromProgram = parseStock(lines);
       const fallback = fromProgram ?? guessStock(result.moves);
       const saved = ctx.kv.get(stockKey(), null);
@@ -163,27 +208,32 @@ export default {
       const autoSides = toolSides(result.moves);
       const overrides = ctx.kv.get(sidesKey(), {}) ?? {};
       const sides = Object.fromEntries(Object.entries(autoSides).map(([tool, side]) => [tool, overrides[tool] ?? side]));
-      scene = { ...result, lines, stock, material, timeline, sides, autoSides, overrides, front: ctx.settings.get('simulation.turret') === 'front', stockSource: saved ? 'saisi' : fromProgram ? 'programme' : 'estimé' };
-      scene.warnings = [...result.warnings, ...collisions(scene)].sort((a, b) => a.line - b.line);
+      scene = { ...result, programLines, stock, material, timeline, sides, autoSides, overrides, front: ctx.settings.get('simulation.turret') === 'front', stockSource: saved ? 'saisi' : fromProgram ? 'programme' : 'estimé' };
+      scene.warnings = sortWarnings([...result.warnings, ...collisions(scene)]);
       stockEl.replaceChildren(icon('edit'), `Brut Ø${stock.diameter} × ${stock.length}${stock.bore > 0 ? ` · int. Ø${stock.bore}` : ''}`);
       show();
     }
 
+    const sortWarnings = (list) => list.sort((a, b) => (a.program ?? 0) - (b.program ?? 0) || a.line - b.line);
+
     /**
-     * Taillage de meule : le programme pilote le diamant ; ses cotes sont ramenées dans le repère
-     * de la meule (origine du diamant : angle gauche, angle droit ou milieu), vue de dessus.
+     * Taillage de meule : les programmes pilotent le diamant ; leurs cotes sont ramenées dans le
+     * repère de la meule (origine du diamant : angle gauche, angle droit ou milieu), vue de dessus.
+     * Diamant de chaque programme : choisi dans la liste, sinon celui du commentaire de la ligne
+     * de l'outil (« T0202 (DIAMANT FLANC GAUCHE) »), sinon celui par défaut.
      */
-    function loadDressing(lines, result) {
+    function loadDressing(lines, programLines, result) {
       const fromProgram = parseWheel(lines);
       const saved = ctx.kv.get(wheelKey(), null);
       const wheel = sanitizeWheel({ ...WHEEL_DEFAULTS, ...(fromProgram ?? {}), ...(saved ?? {}) });
-      // Diamant de chaque outil : commentaire de sa ligne (« DIAMANT FLANC GAUCHE »), sinon celui par défaut.
-      const autoSides = { '': wheel.diamond };
-      for (const tool of result.tools) autoSides[tool.word] ??= diamondFromComment(lines[tool.line - 1]) ?? wheel.diamond;
-      const overrides = ctx.kv.get(diamondsKey(), {}) ?? {};
-      const diamondOf = (tool) => overrides[tool] ?? autoSides[tool] ?? wheel.diamond;
+      const fromComment = new Map(result.tools.map((t) => [`${t.program}|${t.word}`, diamondFromComment(programLines[t.program][t.line - 1])]));
+      const diamondOf = (tool, move) => {
+        const chosen = session.programs[move.program]?.diamond;
+        return chosen && chosen !== 'auto' ? chosen : (fromComment.get(`${move.program}|${tool}`) ?? wheel.diamond);
+      };
       // Sans le premier rapide depuis le point de départ fictif du tour (X200 Z150) : sans objet ici.
-      const programMoves = result.moves[0]?.kind === 'rapid' && result.moves[0].points[0].x === REFERENCE.x && result.moves[0].points[0].z === REFERENCE.z ? result.moves.slice(1) : result.moves;
+      const first = result.moves[0];
+      const programMoves = first?.kind === 'rapid' && first.points[0].x === REFERENCE.x && first.points[0].z === REFERENCE.z ? result.moves.slice(1) : result.moves;
       const moves = toWheelMoves(programMoves, wheel, diamondOf);
       const deepest = Math.min(0, ...moves.filter((m) => m.kind === 'cut').flatMap((m) => m.points.map((p) => p.x / 2)));
       const depth = Math.max(10, wheel.width * 0.4, -deepest + 4);
@@ -197,23 +247,177 @@ export default {
       scene = {
         ...result,
         moves,
-        lines,
+        programLines,
         wheel: true,
         wheelSettings: wheel,
         material,
         timeline,
         origins,
-        autoSides,
-        overrides,
         shapeOf: (move) => diamondShape(move.diamond),
         front: true, // miroir : meule au-dessus, diamant en dessous (repère des opérateurs)
         stockSource: saved ? 'saisi' : fromProgram ? 'programme' : 'estimé',
       };
       // Alertes propres au tour sans objet ici : broche de la meule, X négatif (= dans la meule).
       const own = result.warnings.filter((w) => !/broche arrêtée|diamètre négatif/.test(w.message));
-      scene.warnings = [...own, ...wheelCollisions(scene)].sort((a, b) => a.line - b.line);
+      scene.warnings = sortWarnings([...own, ...wheelCollisions(scene)]);
       stockEl.replaceChildren(icon('edit'), `Meule L${wheel.width}`);
+      renderPrograms();
       show();
+    }
+
+    /** Liste des programmes chargés : ordre d'exécution, diamant (taillage), retrait. */
+    function renderPrograms() {
+      const { programs } = session;
+      const dressing = programs.length > 0 && isDressing();
+      if (!programs.length) programsEl.open = true;
+      const move = (from, to) => {
+        const next = [...programs];
+        next.splice(to, 0, ...next.splice(from, 1));
+        setPrograms(next);
+      };
+      const diamondSelect = (program, index) => {
+        const select = h(
+          'select',
+          { class: 'input sim-side', 'aria-label': `Diamant de ${program.name}`, dataset: { program: String(index) }, onchange: () => setPrograms(programs.map((p, i) => (i === index ? { ...p, diamond: select.value } : p))) },
+          h('option', { value: 'auto' }, 'Diamant : auto (commentaire de l’outil)'),
+          Object.entries(DIAMONDS).map(([value, d]) => h('option', { value }, `Diamant ${d.short}`)),
+        );
+        select.value = program.diamond;
+        return select;
+      };
+      const small = (name, label, action, onclick, disabled = false) => h('button', { type: 'button', class: 'icon-btn sim-btn', title: label, 'aria-label': label, dataset: { action }, disabled, onclick }, icon(name));
+      programsEl.replaceChildren(
+        ...[
+          h(
+          'summary',
+          null,
+          icon('folder'),
+          programs.length ? `Programmes chargés (${programs.length})` : 'Programmes chargés',
+          programs.length > 1 ? h('span', { class: 'sim-programs-hint' }, ' · à la suite, variables partagées') : null,
+        ),
+        programs.length
+          ? h(
+              'ol',
+              { class: 'sim-program-list' },
+              programs.map((program, index) =>
+                h(
+                  'li',
+                  { class: 'sim-program', dataset: { index: String(index) } },
+                  h('span', { class: 'sim-program-name' }, h('strong', null, `${index + 1}.`), ` ${program.name}`),
+                  dressing ? diamondSelect(program, index) : null,
+                  h(
+                    'span',
+                    { class: 'sim-program-actions' },
+                    small('arrowUp', `Exécuter « ${program.name} » plus tôt`, 'sim-program-up', () => move(index, index - 1), index === 0),
+                    small('arrowDown', `Exécuter « ${program.name} » plus tard`, 'sim-program-down', () => move(index, index + 1), index === programs.length - 1),
+                    small('close', `Retirer « ${program.name} »`, 'sim-program-remove', () => setPrograms(programs.filter((_, i) => i !== index))),
+                  ),
+                ),
+              ),
+            )
+          : null,
+        programs.length > 1 ? h('p', { class: 'sim-note' }, 'Exécutés dans cet ordre, comme à la machine : chacun repart de la position où le précédent s’est arrêté, et les variables #… ne sont pas remises à zéro entre deux programmes.') : null,
+        h(
+          'div',
+          { class: 'sim-program-buttons' },
+          h('button', { type: 'button', class: 'btn btn-small', dataset: { action: 'sim-load' }, disabled: programs.length >= MAX_PROGRAMS, onclick: () => pickPrograms() }, icon('plus'), programs.length ? 'Ajouter un programme' : 'Charger un programme'),
+          programs.some((p) => p.id) ? h('button', { type: 'button', class: 'btn btn-small', title: 'Reprendre le texte enregistré des programmes', dataset: { action: 'sim-reload' }, onclick: () => reloadPrograms() }, icon('undo'), 'Recharger') : null,
+          programs.length ? h('button', { type: 'button', class: 'btn btn-small', dataset: { action: 'sim-clear' }, onclick: () => setPrograms([]) }, icon('trash'), 'Tout retirer') : null,
+        ),
+        ].filter(Boolean),
+      );
+    }
+
+    /** Texte d'un programme enregistré (celui en cours d'édition s'il est ouvert dans l'éditeur). */
+    const textOf = (program) => (ctx.workspace.current?.id === program.id ? ctx.workspace.text : program.content);
+
+    /** Choix des programmes à charger (dans l'ordre où on les coche), ou d'un fichier. */
+    async function pickPrograms() {
+      pause();
+      const all = await ctx.workspace.list();
+      const order = [];
+      const counter = h('span', { class: 'sim-note' });
+      const refresh = () => {
+        counter.textContent = order.length ? `${order.length} sélectionné${order.length > 1 ? 's' : ''} — ils seront exécutés dans l’ordre de sélection.` : 'Cochez un ou plusieurs programmes.';
+        for (const box of list.querySelectorAll('input')) box.closest('label').dataset.rank = order.includes(box.value) ? String(order.indexOf(box.value) + session.programs.length + 1) : '';
+      };
+      const list = h(
+        'div',
+        { class: 'sim-pick-list' },
+        all.map((program) =>
+          h(
+            'label',
+            { class: 'sim-pick' },
+            h('input', {
+              type: 'checkbox',
+              value: program.id,
+              onchange: (event) => {
+                if (event.target.checked) order.push(program.id);
+                else order.splice(order.indexOf(program.id), 1);
+                refresh();
+              },
+            }),
+            h('span', { class: 'sim-pick-name' }, program.name),
+            h('small', null, formatRelativeTime(program.updatedAt)),
+          ),
+        ),
+      );
+      let file = null;
+      const fileButton = h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn btn-small',
+          dataset: { action: 'sim-load-file' },
+          onclick: async () => {
+            const picked = await pickFile();
+            if (!picked) return;
+            file = { id: null, name: picked.name.replace(/\.[^.]+$/, '') || picked.name, text: await readTextFile(picked) };
+            fileButton.closest('dialog')?.close('file');
+          },
+        },
+        icon('upload'),
+        'Depuis un fichier…',
+      );
+      refresh();
+      const choice = await ctx.ui.openDialog({
+        title: session.programs.length ? 'Ajouter des programmes' : 'Charger des programmes',
+        className: 'dialog-wide',
+        body: h('div', { class: 'cycle-form' }, all.length ? list : h('p', null, 'Aucun programme enregistré.'), counter, h('div', null, fileButton)),
+        actions: [{ label: 'Charger', value: 'ok', primary: true }, { label: 'Annuler' }],
+        validate: (value) => (value === 'ok' && !order.length ? 'Cochez au moins un programme.' : null),
+      });
+      const added = choice === 'file' && file ? [file] : choice === 'ok' ? order.map((id) => all.find((p) => p.id === id)).map((p) => ({ id: p.id, name: p.name, text: textOf(p) })) : [];
+      if (!added.length) return;
+      const free = MAX_PROGRAMS - session.programs.length;
+      if (added.length > free) ctx.ui.toast(`${MAX_PROGRAMS} programmes au plus : seuls les ${free} premiers sont chargés.`);
+      setPrograms([...session.programs, ...added.slice(0, free)]);
+    }
+
+    /** Reprend le texte enregistré des programmes chargés (après modification dans l'éditeur). */
+    async function reloadPrograms() {
+      const all = await ctx.workspace.list();
+      const missing = [];
+      const programs = session.programs.map((p) => {
+        const saved = p.id && all.find((o) => o.id === p.id);
+        if (!saved) {
+          if (p.id) missing.push(p.name);
+          return p;
+        }
+        return { ...p, name: saved.name, text: textOf(saved) };
+      });
+      setPrograms(programs);
+      ctx.ui.toast(missing.length ? `Introuvable${missing.length > 1 ? 's' : ''} : ${missing.join(', ')}.` : 'Programmes rechargés.', { type: missing.length ? 'error' : 'success' });
+    }
+
+    /** Bouton « Simuler » de l'éditeur : charge le programme ouvert (remplace sa copie s'il y est déjà). */
+    function simulateCurrent() {
+      const current = ctx.workspace.current;
+      if (!current) return ctx.ui.navigate('/simulation');
+      const entry = { id: current.id, name: current.name, text: ctx.workspace.text };
+      const at = session.programs.findIndex((p) => p.id === current.id);
+      setPrograms(at >= 0 ? session.programs.map((p, i) => (i === at ? { ...p, ...entry } : p)) : [entry]);
+      ctx.ui.navigate('/simulation');
     }
 
     /** Rapides du diamant à travers la meule. */
@@ -227,13 +431,13 @@ export default {
           const a = { z: move.points[i - 1].z, r: move.points[i - 1].x / 2 };
           const b = { z: move.points[i].z, r: move.points[i].x / 2 };
           if (move.kind === 'rapid' && probe.hitsAlong(a, b)) {
-            found.push({ line: move.line, message: 'Rapide G0 à travers la meule : le diamant toucherait la meule (vérifiez l’approche ou le dégagement).', kind: 'collision' });
+            found.push({ line: move.line, program: move.program, message: 'Rapide G0 à travers la meule : le diamant toucherait la meule (vérifiez l’approche ou le dégagement).', kind: 'collision' });
             break;
           }
           probe.sweep(a, b, shape);
         }
       }
-      return found.filter((w, i, all) => all.findIndex((o) => o.line === w.line) === i);
+      return found.filter((w, i, all) => all.findIndex((o) => sameBlock(o, w)) === i);
     }
 
     /** Inverse le sens d'un axe (X ou Z) pour ce programme, puis recalcule. */
@@ -255,6 +459,7 @@ export default {
       const { material } = scene;
       renderAlerts();
       renderTools();
+      renderVariables();
       material.reset(stockColor());
       erased = { index: 0, fraction: 0 };
       time = 0;
@@ -280,19 +485,22 @@ export default {
           const a = { z: move.points[i - 1].z, r: move.points[i - 1].x / 2 };
           const b = { z: move.points[i].z, r: move.points[i].x / 2 };
           if (move.kind === 'rapid' && probe.hitsAlong(a, b)) {
-            found.push({ line: move.line, message: 'Rapide G0 à travers la matière : collision probable (vérifiez le point d’approche ou le dégagement).', kind: 'collision' });
+            found.push({ line: move.line, program: move.program, message: 'Rapide G0 à travers la matière : collision probable (vérifiez le point d’approche ou le dégagement).', kind: 'collision' });
             break;
           }
           const inJaws = [a, b].some((p) => p.z < zGrip && Math.abs(p.r) < stock.diameter / 2 + jaw && Math.abs(p.r) > stock.diameter / 2 - 0.5);
           if (inJaws && stock.grip > 0) {
-            found.push({ line: move.line, message: 'L’outil entre dans la zone des mors du mandrin.', kind: 'collision' });
+            found.push({ line: move.line, program: move.program, message: 'L’outil entre dans la zone des mors du mandrin.', kind: 'collision' });
             break;
           }
           probe.sweep(a, b, shape);
         }
       }
-      return found.filter((w, i, all) => all.findIndex((o) => o.line === w.line && o.message === w.message) === i);
+      return found.filter((w, i, all) => all.findIndex((o) => sameBlock(o, w) && o.message === w.message) === i);
     }
+
+    /** « Ligne 12 », ou « PROG2 · ligne 12 » si plusieurs programmes sont chargés. */
+    const where = (item) => (session.programs.length > 1 ? `${session.programs[item.program ?? 0]?.name} · ligne ${item.line}` : `Ligne ${item.line}`);
 
     function renderAlerts() {
       const list = scene.warnings;
@@ -306,54 +514,75 @@ export default {
             h(
               'li',
               { class: w.kind === 'collision' ? 'is-collision' : '' },
-              h('button', { type: 'button', class: 'sim-alert', onclick: () => leave(w.line) }, h('strong', null, `Ligne ${w.line}`), ` ${w.message}`),
+              h('button', { type: 'button', class: 'sim-alert', onclick: () => leave(w) }, h('strong', null, where(w)), ` ${w.message}`),
             ),
           ),
         ),
       );
     }
 
-    /** Outils : côté de travail (deviné ou choisi) et temps d'usinage de chacun. */
+    /**
+     * Outils : côté de travail (deviné ou choisi) et temps d'usinage de chacun. En taillage de
+     * meule : temps par programme et diamant (le diamant se choisit dans la liste des programmes).
+     */
     function renderTools() {
-      const { moves, timeline, autoSides, overrides } = scene;
-      const tools = Object.keys(autoSides).filter((tool) => tool && moves.some((m) => m.tool === tool && m.kind === 'cut'));
-      toolsEl.hidden = !tools.length;
-      const time = (tool, kind) => moves.reduce((sum, m, i) => sum + (m.tool === tool && (!kind || m.kind === kind) ? timeline.durations[i] : 0), 0);
-      const SIDES = scene.wheel ? Object.fromEntries(Object.entries(DIAMONDS).map(([k, d]) => [k, d.label])) : { external: 'Extérieur', internal: 'Intérieur' };
-      const key = scene.wheel ? diamondsKey : sidesKey;
+      const { moves, timeline } = scene;
+      const time = (keep, kind) => moves.reduce((sum, m, i) => sum + (keep(m) && (!kind || m.kind === kind) ? timeline.durations[i] : 0), 0);
+      const times = (keep) => [h('td', null, formatDuration(time(keep, 'cut'))), h('td', null, formatDuration(time(keep, 'rapid')))];
+      let head;
+      let rows;
+      if (scene.wheel) {
+        head = ['Programme', 'Diamant'];
+        rows = session.programs.map((program, index) => {
+          const used = [...new Set(moves.filter((m) => m.program === index && m.kind === 'cut').map((m) => DIAMONDS[m.diamond].short))];
+          return h('tr', null, h('td', null, program.name), h('td', null, used.join(', ') || '—'), times((m) => m.program === index));
+        });
+      } else {
+        const { autoSides, overrides } = scene;
+        const SIDES = { external: 'Extérieur', internal: 'Intérieur' };
+        const tools = Object.keys(autoSides).filter((tool) => tool && moves.some((m) => m.tool === tool && m.kind === 'cut'));
+        head = ['Outil', 'Côté'];
+        rows = tools.map((tool) => {
+          const select = h(
+            'select',
+            {
+              class: 'input sim-side',
+              'aria-label': `Côté de travail de ${tool}`,
+              dataset: { tool },
+              onchange: () => {
+                const next = { ...(ctx.kv.get(sidesKey(), {}) ?? {}) };
+                if (select.value === 'auto') delete next[tool];
+                else next[tool] = select.value;
+                ctx.kv.set(sidesKey(), next);
+                load({ force: true });
+              },
+            },
+            h('option', { value: 'auto' }, `Auto (${SIDES[autoSides[tool]].toLowerCase()})`),
+            Object.entries(SIDES).map(([value, label]) => h('option', { value }, label)),
+          );
+          select.value = overrides[tool] ?? 'auto';
+          return h('tr', null, h('td', { class: 'mono' }, tool), h('td', null, select), times((m) => m.tool === tool));
+        });
+      }
+      toolsEl.hidden = !rows.length;
       toolsEl.replaceChildren(
-        h('summary', null, icon('clock'), `Outils et temps (${formatDuration(timeline.total)})`),
-        h(
-          'table',
-          { class: 'sim-tool-table' },
-          h('thead', null, h('tr', null, h('th', null, 'Outil'), h('th', null, scene.wheel ? 'Diamant' : 'Côté'), h('th', null, 'Travail'), h('th', null, 'Rapides'))),
-          h(
-            'tbody',
-            null,
-            tools.map((tool) => {
-              const select = h(
-                'select',
-                {
-                  class: 'input sim-side',
-                  'aria-label': scene.wheel ? `Diamant de ${tool}` : `Côté de travail de ${tool}`,
-                  dataset: { tool },
-                  onchange: () => {
-                    const next = { ...(ctx.kv.get(key(), {}) ?? {}) };
-                    if (select.value === 'auto') delete next[tool];
-                    else next[tool] = select.value;
-                    ctx.kv.set(key(), next);
-                    load({ force: true });
-                  },
-                },
-                h('option', { value: 'auto' }, `Auto (${SIDES[autoSides[tool]].toLowerCase()})`),
-                Object.entries(SIDES).map(([value, label]) => h('option', { value }, label)),
-              );
-              select.value = overrides[tool] ?? 'auto';
-              return h('tr', null, h('td', { class: 'mono' }, tool), h('td', null, select), h('td', null, formatDuration(time(tool, 'cut'))), h('td', null, formatDuration(time(tool, 'rapid'))));
-            }),
-          ),
-        ),
+        h('summary', null, icon('clock'), `${scene.wheel ? 'Programmes' : 'Outils'} et temps (${formatDuration(timeline.total)})`),
+        h('table', { class: 'sim-tool-table' }, h('thead', null, h('tr', null, [...head, 'Travail', 'Rapides'].map((label) => h('th', null, label)))), h('tbody', null, rows)),
         h('p', { class: 'sim-note' }, 'Temps estimé sans accélérations ni changements d’outil ; rapides à la vitesse réglée dans Paramètres.'),
+      );
+    }
+
+    /** Variables #… à la fin de la simulation (partagées entre les programmes enchaînés). */
+    function renderVariables() {
+      const entries = [...scene.variables].filter(([, v]) => v != null).sort((a, b) => a[0] - b[0]);
+      variablesEl.hidden = !entries.length;
+      const format = (v) => String(Math.round(v * 10000) / 10000).replace('.', ',');
+      variablesEl.replaceChildren(
+        ...[
+          h('summary', null, icon('variable'), `Variables en fin de simulation (${entries.length})`),
+        h('table', { class: 'sim-tool-table' }, h('tbody', null, entries.map(([index, value]) => h('tr', null, h('td', { class: 'mono' }, `#${index}`), h('td', { class: 'mono' }, format(value)))))),
+          session.programs.length > 1 ? h('p', { class: 'sim-note' }, 'Les programmes partagent leurs variables : chacun reprend les valeurs laissées par le précédent.') : null,
+        ].filter(Boolean),
       );
     }
 
@@ -384,13 +613,13 @@ export default {
       range.value = timeline.total ? Math.round((time / timeline.total) * 1000) : 0;
       timeEl.textContent = `${formatDuration(time)} / ${formatDuration(timeline.total)}`;
       const move = moves[at.index];
-      currentLine = move?.line ?? 0;
+      currentMove = move ?? null;
       statusEl.textContent = move
-        ? [`Ligne ${move.line}`, move.tool, move.kind === 'rapid' ? 'rapide' : move.feed ? `F${move.feed}` : null, move.speed ? `${move.speedMode === 'css' ? 'G96' : 'G97'} S${move.speed}` : null].filter(Boolean).join(' · ')
+        ? [where(move), move.tool, move.kind === 'rapid' ? 'rapide' : move.feed ? `F${move.feed}` : null, move.speed ? `${move.speedMode === 'css' ? 'G96' : 'G97'} S${move.speed}` : null].filter(Boolean).join(' · ')
         : moves.length
           ? 'Prêt'
           : 'Aucun déplacement à simuler';
-      blockEl.replaceChildren(move ? highlightCode(scene.lines[move.line - 1].trim(), codes) : '');
+      blockEl.replaceChildren(move ? highlightCode((scene.programLines[move.program ?? 0]?.[move.line - 1] ?? '').trim(), codes) : '');
       playButton.replaceChildren(icon(playing ? 'pause' : 'play'), playing ? 'Pause' : time >= timeline.total && time > 0 ? 'Rejouer' : 'Lecture');
     }
 
@@ -431,7 +660,7 @@ export default {
       const { index } = timeline.locate(time);
       const endOf = (i) => {
         let j = i;
-        while (j + 1 < moves.length && moves[j + 1].line === moves[i].line) j++;
+        while (j + 1 < moves.length && sameBlock(moves[j + 1], moves[i])) j++;
         return j;
       };
       if (delta > 0) {
@@ -441,17 +670,28 @@ export default {
         seek(timeline.starts[j] + timeline.durations[j]);
       } else {
         let i = index;
-        while (i > 0 && moves[i - 1].line === moves[index].line) i--;
+        while (i > 0 && sameBlock(moves[i - 1], moves[index])) i--;
         if (time <= timeline.starts[i] + 1e-12 && i > 0) {
           i -= 1;
-          while (i > 0 && moves[i - 1].line === moves[i].line) i--;
+          while (i > 0 && sameBlock(moves[i - 1], moves[i])) i--;
         }
         seek(timeline.starts[i]);
       }
     }
 
-    function leave(line = currentLine) {
+    /**
+     * Retour à l'éditeur sur la ligne en cours (ou celle d'une alerte), dans son programme : il
+     * est ouvert s'il ne l'est pas déjà (un programme chargé depuis un fichier n'y est pas).
+     */
+    async function leave(item = currentMove) {
       pause();
+      const program = item ? session.programs[item.program ?? 0] : null;
+      if (program?.id && ctx.workspace.current?.id !== program.id) {
+        const all = await ctx.workspace.list();
+        if (!all.some((p) => p.id === program.id)) ctx.ui.toast(`« ${program.name} » n’existe plus dans vos programmes.`, { type: 'error' });
+        else if (!(await switchProgram(ctx.workspace, program.id))) return;
+      }
+      const line = program?.id && ctx.workspace.current?.id === program.id ? item.line : 0;
       if (line > 0) {
         const doc = editor.view.state.doc;
         const target = doc.line(Math.min(line, doc.lines));
@@ -477,8 +717,9 @@ export default {
      * dimensions. La machine est mémorisée par programme.
      */
     async function editStock() {
+      if (!scene) return;
       pause();
-      const lines = scene.lines;
+      const lines = scene.programLines.flat();
       let machine = machineOf(lines);
       const stock = scene.stock ?? guessStock(scene.moves);
       const wheel = scene.wheelSettings ?? sanitizeWheel({ ...WHEEL_DEFAULTS, ...(parseWheel(lines) ?? {}), ...(ctx.kv.get(wheelKey(), null) ?? {}) });
@@ -507,7 +748,7 @@ export default {
           'div',
           { class: 'cycle-fields' },
           numberField({ key: 'width', label: 'Largeur de la meule', unit: 'mm' }, wheel.width, wheelInputs),
-          selectField('diamond', 'Diamant par défaut', Object.fromEntries(Object.entries(DIAMONDS).map(([k, d]) => [k, d.label])), wheel.diamond, wheelInputs, 'Chaque outil peut avoir le sien (panneau « Outils et temps »).'),
+          selectField('diamond', 'Diamant par défaut', Object.fromEntries(Object.entries(DIAMONDS).map(([k, d]) => [k, d.label])), wheel.diamond, wheelInputs, 'Chaque programme chargé peut avoir le sien (liste « Programmes chargés »).'),
           selectField('straightOrigin', 'Origine du diamant droit', ORIGINS, wheel.straightOrigin, wheelInputs),
           selectField('xMode', 'Cotes X du programme', { diameter: 'Au diamètre (X-0.1 : 0,05 mm à la meule)', radius: 'Au rayon (X-0.1 : 0,1 mm)' }, wheel.xMode, wheelInputs),
         ),
@@ -552,6 +793,7 @@ export default {
       label: 'Simulation 2D',
       icon: 'simulation',
       order: 24,
+      section: 'simulateur',
       mount: build,
       onShow: () => {
         load();
@@ -561,8 +803,8 @@ export default {
     ctx.listen(window, 'hashchange', () => {
       if (!location.hash.startsWith('#/simulation')) pause();
     });
-    ctx.settings.subscribe('simulation.turret', () => scene && load({ force: true }));
-    ctx.settings.subscribe('simulation.rapidRate', () => scene && load({ force: true }));
+    ctx.settings.subscribe('simulation.turret', () => page && load({ force: true }));
+    ctx.settings.subscribe('simulation.rapidRate', () => page && load({ force: true }));
     ctx.settings.subscribe('theme', () => {
       if (!scene) return;
       view.refreshColors();
@@ -571,6 +813,6 @@ export default {
       update();
     });
     ctx.onDispose(() => cancelAnimationFrame(frame));
-    ctx.ui.toolbar.add({ id: 'simulation', icon: 'simulation', label: 'Simuler', title: 'Simulation 2D : usinage animé du programme', order: 30, onClick: () => ctx.ui.navigate('/simulation') });
+    ctx.ui.toolbar.add({ id: 'simulation', icon: 'simulation', label: 'Simuler', title: 'Charger ce programme dans le simulateur 2D', order: 30, onClick: simulateCurrent });
   },
 };

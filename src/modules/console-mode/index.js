@@ -160,6 +160,7 @@ export default {
       label: 'Mode pupitre',
       icon: 'console',
       order: 22,
+      section: 'programmation',
       mount: build,
       onShow: () => {
         visible = true;

@@ -78,7 +78,7 @@ export function createView(canvas, { onPick } = {}) {
   }
 
   function draw() {
-    if (!scene) return;
+    if (!scene) return g.clearRect(0, 0, canvas.width, canvas.height);
     const { width, height, dpr } = size();
     colors ??= readColors();
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -369,6 +369,7 @@ export function createView(canvas, { onPick } = {}) {
   return {
     setScene(next, { keepView = false } = {}) {
       scene = next;
+      progress = { index: -1, fraction: 0 }; // l'avancement de la scène précédente n'a plus de sens
       colors = null;
       if (!keepView || !fitted) fit();
       else draw();

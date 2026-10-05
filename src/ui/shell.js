@@ -38,19 +38,25 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
     themeButton,
   );
 
-  const mainList = h('ul', { class: 'sidenav-list' });
-  const upcomingList = h('ul', { class: 'sidenav-list' });
-  const upcomingSection = h(
-    'div',
-    { class: 'sidenav-section', hidden: true },
-    h('p', { class: 'sidenav-heading' }, 'À venir'),
-    upcomingList,
+  // Sections du menu : les entrées s'y rangent selon leur `section` (sans titre : Accueil).
+  const sections = new Map(
+    [
+      ['general', null],
+      ['programmation', 'Programmation'],
+      ['simulateur', 'Simulateur'],
+      ['apprentissage', 'Apprentissage'],
+      ['reglages', 'Réglages'],
+      ['upcoming', 'À venir'],
+    ].map(([id, heading]) => {
+      const list = h('ul', { class: 'sidenav-list' });
+      const element = h('div', { class: 'sidenav-section', dataset: { section: id }, hidden: true }, heading ? h('p', { class: 'sidenav-heading' }, heading) : null, list);
+      return [id, { list, element }];
+    }),
   );
   const sidenav = h(
     'nav',
     { id: 'sidenav', class: 'sidenav', 'aria-label': 'Menu principal' },
-    h('div', { class: 'sidenav-section' }, mainList),
-    upcomingSection,
+    [...sections.values()].map((section) => section.element),
   );
   const backdrop = h('div', { class: 'nav-backdrop', onclick: () => setOpen(false) });
   const pages = h('main', { class: 'pages' });
@@ -60,8 +66,9 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
 
   const wide = window.matchMedia(WIDE_QUERY);
   const items = new Map();
-  const refreshUpcoming = () => {
-    upcomingSection.hidden = ![...upcomingList.children].some((li) => !li.hidden);
+  // Une section sans entrée visible est masquée (fonctionnalités désactivées).
+  const refreshSections = () => {
+    for (const { list, element } of sections.values()) element.hidden = ![...list.children].some((li) => !li.hidden);
   };
 
   function setOpen(open) {
@@ -99,12 +106,13 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
 
     /**
      * Ajoute une entrée au menu. `path` : lien vers une page ; `onSelect` : action ;
-     * `upcoming: true` : fonction à venir (grisée, non cliquable) ; `order` : position.
+     * `upcoming: true` : fonction à venir (grisée, non cliquable) ; `order` : position ;
+     * `section` : 'general' | 'programmation' | 'simulateur' | 'apprentissage' | 'reglages'.
      * Une entrée portant l'identifiant d'une entrée existante la remplace (une fonction
      * « à venir » devient disponible) ; l'ancienne réapparaît quand la nouvelle est retirée.
      * @returns {() => void} retrait de l'entrée
      */
-    addNavItem({ id, path, label, icon: iconName, onSelect, upcoming = false, description, order = 50 }) {
+    addNavItem({ id, path, label, icon: iconName, onSelect, upcoming = false, description, order = 50, section = 'general' }) {
       const content = [icon(iconName), h('span', { class: 'sidenav-label' }, label)];
       let element;
       if (upcoming) {
@@ -127,7 +135,7 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
         );
       }
       const li = h('li', { dataset: { nav: id, order: String(order) } }, element);
-      const list = upcoming ? upcomingList : mainList;
+      const list = sections.get(upcoming ? 'upcoming' : section)?.list ?? sections.get('general').list;
       const next = [...list.children].find((child) => Number(child.dataset.order) > order);
       list.insertBefore(li, next ?? null);
 
@@ -135,7 +143,7 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
       if (replaced) replaced.li.hidden = true;
       const item = { id, path, label, icon: iconName, onSelect, upcoming, element, li, replaced };
       items.set(id, item);
-      refreshUpcoming();
+      refreshSections();
 
       return () => {
         li.remove();
@@ -146,7 +154,7 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
         } else {
           items.delete(id);
         }
-        refreshUpcoming();
+        refreshSections();
       };
     },
 

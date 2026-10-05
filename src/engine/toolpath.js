@@ -14,8 +14,9 @@ import { cycleParameters, isModalSimpleCycle, turningCycle } from './turning-cyc
  * simulate(lignes, dictionnaire, options) → {
  *   moves: [{ line, kind: 'rapid' | 'cut', code, points: [{ x, z }], feed, feedMode: 'rev' | 'min',
  *            speed, speedMode: 'css' | 'rpm', maxSpeed, tool, spindle }],
- *   warnings: [{ line, message }],  tools: [{ line, word }],  end: { x, z }
+ *   warnings: [{ line, message }],  tools: [{ line, word }],  end: { x, z }, variables
  * }
+ * options : reference (point de départ), variables (Map partagée entre programmes enchaînés).
  */
 
 /** Point de départ et de retour G28 par défaut (diamètre, Z) : loin de la pièce. */
@@ -69,11 +70,13 @@ export function arcCenterFromRadius(from, to, radius, cw) {
  */
 export const codeSystemOf = (dictionary) => (dictionary?.lookup('G91')?.group === 'distance' ? 'bc' : 'a');
 
-export function simulate(lineTexts, dictionary, { reference = REFERENCE } = {}) {
+export function simulate(lineTexts, dictionary, { reference = REFERENCE, variables = null } = {}) {
   const texts = [...lineTexts];
   const parsed = texts.map((text) => parseLine(text));
   const blocks = parsed.map((p) => p.block);
-  const vars = new Map(); // variables de macro #… affectées pendant la simulation
+  // Variables de macro #… affectées pendant la simulation. Une Map fournie est utilisée telle
+  // quelle (et modifiée) : des programmes enchaînés partagent ainsi leurs variables.
+  const vars = variables instanceof Map ? variables : new Map(Object.entries(variables ?? {}).map(([k, v]) => [Number(k), v]));
   const system = codeSystemOf(dictionary);
   const byNumber = new Map();
   blocks.forEach((block, i) => {

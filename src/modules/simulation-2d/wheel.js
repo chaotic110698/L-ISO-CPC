@@ -75,7 +75,7 @@ export function originZ(kind, wheel) {
 /**
  * Déplacements du programme ramenés dans le repère de la meule. Les points restent au format
  * de l'interpréteur ({ x « diamètre », z }) : x = 2 × écart radial à la périphérie.
- * diamondOf(outil) → 'straight' | 'leftFlank' | 'rightFlank'.
+ * diamondOf(outil, déplacement) → 'straight' | 'leftFlank' | 'rightFlank'.
  */
 export function toWheelMoves(moves, wheel, diamondOf) {
   // Sens des axes selon la machine : X+ en s'éloignant de la meule (ou vers elle si inversé),
@@ -85,7 +85,7 @@ export function toWheelMoves(moves, wheel, diamondOf) {
   const radial = (x) => sx * (wheel.xMode === 'radius' ? x : x / 2);
   let previous = null;
   return moves.map((move) => {
-    const diamond = diamondOf(move.tool ?? '');
+    const diamond = diamondOf(move.tool ?? '', move);
     const dz = originZ(diamond, wheel);
     // Changement de diamant : la machine part de là où elle était, donc le point de départ se
     // calcule avec l'origine du diamant précédent.
