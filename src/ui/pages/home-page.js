@@ -60,8 +60,22 @@ const FEATURES = [
   },
   {
     icon: 'simulation',
-    title: 'Simulation 2D',
-    text: 'Visualisation des trajectoires d’outil en tournage (vue X/Z).',
+    title: 'Simulateur tour',
+    text: 'Usinage animé en vue X/Z : brut, enlèvement de matière, cycles développés en passes, temps estimé, alertes de collision.',
+    path: '/simulation',
+    module: 'simulation',
+  },
+  {
+    icon: 'wheel',
+    title: 'Simulateur rectification',
+    text: 'Taillage de meule vu de dessus : un programme par diamant (droit, flancs à 45°), enchaînés avec leurs variables communes, repère propre à chaque diamant.',
+    path: '/rectification',
+    module: 'rectification',
+  },
+  {
+    icon: 'mill',
+    title: 'Simulateur centre d’usinage',
+    text: 'Fraisage en vue de dessus.',
   },
 ];
 

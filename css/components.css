@@ -3230,8 +3230,15 @@ a.lesson-card:hover {
   gap: 6px;
 }
 
+.sim-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .sim-stage {
   position: relative;
+  flex: 1 1 0;
   min-height: 0;
 }
 
@@ -3269,22 +3276,30 @@ a.lesson-card:hover {
 }
 
 .sim-program {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'name actions';
   align-items: center;
-  gap: 4px 8px;
-  padding: 2px 0 2px 4px;
+  gap: 2px 8px;
+  padding: 2px 0 4px 4px;
   border-bottom: 1px solid var(--border);
 }
 
+/* Taillage : diamant du programme sous son nom (smartphone), entre le nom et les boutons (écran large). */
+.sim-program.has-side {
+  grid-template-areas:
+    'name actions'
+    'side side';
+}
+
 .sim-program .sim-side {
-  flex: 0 1 300px;
-  width: auto;
+  grid-area: side;
+  width: 100%;
   min-width: 0;
 }
 
 .sim-program-name {
-  flex: 1 1 140px;
+  grid-area: name;
   min-width: 0;
   overflow: hidden;
   font-size: 14px;
@@ -3293,12 +3308,41 @@ a.lesson-card:hover {
 }
 
 .sim-program-actions {
+  grid-area: actions;
   display: flex;
-  margin-left: auto;
+}
+
+@media (min-width: 720px) {
+  .sim-program.has-side {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 300px) auto;
+    grid-template-areas: 'name side actions';
+  }
 }
 
 .sim-program-actions .icon-btn:disabled {
   opacity: 0.35;
+}
+
+.sim-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  font-size: 13px;
+}
+
+.sim-hint > .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.sim-form-title {
+  margin: 4px 0 0;
+  font-size: 15px;
 }
 
 .sim-program-buttons {
@@ -3389,20 +3433,36 @@ a.lesson-card:hover {
 }
 
 .sim-axes {
-  position: absolute;
-  top: 8px;
-  left: 8px;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+  padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .sim-axes[hidden] {
   display: none;
 }
 
+.sim-axes-label {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .sim-axis {
+  gap: 6px;
   background: var(--surface);
+}
+
+.sim-axis-dir {
   font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.sim-axis-name {
+  font-size: 13px;
 }
 
 .sim-axis[aria-pressed='true'] {
@@ -3566,7 +3626,9 @@ a.lesson-card:hover {
 }
 
 @media (max-width: 520px) {
-  .sim-hide-narrow {
+  .sim-hide-narrow,
+  .sim-programs-hint,
+  .sim-axes-label {
     display: none;
   }
 

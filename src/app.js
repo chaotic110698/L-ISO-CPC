@@ -220,9 +220,9 @@ export async function startApp(root) {
         /** Entrée du menu latéral (remplace l'entrée « à venir » de même identifiant). */
         addNavItem: (item) => scope.add(shell.addNavItem(item)),
         /** Ajoute une page et son entrée de menu (retirées à la désactivation du module). */
-        addPage({ id, path, label, icon, order, section, mount, onShow }) {
-          const removeRoute = router.register(path, { title: label, mount, onShow });
-          const removeNav = shell.addNavItem({ id, path, label, icon, order, section });
+        addPage({ id, path, label, title, icon, order, section, mount, onShow }) {
+          const removeRoute = router.register(path, { title: title ?? label, mount, onShow });
+          const removeNav = shell.addNavItem({ id, path, label, title, icon, order, section });
           scope.add(() => {
             removeNav();
             removeRoute();
@@ -279,14 +279,9 @@ export async function startApp(root) {
   });
   shell.addNavItem({ id: 'profils', path: '/profils', label: 'Profils machines', icon: 'machine', order: 35, section: 'reglages' });
   shell.addNavItem({ id: 'parametres', path: '/parametres', label: 'Paramètres', icon: 'settings', order: 90, section: 'reglages' });
-  // Fonctions prévues (grisées). Les fonctionnalités existantes ajoutent leur propre entrée
-  // depuis leur module : désactivées, elles disparaissent du menu.
-  for (const item of [
-    { id: 'cours', label: 'Cours d’ISO', icon: 'book' },
-    { id: 'simulation', label: 'Simulation 2D', icon: 'simulation' },
-  ]) {
-    shell.addNavItem({ ...item, upcoming: true });
-  }
+  // Fonctions prévues (grisées, dans leur section). Les fonctionnalités existantes ajoutent leur
+  // propre entrée depuis leur module : désactivées, elles disparaissent du menu.
+  shell.addNavItem({ id: 'simulation-cu', label: 'Centre d’usinage', title: 'Simulateur centre d’usinage', icon: 'mill', section: 'simulateur', order: 26, upcoming: true, description: 'Simulateur centre d’usinage (fraisage) : bientôt disponible' });
 
   const { recovered } = await workspace.init();
   registry.start();

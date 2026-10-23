@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createCodeDictionary } from '../../src/engine/index.js';
 import { ISO_BASE_CODES } from '../../src/data/codes/iso-base.js';
 import { FANUC_TURNING_CODES } from '../../src/data/codes/fanuc-turning.js';
-import { sameBlock, sanitizeSession, simulateChain } from '../../src/modules/simulation-2d/session.js';
+import { sameBlock, sanitizeSession, simulateChain, splitLegacySession } from '../../src/modules/simulation-2d/session.js';
 
 const codes = createCodeDictionary([ISO_BASE_CODES, FANUC_TURNING_CODES]);
 
@@ -28,4 +28,31 @@ test('programmes enchaînés : variables partagées, sans remise à zéro, et po
   assert.deepEqual(chain.end, { x: 4, z: 0 });
   assert.ok(sameBlock(second[0], { program: 1, line: second[0].line }));
   assert.ok(!sameBlock(second[0], { program: 0, line: second[0].line }));
+});
+
+const fakeKv = (entries = {}) => {
+  const store = new Map(Object.entries(entries));
+  return { get: (key, fallback = null) => (store.has(key) ? store.get(key) : fallback), set: (key, value) => store.set(key, value), remove: (key) => store.delete(key) };
+};
+
+test('séparation des simulateurs : la session de taillage passe au simulateur rectification, une seule fois', () => {
+  const dressing = { programs: [{ id: 'a', name: 'DROIT', text: 'O1 (TAILLAGE MEULE L40)\nG0 X2.' }] };
+  const kv = fakeKv({ 'simulation.session': dressing, 'simulation.wheel.a': { width: 30, invertZ: true } });
+  splitLegacySession(kv);
+  assert.equal(kv.get('simulation.session'), null, 'retirée du simulateur tour');
+  assert.equal(kv.get('rectification.session').programs[0].name, 'DROIT');
+  assert.deepEqual(kv.get('rectification.legacyWheel'), { width: 30, invertZ: true }, 'réglages de meule mis de côté');
+  // Une seule fois : une session chargée ensuite dans le simulateur tour y reste.
+  kv.set('simulation.session', dressing);
+  splitLegacySession(kv);
+  assert.ok(kv.get('simulation.session'));
+
+  const lathe = fakeKv({ 'simulation.session': { programs: [{ id: 'b', name: 'ARBRE', text: 'O2 (ARBRE)\nG0 X20.' }] } });
+  splitLegacySession(lathe);
+  assert.equal(lathe.get('simulation.session').programs[0].name, 'ARBRE', 'programme de tour : inchangé');
+  assert.equal(lathe.get('rectification.session'), null);
+
+  const chosen = fakeKv({ 'simulation.session': { programs: [{ id: 'c', name: 'P', text: 'G0 X2.' }] }, 'simulation.machine.c': 'dressing' });
+  splitLegacySession(chosen);
+  assert.equal(chosen.get('rectification.session').programs[0].name, 'P', 'machine choisie « taillage » sans commentaire');
 });

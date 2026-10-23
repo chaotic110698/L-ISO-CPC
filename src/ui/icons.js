@@ -26,6 +26,10 @@ const PATHS = {
   calculator: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/>',
   book: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
   simulation: '<path d="M3 20h18M3 20V4"/><path d="M6 17c3 0 4-9 7-9s3 5 7 5"/>',
+  // Meule (rectangle) et diamant pointé vers elle : simulateur rectification.
+  wheel: '<rect x="3" y="3" width="18" height="9" rx="1.5"/><path d="M7 7.5h10"/><path d="M12 14l3.5 7h-7z"/>',
+  // Broche, fraise et table : centre d'usinage.
+  mill: '<path d="M8 3h8v4H8z"/><path d="M10 7h4v7l-2 2.5-2-2.5z"/><path d="M3 21h18M5 21v-2.5h14V21"/>',
   machine: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="9" cy="12" r="3"/><path d="M15 10h3M15 14h3"/>',
   library: '<path d="M5 4h4v16H5zM10 4h4v16h-4z"/><path d="M15.5 5.2l3.8-1 3.7 15-3.8 1z"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',

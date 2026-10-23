@@ -108,6 +108,10 @@ const desktop = await open(DESKTOP);
     const sectionOf = (id) => page.locator(`.sidenav [data-nav="${id}"]:not([hidden])`).evaluate((li) => li.closest('.sidenav-section').dataset.section);
     assert.equal(await sectionOf('editeur'), 'programmation');
     assert.equal(await sectionOf('simulation'), 'simulateur');
+    assert.equal(await sectionOf('rectification'), 'simulateur');
+    assert.equal(await sectionOf('simulation-cu'), 'simulateur', 'centre d’usinage à venir, dans la section Simulateur');
+    assert.deepEqual(await page.locator('.sidenav [data-section="simulateur"] .sidenav-label').allTextContents(), ['Tour', 'Rectification', 'Centre d’usinage']);
+    assert.equal(await page.locator('.sidenav [data-nav="simulation-cu"] .is-upcoming').count(), 1);
     assert.equal(await sectionOf('cours'), 'apprentissage');
     assert.equal(await sectionOf('parametres'), 'reglages');
     await shot(page, 'pc-clair-accueil');
@@ -755,69 +759,91 @@ const desktop = await open(DESKTOP);
   await step('simulation 2D : brut lu dans le programme, lecture, bloc par bloc, retour à l’éditeur', async () => {
     await page.locator('[data-tool="simulation"]').click();
     await page.waitForSelector('.sim-page:not([hidden])');
-    assert.match(await page.locator('[data-action="sim-stock"]').textContent(), /Brut Ø50 × 80/);
-    assert.equal(await page.locator('.sim-alerts').isHidden(), true, 'programme d’exemple sans alerte (G71, G70, G76 simulés)');
-    assert.match(await page.locator('.sim-time').textContent(), /^0 s \/ \d+/);
-    await page.locator('[data-action="sim-play"]').click();
-    await page.waitForFunction(() => !/^0 s/.test(document.querySelector('.sim-time').textContent));
-    await page.locator('[data-action="sim-play"]').click(); // pause
-    await page.locator('[data-action="sim-next"]').click();
-    const status = await page.locator('.sim-page .console-counter').textContent();
+    assert.match(await page.locator('.sim-page:not([hidden]) [data-action="sim-stock"]').textContent(), /Brut Ø50 × 80/);
+    assert.equal(await page.locator('.sim-page:not([hidden]) .sim-alerts').isHidden(), true, 'programme d’exemple sans alerte (G71, G70, G76 simulés)');
+    assert.match(await page.locator('.sim-page:not([hidden]) .sim-time').textContent(), /^0 s \/ \d+/);
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-play"]').click();
+    await page.waitForFunction(() => !/^0 s/.test(document.querySelector('.sim-page:not([hidden]) .sim-time').textContent));
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-play"]').click(); // pause
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-next"]').click();
+    const status = await page.locator('.sim-page:not([hidden]) .console-counter').textContent();
     assert.match(status, /^Ligne \d+/);
     await page.evaluate(() => {
-      const range = document.querySelector('.sim-range');
+      const range = document.querySelector('.sim-page:not([hidden]) .sim-range');
       range.value = 1000;
       range.dispatchEvent(new Event('input'));
     });
-    await page.locator('.sim-tools summary').click();
-    assert.deepEqual(await page.locator('.sim-tools .sim-tool-table td.mono').allTextContents(), ['T0101', 'T0202', 'T0303']);
-    assert.match(await page.locator('.sim-side[data-tool="T0101"] option:checked').textContent(), /Auto \(extérieur\)/);
+    await page.locator('.sim-page:not([hidden]) .sim-tools summary').click();
+    assert.deepEqual(await page.locator('.sim-page:not([hidden]) .sim-tools .sim-tool-table td.mono').allTextContents(), ['T0101', 'T0202', 'T0303']);
+    assert.match(await page.locator('.sim-page:not([hidden]) .sim-side[data-tool="T0101"] option:checked').textContent(), /Auto \(extérieur\)/);
     // Brut pré-percé : diamètre intérieur et profondeur.
-    await page.locator('[data-action="sim-stock"]').click();
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-stock"]').click();
     await page.locator('.dialog input[name="bore"]').fill('12');
     await page.locator('.dialog input[name="boreDepth"]').fill('20');
     await page.locator('.dialog button', { hasText: 'Appliquer' }).click();
-    await page.waitForFunction(() => /int\. Ø12/.test(document.querySelector('[data-action="sim-stock"]').textContent));
+    await page.waitForFunction(() => /int\. Ø12/.test(document.querySelector('.sim-page:not([hidden]) [data-action="sim-stock"]').textContent));
     await shot(page, 'pc-sombre-simulation');
-    await page.locator('[data-action="sim-stock"]').click();
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-stock"]').click();
     await page.locator('.dialog button', { hasText: 'Reprendre celui du programme' }).click();
-    await page.waitForFunction(() => !/int\./.test(document.querySelector('[data-action="sim-stock"]').textContent));
-    const line = Number(/Ligne (\d+)/.exec(await page.locator('.sim-page .console-counter').textContent())[1]);
-    await page.locator('[data-action="sim-leave"]').click();
+    await page.waitForFunction(() => !/int\./.test(document.querySelector('.sim-page:not([hidden]) [data-action="sim-stock"]').textContent));
+    const line = Number(/Ligne (\d+)/.exec(await page.locator('.sim-page:not([hidden]) .console-counter').textContent())[1]);
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-leave"]').click();
     await page.waitForSelector('.editor-page:not([hidden])');
     assert.equal(await page.evaluate(() => window.isoApp.editor.cursor.line), line, 'curseur sur la ligne simulée');
   });
 
-  await step('simulation : taillage de meule (vue de dessus, diamants droit et 45°, origines)', async () => {
+  await step('simulateur rectification : taillage de meule (vue de dessus, diamants droit et 45°, repère de chaque diamant)', async () => {
     const before = await editorText(page);
-    await setText(page, ['%', 'O0500 (TAILLAGE MEULE L40)', 'G98', 'T0101 (DIAMANT DROIT)', 'G0 X2. Z-3.', 'G1 X-0.2 F300', 'Z43. F150', 'G0 X2.', 'T0202 (DIAMANT FLANC GAUCHE)', 'G0 X2. Z0.2', 'G1 X-12. F80', 'G0 Z-3.', 'G0 X2.', 'T0303 (DIAMANT FLANC DROIT)', 'G0 X2. Z-0.2', 'G1 X-12. F80', 'G0 Z3.', 'G0 X2.', 'M30', '%'].join('\n'));
+    // Flancs écrits en miroir : Z+ vers l'intérieur de la meule pour chaque diamant de flanc.
+    await setText(page, ['%', 'O0500 (TAILLAGE MEULE L40)', 'G98', 'T0101 (DIAMANT DROIT)', 'G0 X2. Z-3.', 'G1 X-0.2 F300', 'Z43. F150', 'G0 X2.', 'T0202 (DIAMANT FLANC GAUCHE)', 'G0 X2. Z0.2', 'G1 X-12. F80', 'G0 Z-3.', 'G0 X2.', 'T0303 (DIAMANT FLANC DROIT)', 'G0 X2. Z0.2', 'G1 X-12. F80', 'G0 Z-3.', 'G0 X2.', 'M30', '%'].join('\n'));
+    // Chargé par erreur dans le simulateur tour : il propose de le passer au simulateur rectification.
     await page.locator('[data-tool="simulation"]').click();
-    await page.waitForSelector('.sim-page:not([hidden])');
-    assert.equal(await page.locator('[data-action="sim-stock"]').textContent(), 'Meule L40');
-    assert.equal(await page.locator('.sim-alerts').isHidden(), true, 'X négatif : normal en taillage, pas d’alerte');
-    await page.locator('.sim-tools summary').click();
-    assert.deepEqual(await page.locator('.sim-tools .sim-tool-table tbody td:nth-child(2)').allTextContents(), ['droit, flanc gauche, flanc droit'], 'diamant de chaque outil lu dans son commentaire');
+    await page.locator('.sim-page[data-simulator="simulation"]:not([hidden]) [data-action="sim-to-dressing"]').click();
+    await page.waitForSelector('.sim-page[data-simulator="rectification"]:not([hidden])');
+    assert.equal(await page.locator('.sim-page[data-simulator="simulation"] .sim-empty').getAttribute('hidden'), null, 'simulateur tour vidé');
+    assert.equal(await page.locator('.sim-page:not([hidden]) [data-action="sim-stock"]').textContent(), 'Meule L40');
+    assert.equal(await page.locator('.sim-page:not([hidden]) .sim-alerts').isHidden(), true, 'X négatif : normal en taillage, pas d’alerte');
+    await page.locator('.sim-page:not([hidden]) .sim-tools summary').click();
+    assert.deepEqual(await page.locator('.sim-page:not([hidden]) .sim-tools .sim-tool-table tbody td:nth-child(2)').allTextContents(), ['droit, flanc gauche, flanc droit'], 'diamant de chaque outil lu dans son commentaire');
     await page.evaluate(() => {
-      const range = document.querySelector('.sim-range');
+      const range = document.querySelector('.sim-page:not([hidden]) .sim-range');
       range.value = 1000;
       range.dispatchEvent(new Event('input'));
     });
     await shot(page, 'pc-sombre-taillage-meule');
-    // Sens des axes inversable (trièdre propre à chaque machine), mémorisé par programme.
-    await page.locator('[data-action="sim-invert-x"]').click();
-    await page.waitForFunction(() => document.querySelector('[data-action="sim-invert-x"]').getAttribute('aria-pressed') === 'true');
-    assert.equal(await page.locator('[data-action="sim-invert-z"]').getAttribute('aria-pressed'), 'false');
-    await page.locator('[data-action="sim-invert-x"]').click();
-    await page.waitForFunction(() => document.querySelector('[data-action="sim-invert-x"]').getAttribute('aria-pressed') === 'false');
+    // Repère propre à chaque diamant : par défaut, flanc droit en miroir du flanc gauche (Z+ ←).
+    const zButtons = page.locator('.sim-page:not([hidden]) [data-action="sim-invert-z"]');
+    const pressed = () => zButtons.evaluateAll((els) => els.map((el) => `${el.dataset.diamond}:${el.getAttribute('aria-pressed')}`));
+    assert.deepEqual(await pressed(), ['straight:false', 'leftFlank:false', 'rightFlank:true']);
+    assert.match(await page.locator('.sim-page:not([hidden]) [data-diamond="rightFlank"]').textContent(), /Z\+ ←\s*flanc droit/);
+    // Sens des axes inversables (trièdre propre à chaque machine) : réglages de la machine.
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-invert-x"]').click();
+    await page.waitForFunction(() => document.querySelector('.sim-page:not([hidden]) [data-action="sim-invert-x"]').getAttribute('aria-pressed') === 'true');
+    assert.equal(await page.evaluate(() => window.isoApp.settings.get('rectification.xDirection')), 'toward');
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-invert-x"]').click();
+    await page.waitForFunction(() => document.querySelector('.sim-page:not([hidden]) [data-action="sim-invert-x"]').getAttribute('aria-pressed') === 'false');
+    // Flanc droit avec Z+ vers la droite : ce programme écrit en miroir passerait à travers la meule.
+    await page.locator('.sim-page:not([hidden]) [data-diamond="rightFlank"]').click();
+    await page.waitForSelector('.sim-page:not([hidden]) .sim-alerts:not([hidden])');
+    assert.deepEqual(await pressed(), ['straight:false', 'leftFlank:false', 'rightFlank:false']);
+    await page.locator('.sim-page:not([hidden]) [data-diamond="rightFlank"]').click();
+    await page.waitForSelector('.sim-page:not([hidden]) .sim-alerts[hidden]', { state: 'attached' });
+    assert.equal(await page.evaluate(() => window.isoApp.settings.get('rectification.zRightFlank')), 'left');
     // Largeur et diamant par défaut modifiables, machine mémorisée par programme.
-    await page.locator('[data-action="sim-stock"]').click();
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-stock"]').click();
     await page.locator('.dialog input[name="width"]').fill('25');
     await page.locator('.dialog button', { hasText: 'Appliquer' }).click();
-    await page.waitForFunction(() => document.querySelector('[data-action="sim-stock"]').textContent === 'Meule L25');
-    await page.locator('[data-action="sim-stock"]').click();
-    await page.locator('.dialog button', { hasText: 'Reprendre celui du programme' }).click();
-    await page.waitForFunction(() => document.querySelector('[data-action="sim-stock"]').textContent === 'Meule L40');
-    await page.locator('[data-action="sim-leave"]').click();
+    await page.waitForFunction(() => document.querySelector('.sim-page:not([hidden]) [data-action="sim-stock"]').textContent === 'Meule L25');
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-stock"]').click();
+    await page.locator('.dialog button', { hasText: 'Reprendre la largeur du programme' }).click();
+    await page.waitForFunction(() => document.querySelector('.sim-page:not([hidden]) [data-action="sim-stock"]').textContent === 'Meule L40');
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-leave"]').click();
+    await page.waitForSelector('.editor-page:not([hidden])');
+    // Bouton « Simuler (rectification) » de l'éditeur : recharge la copie du programme ouvert.
+    await page.locator('[data-tool="rectification"]').click();
+    await page.waitForSelector('.sim-page[data-simulator="rectification"]:not([hidden])');
+    assert.equal(await page.locator('.sim-page:not([hidden]) .sim-program').count(), 1);
+    await gotoEditor(page);
     await setText(page, before);
   });
 
@@ -826,42 +852,42 @@ const desktop = await open(DESKTOP);
     const originalId = (await workspace()).id;
     const ids = await page.evaluate(async () => {
       const ws = window.isoApp.workspace;
-      const right = await ws.create({ name: 'E2E DIAMANT DROIT', content: ['O0601 (TAILLAGE MEULE L40)', 'G98', '#100=12. (PROFONDEUR COMMUNE)', '#101=#101+1', 'T0303 (DIAMANT FLANC DROIT)', 'G0 X2. Z-0.2', 'G1 X[-#100] F80', 'G0 Z3.', 'G0 X2.', 'M30'].join('\n') });
+      const right = await ws.create({ name: 'E2E DIAMANT DROIT', content: ['O0601 (TAILLAGE MEULE L40)', 'G98', '#100=12. (PROFONDEUR COMMUNE)', '#101=#101+1', 'T0303 (DIAMANT FLANC DROIT)', 'G0 X2. Z0.2', 'G1 X[-#100] F80', 'G0 Z-3.', 'G0 X2.', 'M30'].join('\n') });
       const left = await ws.create({ name: 'E2E DIAMANT GAUCHE', content: ['O0602 (TAILLAGE MEULE L40)', 'G98', '#101=#101+1', 'T0202 (DIAMANT FLANC GAUCHE)', 'G0 X2. Z0.2', 'G1 X[-#100] F80', 'G0 Z-3.', 'G0 X2.', 'M30'].join('\n') });
       return [right.id, left.id];
     });
     await page.evaluate((id) => window.isoApp.workspace.open(id), originalId);
-    await navTo(page, 'simulation', '.sim-page:not([hidden])');
-    await page.locator('[data-action="sim-clear"]').click();
-    await page.waitForSelector('.sim-empty:not([hidden])');
-    await page.locator('[data-action="sim-load-empty"]').click();
+    await navTo(page, 'rectification', '.sim-page[data-simulator="rectification"]:not([hidden])');
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-clear"]').click();
+    await page.waitForSelector('.sim-page:not([hidden]) .sim-empty:not([hidden])');
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-load-empty"]').click();
     for (const name of ['E2E DIAMANT DROIT', 'E2E DIAMANT GAUCHE']) await page.locator('.dialog .sim-pick', { hasText: name }).locator('input').check();
     assert.equal(await page.locator('.dialog .sim-pick', { hasText: 'E2E DIAMANT GAUCHE' }).getAttribute('data-rank'), '2', 'ordre de sélection');
     await page.locator('.dialog button', { hasText: 'Charger' }).click();
-    await page.waitForFunction(() => document.querySelector('.sim-page .console-title').textContent === 'E2E DIAMANT DROIT + E2E DIAMANT GAUCHE');
-    assert.equal(await page.locator('[data-action="sim-stock"]').textContent(), 'Meule L40');
-    assert.equal(await page.locator('.sim-program').count(), 2);
-    assert.equal(await page.locator('.sim-alerts').isHidden(), true);
+    await page.waitForFunction(() => document.querySelector('.sim-page:not([hidden]) .console-title').textContent === 'E2E DIAMANT DROIT + E2E DIAMANT GAUCHE');
+    assert.equal(await page.locator('.sim-page:not([hidden]) [data-action="sim-stock"]').textContent(), 'Meule L40');
+    assert.equal(await page.locator('.sim-page:not([hidden]) .sim-program').count(), 2);
+    assert.equal(await page.locator('.sim-page:not([hidden]) .sim-alerts').isHidden(), true);
     // Le 2e programme reprend #100 du 1er (sinon son X[-#100] serait sans effet) et le compteur continue.
-    await page.locator('.sim-variables summary').click();
-    assert.deepEqual(await page.locator('.sim-variables td').allTextContents(), ['#100', '12', '#101', '2']);
-    assert.deepEqual(await page.locator('.sim-tools .sim-tool-table tbody td:nth-child(2)').allTextContents(), ['flanc droit', 'flanc gauche']);
+    await page.locator('.sim-page:not([hidden]) .sim-variables summary').click();
+    assert.deepEqual(await page.locator('.sim-page:not([hidden]) .sim-variables td').allTextContents(), ['#100', '12', '#101', '2']);
+    assert.deepEqual(await page.locator('.sim-page:not([hidden]) .sim-tools .sim-tool-table tbody td:nth-child(2)').allTextContents(), ['flanc droit', 'flanc gauche']);
     // Diamant choisi par programme.
-    await page.locator('select[data-program="1"]').selectOption('straight');
-    await page.waitForFunction(() => [...document.querySelectorAll('.sim-tools .sim-tool-table tbody td:nth-child(2)')].map((td) => td.textContent).join() === 'flanc droit,droit');
-    await page.locator('select[data-program="1"]').selectOption('auto');
+    await page.locator('.sim-page:not([hidden]) select[data-program="1"]').selectOption('straight');
+    await page.waitForFunction(() => [...document.querySelectorAll('.sim-page:not([hidden]) .sim-tools .sim-tool-table tbody td:nth-child(2)')].map((td) => td.textContent).join() === 'flanc droit,droit');
+    await page.locator('.sim-page:not([hidden]) select[data-program="1"]').selectOption('auto');
     // Ordre modifiable.
-    await page.locator('.sim-program[data-index="0"] [data-action="sim-program-down"]').click();
-    await page.waitForFunction(() => document.querySelector('.sim-page .console-title').textContent === 'E2E DIAMANT GAUCHE + E2E DIAMANT DROIT');
+    await page.locator('.sim-page:not([hidden]) .sim-program[data-index="0"] [data-action="sim-program-down"]').click();
+    await page.waitForFunction(() => document.querySelector('.sim-page:not([hidden]) .console-title').textContent === 'E2E DIAMANT GAUCHE + E2E DIAMANT DROIT');
     // Retour à l'éditeur : ouvre le programme de la ligne en cours (le dernier à la fin).
     await page.evaluate(() => {
-      const range = document.querySelector('.sim-range');
+      const range = document.querySelector('.sim-page:not([hidden]) .sim-range');
       range.value = 1000;
       range.dispatchEvent(new Event('input'));
     });
-    assert.match(await page.locator('.sim-page .console-counter').textContent(), /^E2E DIAMANT DROIT · ligne \d+/);
+    assert.match(await page.locator('.sim-page:not([hidden]) .console-counter').textContent(), /^E2E DIAMANT DROIT · ligne \d+/);
     await shot(page, 'pc-sombre-taillage-deux-diamants');
-    await page.locator('[data-action="sim-leave"]').click();
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-leave"]').click();
     await page.waitForSelector('.editor-page:not([hidden])');
     await page.waitForFunction(() => window.isoApp.workspace.current.name === 'E2E DIAMANT DROIT');
     await page.evaluate(
@@ -1275,7 +1301,8 @@ const desktop = await open(DESKTOP);
     assert.equal(await page.locator('.shortcut-table tr.is-off').count() > 0, true);
     await shot(page, 'ordinateur-parametres-tout-desactive');
     assert.equal(await page.locator('.sidenav [data-nav="calculateurs"]').count(), 0, 'page Calculateurs retirée du menu');
-    assert.deepEqual(await page.locator('.sidenav .is-upcoming .sidenav-label').allTextContents(), ['Cours d’ISO', 'Simulation 2D']);
+    assert.deepEqual(await page.locator('.sidenav .is-upcoming .sidenav-label').allTextContents(), ['Centre d’usinage']);
+    assert.equal(await page.locator('.sidenav [data-nav="simulation"], .sidenav [data-nav="rectification"]').count(), 0, 'simulateurs retirés du menu');
     await gotoEditor(page);
     assert.equal(await page.locator('.cm-gutters').count(), 0, 'aucune marge');
     assert.equal(await page.locator('.cm-content [class*="tok-"]').count(), 0, 'aucune coloration');
@@ -1453,30 +1480,30 @@ const mobile = await open(MOBILE);
     await page.waitForSelector('.editor-page:not([hidden])');
   });
 
-  await step('simulation 2D sur smartphone : sans défilement horizontal, brut modifiable', async () => {
-    await navTo(page, 'simulation', '.sim-page:not([hidden])');
+  await step('simulateur tour sur smartphone : sans défilement horizontal, brut modifiable', async () => {
+    await navTo(page, 'simulation', '.sim-page[data-simulator="simulation"]:not([hidden])');
     // Indépendant de l'éditeur : le programme se charge dans le simulateur.
-    await page.waitForSelector('.sim-empty:not([hidden])');
+    await page.waitForSelector('.sim-page:not([hidden]) .sim-empty:not([hidden])');
     assert.equal(await noHorizontalScroll(), true);
-    await page.locator('[data-action="sim-load-empty"]').tap();
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-load-empty"]').tap();
     await page.locator('.dialog .sim-pick', { hasText: 'Exemple' }).first().locator('input').check();
     await page.locator('.dialog button', { hasText: 'Charger' }).tap();
-    await page.waitForSelector('.sim-empty[hidden]', { state: 'attached' });
+    await page.waitForSelector('.sim-page:not([hidden]) .sim-empty[hidden]', { state: 'attached' });
     assert.equal(await noHorizontalScroll(), true);
     await shot(page, 'mobile-clair-simulation-programmes');
-    await page.locator('[data-action="sim-stock"]').tap();
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-stock"]').tap();
     await page.locator('.dialog input[name="diameter"]').fill('60');
     await page.locator('.dialog button', { hasText: 'Appliquer' }).tap();
-    await page.waitForFunction(() => /Ø60/.test(document.querySelector('[data-action="sim-stock"]').textContent));
+    await page.waitForFunction(() => /Ø60/.test(document.querySelector('.sim-page:not([hidden]) [data-action="sim-stock"]').textContent));
     await page.evaluate(() => {
-      const range = document.querySelector('.sim-range');
+      const range = document.querySelector('.sim-page:not([hidden]) .sim-range');
       range.value = 600;
       range.dispatchEvent(new Event('input'));
     });
     await shot(page, 'mobile-clair-simulation');
-    await page.locator('[data-action="sim-stock"]').tap();
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-stock"]').tap();
     await page.locator('.dialog button', { hasText: 'Reprendre celui du programme' }).tap();
-    await page.waitForFunction(() => /Ø50/.test(document.querySelector('[data-action="sim-stock"]').textContent));
+    await page.waitForFunction(() => /Ø50/.test(document.querySelector('.sim-page:not([hidden]) [data-action="sim-stock"]').textContent));
     await gotoEditor(page);
   });
 
@@ -1618,6 +1645,47 @@ const mobile = await open(MOBILE);
     await shot(page, 'mobile-sombre-parametres');
     await gotoEditor(page);
     await shot(page, 'mobile-sombre-editeur');
+  });
+
+  await step('simulateur rectification sur smartphone : deux diamants en miroir, repère de chacun', async () => {
+    const originalId = await page.evaluate(() => window.isoApp.workspace.current.id);
+    const ids = await page.evaluate(async () => {
+      const ws = window.isoApp.workspace;
+      const flank = (name, tool) => ws.create({ name, content: [`O0700 (TAILLAGE MEULE L40)`, 'G98', '#100=8.', tool, 'G0 X2. Z0.2', 'G1 X[-#100] F80', 'G0 Z-3.', 'G0 X2.', 'M30'].join('\n') });
+      return [(await flank('E2E FLANC DROIT', 'T0303 (DIAMANT FLANC DROIT)')).id, (await flank('E2E FLANC GAUCHE', 'T0202 (DIAMANT FLANC GAUCHE)')).id];
+    });
+    await page.evaluate((id) => window.isoApp.workspace.open(id), originalId);
+    await navTo(page, 'rectification', '.sim-page[data-simulator="rectification"]:not([hidden])');
+    await page.waitForSelector('.sim-page:not([hidden]) .sim-empty:not([hidden])');
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-load-empty"]').tap();
+    for (const name of ['E2E FLANC DROIT', 'E2E FLANC GAUCHE']) await page.locator('.dialog .sim-pick', { hasText: name }).locator('input').check();
+    await page.locator('.dialog button', { hasText: 'Charger' }).tap();
+    await page.waitForFunction(() => document.querySelector('.sim-page:not([hidden]) .console-title').textContent === 'E2E FLANC DROIT + E2E FLANC GAUCHE');
+    assert.equal(await page.locator('.sim-page:not([hidden]) .sim-alerts').isHidden(), true, 'même programme pour les deux flancs, sans collision');
+    assert.equal(await noHorizontalScroll(), true);
+    const axes = await page.locator('.sim-page:not([hidden]) .sim-axes').boundingBox();
+    assert.ok(axes.x >= 0 && axes.x + axes.width <= 375, 'boutons des axes dans l’écran');
+    await page.evaluate(() => {
+      const range = document.querySelector('.sim-page:not([hidden]) .sim-range');
+      range.value = 1000;
+      range.dispatchEvent(new Event('input'));
+    });
+    assert.equal(await page.locator('.sim-page:not([hidden]) .sim-programs').evaluate((el) => el.open), false, 'liste repliée après le chargement (smartphone)');
+    await shot(page, 'mobile-sombre-rectification-diamants');
+    await page.locator('.sim-page:not([hidden]) .sim-programs summary').tap();
+    await shot(page, 'mobile-sombre-rectification-programmes');
+    await page.locator('.sim-page:not([hidden]) [data-action="sim-clear"]').tap();
+    await page.evaluate(
+      async (created) => {
+        const ws = window.isoApp.workspace;
+        for (const c of created) {
+          await ws.remove(c);
+          await ws.purge(c);
+        }
+      },
+      ids,
+    );
+    await gotoEditor(page);
   });
 
   await step('aucune erreur dans la console (smartphone)', async () => {

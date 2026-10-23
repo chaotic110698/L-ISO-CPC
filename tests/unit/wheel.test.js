@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { diamondShape, isDressingProgram, parseWheel, diamondFromComment, originZ, toWheelMoves, sanitizeWheel } from '../../src/modules/simulation-2d/wheel.js';
+import { diamondShape, isDressingProgram, parseWheel, diamondFromComment, originZ, toWheelMoves, sanitizeWheel, zSign } from '../../src/modules/simulation-2d/wheel.js';
 
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≠ ${b}`);
 
@@ -31,7 +31,7 @@ test('origine des diamants et cotes ramenées dans le repère de la meule', () =
   assert.equal(originZ('straight', wheel), 20);
   const moves = [{ tool: 'T2', points: [{ x: 2, z: 0 }, { x: -0.2, z: -5 }] }];
   const [diameter] = toWheelMoves(moves, wheel, () => 'rightFlank');
-  assert.deepEqual(diameter.points, [{ x: 2, z: 40 }, { x: -0.2, z: 35 }], 'X au diamètre : x reste le double de l’écart radial');
+  assert.deepEqual(diameter.points, [{ x: 2, z: 40 }, { x: -0.2, z: 45 }], 'X au diamètre : x reste le double de l’écart radial ; flanc droit : Z+ vers la gauche');
   const [radius] = toWheelMoves(moves, { ...wheel, xMode: 'radius' }, () => 'leftFlank');
   assert.deepEqual(radius.points, [{ x: 4, z: 0 }, { x: -0.4, z: -5 }]);
   assert.equal(radius.diamond, 'leftFlank');
@@ -46,15 +46,33 @@ test('changement de diamant : départ depuis la position réelle (origine du dia
   ];
   const kinds = { T2: 'leftFlank', T3: 'rightFlank' };
   const [, second] = toWheelMoves(moves, wheel, (t) => kinds[t]);
-  assert.deepEqual(second.points, [{ x: 2, z: -3 }, { x: 2, z: 39.8 }]);
+  assert.deepEqual(second.points, [{ x: 2, z: -3 }, { x: 2, z: 40.2 }], 'départ : repère du flanc gauche ; arrivée : repère du flanc droit (Z+ vers la gauche)');
 });
 
-test('sens des axes inversé (selon la machine) : X+ vers la meule, Z+ vers le flanc gauche', () => {
-  const moves = [{ tool: 'T1', points: [{ x: 2, z: 0 }, { x: -0.2, z: 5 }] }];
-  const wheel = sanitizeWheel({ width: 40, invertX: true, invertZ: true });
+test('sens de Z+ propre à chaque diamant : par défaut, flanc droit en miroir du flanc gauche', () => {
+  const wheel = sanitizeWheel({ width: 40 });
+  assert.deepEqual(wheel.zDirections, { straight: 'right', leftFlank: 'right', rightFlank: 'left' });
+  assert.equal(zSign('leftFlank', wheel), 1);
+  assert.equal(zSign('rightFlank', wheel), -1);
+  // Même programme pour les deux flancs : Z0.2 = 0,2 mm dans la meule, Z-3 = dégagé à l'extérieur.
+  const moves = [{ tool: 'T1', points: [{ x: 2, z: 0.2 }, { x: -12, z: 0.2 }, { x: -12, z: -3 }] }];
   const [left] = toWheelMoves(moves, wheel, () => 'leftFlank');
-  assert.deepEqual(left.points, [{ x: -2, z: 0 }, { x: 0.2, z: -5 }]);
+  const [right] = toWheelMoves(moves, wheel, () => 'rightFlank');
+  assert.deepEqual(left.points.map((p) => p.z), [0.2, 0.2, -3]);
+  right.points.forEach((p, i) => close(p.z, [39.8, 39.8, 43][i]));
+  // Machine dont les deux diamants ont Z+ vers la droite.
+  const same = sanitizeWheel({ width: 40, zDirections: { rightFlank: 'right' } });
+  toWheelMoves(moves, same, () => 'rightFlank')[0].points.forEach((p, i) => close(p.z, [40.2, 40.2, 37][i]));
+  assert.equal(sanitizeWheel({ zDirections: { leftFlank: 'haut' } }).zDirections.leftFlank, 'right', 'valeur inconnue : sens par défaut');
+});
+
+test('X+ inversé ; ancien réglage « Z inversé » : chaque diamant garde son sens relatif', () => {
+  const wheel = sanitizeWheel({ width: 40, invertX: true, invertZ: true });
+  assert.deepEqual(wheel.zDirections, { straight: 'left', leftFlank: 'left', rightFlank: 'right' });
+  const moves = [{ tool: 'T1', points: [{ x: 2, z: 0 }, { x: -0.2, z: 5 }] }];
+  const [left] = toWheelMoves(moves, wheel, () => 'leftFlank');
+  assert.deepEqual(left.points, [{ x: -2, z: 0 }, { x: 0.2, z: -5 }], 'X+ vers la meule, Z+ vers la gauche');
   const [right] = toWheelMoves(moves, { ...wheel, invertX: false }, () => 'rightFlank');
-  assert.deepEqual(right.points, [{ x: 2, z: 40 }, { x: -0.2, z: 35 }], 'origine flanc droit inchangée : angle droit');
+  assert.deepEqual(right.points, [{ x: 2, z: 40 }, { x: -0.2, z: 45 }], 'origine flanc droit inchangée : angle droit');
   assert.equal(sanitizeWheel({}).invertX, false);
 });

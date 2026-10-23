@@ -50,7 +50,7 @@ export default {
       id: 'pages',
       label: 'Pages',
       order: 20,
-      entries: () => ctx.ui.navItems().map((item) => ({ label: item.label, detail: 'Page', icon: item.icon, suggested: true, run: () => (item.path ? go(item.path) : item.onSelect?.()) })),
+      entries: () => ctx.ui.navItems().map((item) => ({ label: item.title ?? item.label, detail: 'Page', icon: item.icon, suggested: true, run: () => (item.path ? go(item.path) : item.onSelect?.()) })),
     });
     ctx.ui.palette.add({
       id: 'programs',

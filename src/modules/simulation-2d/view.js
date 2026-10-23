@@ -50,6 +50,11 @@ export function createView(canvas, { onPick } = {}) {
   function fit() {
     if (!scene) return;
     const { width, height } = size();
+    // Page masquée (scène calculée avant l'affichage) : cadrage dès que le canvas a une taille.
+    if (width < 2 || height < 2) {
+      fitted = false;
+      return;
+    }
     const { stock, material } = scene;
     const cut = scene.moves.filter((m) => m.kind === 'cut').flatMap((m) => m.points);
     const zs = scene.wheel ? [-6, material.zMax + 6, ...cut.map((p) => p.z)] : [stock.face + 4, stock.face - stock.length - 12, ...cut.map((p) => p.z)];
@@ -142,12 +147,10 @@ export function createView(canvas, { onPick } = {}) {
     // Légende du côté opposé à la périphérie (loin du diamant), à droite : à gauche, les flèches du repère.
     const caption = `Meule — largeur ${width} mm`;
     g.fillText(caption, mx + width * s - 6 - g.measureText(caption).width, scene.front ? top + 16 : top + depth * s - 8);
-    // Repère : axes Z (vers la droite) et X (en s'éloignant de la meule) depuis l'origine principale.
-    const [x0, y0] = toScreen(0, 0);
-    // Sens écran de X+ (en s'éloignant de la meule, sauf axe inversé) et de Z+ (vers la droite, sauf axe inversé).
+    // Repère de chaque diamant, à son origine : Z+ dans son sens (vers la droite ou vers la
+    // gauche), X+ en s'éloignant de la meule (vers le bas, vue en miroir), sauf axe inversé.
     const away = (scene.front ? 1 : -1) * (scene.wheelSettings?.invertX ? -1 : 1);
-    const right = scene.wheelSettings?.invertZ ? -1 : 1;
-    const arrow = (x1, y1, label, dx, dy) => {
+    const arrow = (x0, y0, x1, y1, label, dx, dy) => {
       g.beginPath();
       g.moveTo(x0, y0);
       g.lineTo(x1, y1);
@@ -163,12 +166,14 @@ export function createView(canvas, { onPick } = {}) {
     };
     g.strokeStyle = colors.text;
     g.fillStyle = colors.text;
-    g.lineWidth = 1.5;
-    arrow(x0 + right * 46, y0, 'Z+', right > 0 ? 4 : -22, 4);
-    arrow(x0, y0 + away * 46, 'X+', 4, away > 0 ? 12 : 0);
     let previousEnd = -Infinity;
     for (const origin of scene.origins ?? []) {
       const [ox, oy] = toScreen(origin.z, 0);
+      const sign = origin.sign ?? 1;
+      g.lineWidth = 1.5;
+      arrow(ox, oy, ox + sign * 46, oy, 'Z+', sign > 0 ? 4 : -22, 4);
+      arrow(ox, oy, ox, oy + away * 46, 'X+', 4, away > 0 ? 12 : 0);
+      g.lineWidth = 1;
       const textWidth = g.measureText(origin.label).width;
       const textX = ox + (origin.z > width / 2 ? -8 - textWidth : 8);
       // Deux étiquettes qui se chevauchent (écran étroit) : la seconde passe à la ligne suivante.

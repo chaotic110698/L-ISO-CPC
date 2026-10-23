@@ -107,25 +107,27 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
     /**
      * Ajoute une entrée au menu. `path` : lien vers une page ; `onSelect` : action ;
      * `upcoming: true` : fonction à venir (grisée, non cliquable) ; `order` : position ;
-     * `section` : 'general' | 'programmation' | 'simulateur' | 'apprentissage' | 'reglages'.
+     * `section` : 'general' | 'programmation' | 'simulateur' | 'apprentissage' | 'reglages'
+     * (une fonction à venir sans section va dans « À venir ») ; `title` : nom complet (infobulle,
+     * palette de commandes) quand le libellé seul ne suffit pas (« Tour » → « Simulateur tour »).
      * Une entrée portant l'identifiant d'une entrée existante la remplace (une fonction
      * « à venir » devient disponible) ; l'ancienne réapparaît quand la nouvelle est retirée.
      * @returns {() => void} retrait de l'entrée
      */
-    addNavItem({ id, path, label, icon: iconName, onSelect, upcoming = false, description, order = 50, section = 'general' }) {
+    addNavItem({ id, path, label, title, icon: iconName, onSelect, upcoming = false, description, order = 50, section }) {
       const content = [icon(iconName), h('span', { class: 'sidenav-label' }, label)];
       let element;
       if (upcoming) {
         element = h('span', { class: 'sidenav-item is-upcoming', title: description ?? 'Bientôt disponible' }, content, h('span', { class: 'badge' }, 'bientôt'));
       } else if (path) {
-        element = h('a', { class: 'sidenav-item', href: `#${path}`, title: label, onclick: () => setOpen(false) }, content);
+        element = h('a', { class: 'sidenav-item', href: `#${path}`, title: title ?? label, onclick: () => setOpen(false) }, content);
       } else {
         element = h(
           'button',
           {
             type: 'button',
             class: 'sidenav-item',
-            title: label,
+            title: title ?? label,
             onclick: () => {
               setOpen(false);
               onSelect?.();
@@ -135,13 +137,13 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
         );
       }
       const li = h('li', { dataset: { nav: id, order: String(order) } }, element);
-      const list = sections.get(upcoming ? 'upcoming' : section)?.list ?? sections.get('general').list;
+      const list = (sections.get(section ?? (upcoming ? 'upcoming' : 'general')) ?? sections.get('general')).list;
       const next = [...list.children].find((child) => Number(child.dataset.order) > order);
       list.insertBefore(li, next ?? null);
 
       const replaced = items.get(id);
       if (replaced) replaced.li.hidden = true;
-      const item = { id, path, label, icon: iconName, onSelect, upcoming, element, li, replaced };
+      const item = { id, path, label, title, icon: iconName, onSelect, upcoming, element, li, replaced };
       items.set(id, item);
       refreshSections();
 
@@ -160,7 +162,7 @@ export function createShell(root, { onRename, onToggleTheme, collapsed = false, 
 
     /** Entrées utilisables du menu (palette de commandes). */
     listNavItems() {
-      return [...items.values()].filter((item) => !item.upcoming).map(({ id, path, label, icon: iconName, onSelect }) => ({ id, path, label, icon: iconName, onSelect }));
+      return [...items.values()].filter((item) => !item.upcoming).map(({ id, path, label, title, icon: iconName, onSelect }) => ({ id, path, label, title, icon: iconName, onSelect }));
     },
 
     setRoute(path) {

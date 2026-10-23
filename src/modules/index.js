@@ -13,6 +13,7 @@ import autocomplete from './autocomplete/index.js';
 import isoKeys from './iso-keys/index.js';
 import consoleMode from './console-mode/index.js';
 import simulation from './simulation-2d/index.js';
+import rectification from './rectification/index.js';
 import checker from './checker/index.js';
 import modalState from './modal-state/index.js';
 import renumberModule from './renumber/index.js';
@@ -35,4 +36,4 @@ import programList from './program-list/index.js';
 import calculators from './calculators/index.js';
 import courses from './courses/index.js';
 
-export const MODULES = [lineNumbers, highlighting, slashedZero, occurrences, definitions, autocomplete, isoKeys, macroSuggest, consoleMode, checker, modalState, simulation, outline, variables, macroWarnings, folding, search, goTo, palette, cycles, templates, library, renumberModule, coordinateShift, versions, history, autosave, exportFile, printSheet, programList, trash, install, calculators, courses];
+export const MODULES = [lineNumbers, highlighting, slashedZero, occurrences, definitions, autocomplete, isoKeys, macroSuggest, consoleMode, checker, modalState, simulation, rectification, outline, variables, macroWarnings, folding, search, goTo, palette, cycles, templates, library, renumberModule, coordinateShift, versions, history, autosave, exportFile, printSheet, programList, trash, install, calculators, courses];

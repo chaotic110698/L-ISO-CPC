@@ -1,5 +1,5 @@
 import { REFERENCE, simulate } from '../../engine/index.js';
-import { DIAMONDS } from './wheel.js';
+import { DIAMONDS, isDressingProgram } from './wheel.js';
 
 /**
  * Programmes chargés dans le simulateur, indépendamment de l'éditeur : une copie de leur texte
@@ -48,3 +48,24 @@ export function simulateChain(programs, dictionary, { reference = REFERENCE } = 
 
 /** Même bloc : même programme et même ligne. */
 export const sameBlock = (a, b) => a?.line === b?.line && (a?.program ?? 0) === (b?.program ?? 0);
+
+/**
+ * Avant la séparation des simulateurs (tour / rectification), un seul simulateur : sa session de
+ * taillage de meule (machine choisie « taillage », ou commentaire MEULE / DIAMANT / TAILLAGE)
+ * passe au simulateur rectification, et ses réglages de meule sont mis de côté pour lui
+ * (`rectification.legacyWheel`). Une seule fois ; appelée par les deux modules.
+ */
+export function splitLegacySession(kv) {
+  if (kv.get('simulation.split', false)) return;
+  kv.set('simulation.split', true);
+  const session = sanitizeSession(kv.get('simulation.session', null));
+  if (!session.programs.length) return;
+  const id = session.programs[0].id ?? 'sans-id';
+  const machine = kv.get(`simulation.machine.${id}`, null);
+  const dressing = machine ? machine === 'dressing' : isDressingProgram(session.programs.flatMap((p) => p.text.split('\n')));
+  if (!dressing) return;
+  if (!kv.get('rectification.session', null)) kv.set('rectification.session', session);
+  const wheel = kv.get(`simulation.wheel.${id}`, null);
+  if (wheel) kv.set('rectification.legacyWheel', wheel);
+  kv.remove('simulation.session');
+}
