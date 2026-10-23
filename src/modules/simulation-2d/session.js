@@ -27,11 +27,12 @@ export function sanitizeSession(raw) {
 /**
  * Exécute les programmes à la suite. Chaque déplacement, alerte et outil porte l'indice de son
  * programme (`program`) ; les numéros de ligne restent ceux de son programme.
- * → { moves, warnings, tools, end, variables (Map finale), starts (1er déplacement de chaque programme) }
+ * → { moves, warnings, tools, end, variables (Map finale), starts (1er déplacement de chaque
+ *     programme), snapshots (variables à la fin de chaque programme : celles que reçoit le suivant) }
  */
 export function simulateChain(programs, dictionary, { reference = REFERENCE } = {}) {
   const variables = new Map();
-  const chain = { moves: [], warnings: [], tools: [], starts: [], end: reference, variables };
+  const chain = { moves: [], warnings: [], tools: [], starts: [], snapshots: [], end: reference, variables };
   let from = reference;
   programs.forEach((program, index) => {
     const result = simulate(program.text.split('\n'), dictionary, { reference: from, variables });
@@ -40,6 +41,7 @@ export function simulateChain(programs, dictionary, { reference = REFERENCE } = 
     chain.moves.push(...result.moves.map(tag));
     chain.warnings.push(...result.warnings.map(tag));
     chain.tools.push(...result.tools.map(tag));
+    chain.snapshots.push(new Map(variables));
     from = result.end;
   });
   chain.end = from;

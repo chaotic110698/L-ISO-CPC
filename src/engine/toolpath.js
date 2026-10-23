@@ -1,4 +1,5 @@
 import { parseLine } from './parser.js';
+import { tokenizeLine } from './tokenizer.js';
 import { evaluateExpression, evaluateTokens } from './macro-eval.js';
 import { cycleParameters, isModalSimpleCycle, turningCycle } from './turning-cycles.js';
 
@@ -118,6 +119,26 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, variabl
     if (block.programNumber != null && !programs.has(block.programNumber)) programs.set(block.programNumber, i);
   });
 
+  /** Numéros des variables lues par une suite de jetons (variables directes #n, hors #0). */
+  const readVariables = (tokens) => tokens.filter((t) => t.type === 'variable' && t.index > 0).map((t) => t.index);
+
+  /**
+   * Variables lues sans valeur dans un calcul : vides, elles comptent pour 0 comme sur la
+   * commande, mais c'est souvent une variable écrite par un autre programme qui n'a pas été
+   * exécuté avant celui-ci (alerte). Variables système (#1000 et plus) : non simulées.
+   */
+  function warnEmpty(line, label, indices) {
+    const empty = [...new Set(indices)].filter((index) => vars.get(index) == null);
+    const common = empty.filter((index) => index < 1000);
+    const system = empty.filter((index) => index >= 1000);
+    const names = (list) => list.map((index) => `#${index}`).join(', ');
+    if (common.length) {
+      const many = common.length > 1;
+      warn(line, `${label} : ${names(common)} ${many ? 'vides, comptées' : 'vide, comptée'} 0. Si un autre programme ${many ? 'les écrit' : 'l’écrit'}, chargez-le avant celui-ci.`);
+    }
+    if (system.length) warn(line, `${label} : ${names(system)}, variable${system.length > 1 ? 's' : ''} système non simulée${system.length > 1 ? 's' : ''}, comptée${system.length > 1 ? 's' : ''} 0.`);
+  }
+
   /**
    * Valeur numérique de l'adresse `letter` du bloc : nombre écrit, ou expression de macro
    * calculée (X#901, X[#1+2.], X-#3). undefined si absente ou variable vide.
@@ -128,10 +149,13 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, variabl
     if (word.valueKind === 'number') return word.value;
     try {
       const value = evaluateExpression(word.expr, vars);
+      const read = readVariables(tokenizeLine(word.expr));
       if (value == null) {
-        warn(currentLine, `${letter}${word.expr} : variable vide, l’adresse ${letter} est ignorée.`);
+        const system = read.some((index) => index >= 1000);
+        warn(currentLine, system ? `${letter}${word.expr} : variable système non simulée, l’adresse ${letter} est ignorée.` : `${letter}${word.expr} : variable vide, l’adresse ${letter} est ignorée. Si un autre programme l’écrit, chargez-le avant celui-ci.`);
         return undefined;
       }
+      warnEmpty(currentLine, `${letter}${word.expr}`, read);
       return word.token.text.endsWith('-') ? -value : value;
     } catch (error) {
       warn(currentLine, `${letter}${word.expr} : expression non calculable (${error.message}).`);
@@ -328,6 +352,8 @@ export function simulate(lineTexts, dictionary, { reference = REFERENCE, variabl
     try {
       const index = tokens[0].index;
       if (index == null) throw new Error('variable indirecte #[…] non prise en charge');
+      // #101 = #101 + 1 : compteur qui part de vide (0), usage courant — pas d'alerte pour lui.
+      warnEmpty(line, `#${index} = ${rest.map((t) => t.text).join('')}`, readVariables(rest).filter((read) => read !== index));
       vars.set(index, evaluateTokens(rest, vars));
     } catch (error) {
       warn(line, `Affectation non calculable (${error.message}).`);

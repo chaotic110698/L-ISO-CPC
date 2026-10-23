@@ -282,6 +282,12 @@ export function createSimulator(ctx, config) {
       frames.set(key, { z: originZ(kind, wheel), sign: zSign(kind, wheel), names: [...(frames.get(key)?.names ?? []), DIAMONDS[kind].short] });
     }
     const origins = [...frames.values()].map(({ z, sign, names }) => ({ z, sign, label: `X0 Z0 · diamant${names.length > 1 ? 's' : ''} ${names.join(', ')}` }));
+    // Diamant « auto » de chaque programme (montré dans la liste) : lu dans le commentaire de ses
+    // outils ; « par défaut » si un outil n'en a pas (commentaire absent ou non reconnu).
+    const autoDiamonds = session.programs.map((_, index) => {
+      const found = result.tools.filter((t) => t.program === index).map((t) => fromComment.get(`${index}|${t.word}`));
+      return { kinds: found.length ? [...new Set(found.map((kind) => kind ?? wheel.diamond))] : [wheel.diamond], guessed: !found.length || found.some((kind) => !kind) };
+    });
     scene = {
       ...result,
       moves,
@@ -292,6 +298,7 @@ export function createSimulator(ctx, config) {
       timeline,
       origins,
       used,
+      autoDiamonds,
       shapeOf: (move) => diamondShape(move.diamond),
       front: true, // miroir : meule au-dessus, diamant en dessous (repère des opérateurs)
     };
@@ -335,10 +342,13 @@ export function createSimulator(ctx, config) {
       setPrograms(next);
     };
     const diamondSelect = (program, index) => {
+      // « auto » : le diamant lu dans le commentaire de l'outil est affiché, pour voir s'il est bien reconnu.
+      const auto = scene?.autoDiamonds?.[index];
+      const autoLabel = auto ? `Diamant : auto → ${auto.kinds.map((kind) => DIAMONDS[kind].short).join(', ')}${auto.guessed ? ' (par défaut)' : ''}` : 'Diamant : auto (commentaire de l’outil)';
       const select = h(
         'select',
         { class: 'input sim-side', 'aria-label': `Diamant de ${program.name}`, dataset: { program: String(index) }, onchange: () => setPrograms(programs.map((p, i) => (i === index ? { ...p, diamond: select.value } : p))) },
-        h('option', { value: 'auto' }, 'Diamant : auto (commentaire de l’outil)'),
+        h('option', { value: 'auto' }, autoLabel),
         Object.entries(DIAMONDS).map(([value, d]) => h('option', { value }, `Diamant ${d.short}`)),
       );
       select.value = program.diamond;
@@ -641,14 +651,26 @@ export function createSimulator(ctx, config) {
 
   /** Variables #… à la fin de la simulation (partagées entre les programmes enchaînés). */
   function renderVariables() {
-    const entries = [...scene.variables].filter(([, v]) => v != null).sort((a, b) => a[0] - b[0]);
-    variablesEl.hidden = !entries.length;
-    const format = (v) => String(Math.round(v * 10000) / 10000).replace('.', ',');
+    // Plusieurs programmes : valeurs à la fin de chacun (« Après 1 » = ce que reçoit le programme 2).
+    const snapshots = scene.snapshots?.length ? scene.snapshots : [scene.variables];
+    const several = snapshots.length > 1;
+    const indices = [...new Set(snapshots.flatMap((values) => [...values].filter(([, v]) => v != null).map(([index]) => index)))].sort((a, b) => a - b);
+    variablesEl.hidden = !indices.length;
+    const format = (v) => (v == null ? '—' : String(Math.round(v * 10000) / 10000).replace('.', ','));
     variablesEl.replaceChildren(
       ...[
-        h('summary', null, icon('variable'), `Variables en fin de simulation (${entries.length})`),
-        h('table', { class: 'sim-tool-table' }, h('tbody', null, entries.map(([index, value]) => h('tr', null, h('td', { class: 'mono' }, `#${index}`), h('td', { class: 'mono' }, format(value)))))),
-        session.programs.length > 1 ? h('p', { class: 'sim-note' }, 'Les programmes partagent leurs variables : chacun reprend les valeurs laissées par le précédent.') : null,
+        h('summary', null, icon('variable'), `${several ? 'Variables après chaque programme' : 'Variables en fin de simulation'} (${indices.length})`),
+        h(
+          'div',
+          { class: 'sim-table-scroll' },
+          h(
+            'table',
+            { class: 'sim-tool-table sim-var-table' },
+            several ? h('thead', null, h('tr', null, h('th', null, 'Variable'), session.programs.map((program, i) => h('th', { title: program.name }, `Après ${i + 1}`)))) : null,
+            h('tbody', null, indices.map((index) => h('tr', null, h('td', { class: 'mono' }, `#${index}`), snapshots.map((values) => h('td', { class: 'mono' }, format(values.get(index))))))),
+          ),
+        ),
+        several ? h('p', { class: 'sim-note' }, 'Rien n’est remis à zéro entre deux programmes : la colonne « Après 1 » donne les valeurs que reçoit le programme 2, et ainsi de suite (— : variable vide).') : null,
       ].filter(Boolean),
     );
   }

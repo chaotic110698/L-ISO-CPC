@@ -3292,7 +3292,17 @@ a.lesson-card:hover {
     'side side';
 }
 
-.sim-program .sim-side {
+.sim-program .sim-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.sim-var-table th:not(:first-child),
+.sim-var-table td:not(:first-child) {
+  text-align: right;
+}
+
+.sim-side {
   grid-area: side;
   width: 100%;
   min-width: 0;

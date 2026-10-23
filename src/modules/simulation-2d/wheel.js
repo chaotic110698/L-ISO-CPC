@@ -61,12 +61,16 @@ export function parseWheel(lineTexts) {
   return null;
 }
 
-/** Diamant indiqué sur la ligne de l'outil : « T0202 (DIAMANT FLANC GAUCHE) ». */
+/**
+ * Diamant indiqué sur la ligne de l'outil : « T0202 (DIAMANT FLANC GAUCHE) ». « Diamant gauche »,
+ * « diamant à droite », « diamant droite » désignent un diamant de flanc ; « diamant droit » (au
+ * masculin) le diamant droit, face à la meule.
+ */
 export function diamondFromComment(text) {
   const upper = String(text).toUpperCase();
-  if (/FLANC\s+GAUCHE/.test(upper)) return 'leftFlank';
-  if (/FLANC\s+DROIT/.test(upper)) return 'rightFlank';
-  if (/DIAMANT\s+DROIT|PERIPH/.test(upper)) return 'straight';
+  if (/FLANC\s+GAUCHE|DIAMANT\s+(?:[AÀ]\s+)?GAUCHE/.test(upper)) return 'leftFlank';
+  if (/FLANC\s+DROIT|DIAMANT\s+(?:[AÀ]\s+DROITE?|DROITE)\b/.test(upper)) return 'rightFlank';
+  if (/DIAMANT\s+DROIT\b|PERIPH/.test(upper)) return 'straight';
   return null;
 }
 

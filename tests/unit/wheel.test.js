@@ -22,6 +22,11 @@ test('programme de taillage et largeur de meule lus dans les commentaires', () =
   assert.equal(diamondFromComment('T0202 (DIAMANT FLANC GAUCHE)'), 'leftFlank');
   assert.equal(diamondFromComment('T0303 (flanc droit)'), 'rightFlank');
   assert.equal(diamondFromComment('T0101'), null);
+  assert.equal(diamondFromComment('T0202 (DIAMANT GAUCHE)'), 'leftFlank', 'diamant à gauche : flanc gauche');
+  assert.equal(diamondFromComment('T0303 (DIAMANT A DROITE)'), 'rightFlank');
+  assert.equal(diamondFromComment('T0303 (diamant à droite)'), 'rightFlank');
+  assert.equal(diamondFromComment('T0303 (DIAMANT DROITE)'), 'rightFlank');
+  assert.equal(diamondFromComment('T0101 (DIAMANT DROIT)'), 'straight', 'au masculin : diamant droit, face à la meule');
 });
 
 test('origine des diamants et cotes ramenées dans le repère de la meule', () => {

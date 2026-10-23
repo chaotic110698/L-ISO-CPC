@@ -870,7 +870,10 @@ const desktop = await open(DESKTOP);
     assert.equal(await page.locator('.sim-page:not([hidden]) .sim-alerts').isHidden(), true);
     // Le 2e programme reprend #100 du 1er (sinon son X[-#100] serait sans effet) et le compteur continue.
     await page.locator('.sim-page:not([hidden]) .sim-variables summary').click();
-    assert.deepEqual(await page.locator('.sim-page:not([hidden]) .sim-variables td').allTextContents(), ['#100', '12', '#101', '2']);
+    assert.deepEqual(await page.locator('.sim-page:not([hidden]) .sim-variables th').allTextContents(), ['Variable', 'Après 1', 'Après 2']);
+    assert.deepEqual(await page.locator('.sim-page:not([hidden]) .sim-variables td').allTextContents(), ['#100', '12', '12', '#101', '1', '2'], 'le programme 2 reçoit les valeurs laissées par le 1');
+    // « auto » : diamant lu dans le commentaire de l'outil, affiché pour chaque programme.
+    assert.deepEqual(await page.locator('.sim-page:not([hidden]) select[data-program] option[value="auto"]').allTextContents(), ['Diamant : auto → flanc droit', 'Diamant : auto → flanc gauche']);
     assert.deepEqual(await page.locator('.sim-page:not([hidden]) .sim-tools .sim-tool-table tbody td:nth-child(2)').allTextContents(), ['flanc droit', 'flanc gauche']);
     // Diamant choisi par programme.
     await page.locator('.sim-page:not([hidden]) select[data-program="1"]').selectOption('straight');
@@ -879,6 +882,9 @@ const desktop = await open(DESKTOP);
     // Ordre modifiable.
     await page.locator('.sim-page:not([hidden]) .sim-program[data-index="0"] [data-action="sim-program-down"]').click();
     await page.waitForFunction(() => document.querySelector('.sim-page:not([hidden]) .console-title').textContent === 'E2E DIAMANT GAUCHE + E2E DIAMANT DROIT');
+    // Dans cet ordre, #100 n'est pas encore écrite quand le flanc gauche s'exécute : alerte.
+    await page.waitForSelector('.sim-page:not([hidden]) .sim-alerts:not([hidden])');
+    assert.match(await page.locator('.sim-page:not([hidden]) .sim-alerts').textContent(), /E2E DIAMANT GAUCHE · ligne \d+ X\[-#100\] : #100 vide, comptée 0\. Si un autre programme l’écrit, chargez-le avant celui-ci\./);
     // Retour à l'éditeur : ouvre le programme de la ligne en cours (le dernier à la fin).
     await page.evaluate(() => {
       const range = document.querySelector('.sim-page:not([hidden]) .sim-range');

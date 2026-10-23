@@ -30,6 +30,27 @@ test('programmes enchaînés : variables partagées, sans remise à zéro, et po
   assert.ok(!sameBlock(second[0], { program: 0, line: second[0].line }));
 });
 
+test('programmes enchaînés : variables après chaque programme, alerte si une variable attendue est vide', () => {
+  const left = ['#500=0.15 (PASSE)', '#105=12.', '#101=#101+1', 'G0 X2. Z0.2', 'G1 X[-#105] F80', 'G0 X2.'].join('\n');
+  const right = ['#101=#101+1', '#120=#105-#500', 'G0 X2. Z[#500]', 'G1 X[-#120] F80', 'G0 X2.'].join('\n');
+  const inOrder = simulateChain([{ text: left }, { text: right }], codes);
+  assert.deepEqual(inOrder.snapshots.map((m) => Object.fromEntries(m)), [
+    { 500: 0.15, 105: 12, 101: 1 },
+    { 500: 0.15, 105: 12, 101: 2, 120: 11.85 },
+  ], 'le 2e programme reçoit les valeurs du 1er (colonne « Après 1 »)');
+  // (alertes propres au tour — broche, diamètre négatif — écartées par le simulateur rectification)
+  const dressingWarnings = (list) => list.filter((w) => !/broche arrêtée|diamètre négatif/.test(w.message));
+  assert.deepEqual(dressingWarnings(inOrder.warnings), [], 'compteur #101 = #101 + 1 : pas d’alerte');
+  // Programme du flanc droit seul (ou placé avant l'autre) : ses variables d'entrée sont vides.
+  const alone = simulateChain([{ text: right }], codes);
+  const messages = dressingWarnings(alone.warnings).map((w) => w.message);
+  assert.ok(messages.some((m) => /^#120 = #105-#500 : #105, #500 vides, comptées 0\. Si un autre programme les écrit, chargez-le avant celui-ci\.$/.test(m)), messages.join(' | '));
+  assert.ok(messages.some((m) => /^Z\[#500\] : variable vide, l’adresse Z est ignorée\. Si un autre programme l’écrit, chargez-le avant celui-ci\.$/.test(m)), messages.join(' | '));
+  // Variable système (position, correcteurs…) : non simulée.
+  const system = simulateChain([{ text: 'G0 X[#5021+2.] Z0' }], codes);
+  assert.match(dressingWarnings(system.warnings)[0].message, /#5021, variable système non simulée, comptée 0/);
+});
+
 const fakeKv = (entries = {}) => {
   const store = new Map(Object.entries(entries));
   return { get: (key, fallback = null) => (store.has(key) ? store.get(key) : fallback), set: (key, value) => store.set(key, value), remove: (key) => store.delete(key) };
